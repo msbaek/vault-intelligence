@@ -119,6 +119,15 @@ def initialize_system(vault_path: str, config: dict) -> bool:
             device=config.get('model', {}).get('device')
         )
         
+        # TF-IDF 엔진의 경우 테스트 문서로 훈련 필요
+        print("📚 TF-IDF 엔진 훈련 중...")
+        test_docs = [
+            "테스트 문서 1: TDD는 테스트 주도 개발입니다.",
+            "테스트 문서 2: 리팩토링은 코드 개선 기법입니다.",
+            "테스트 문서 3: 클린코드는 읽기 쉬운 코드를 의미합니다."
+        ]
+        engine.fit_documents(test_docs)
+        
         # 테스트 임베딩 생성
         test_text = "테스트 임베딩 생성"
         test_embedding = engine.encode_text(test_text)
@@ -366,7 +375,7 @@ def run_topic_collection(vault_path: str, topic: str, top_k: int, threshold: flo
         return False
 
 
-def run_topic_analysis(vault_path: str, config: dict):
+def run_topic_analysis(vault_path: str, output_file: str, config: dict):
     """주제 분석 실행"""
     try:
         print("🔍 주제 분석 시작...")
@@ -384,23 +393,42 @@ def run_topic_analysis(vault_path: str, config: dict):
         # 주제 분석기 초기화
         analyzer = TopicAnalyzer(search_engine, config)
         
-        # 주제 분석 수행
-        analysis = analyzer.analyze_topics()
+        # 주제 분석 수행 (새로운 주제 기반 방식 사용)
+        print("🎯 주제 기반 분석을 시작합니다...")
+        analysis = analyzer.analyze_topics_by_predefined_subjects(min_docs_per_topic=5)
         
         print(f"\n📊 주제 분석 결과:")
         print("-" * 50)
         print(f"분석 문서: {analysis.total_documents}개")
-        print(f"발견 주제: {analysis.topic_count}개")
-        print(f"클러스터링 방법: {analysis.clustering_method}")
+        print(f"발견 클러스터: {analysis.get_cluster_count()}개")
+        print(f"클러스터링 방법: {analysis.algorithm}")
+        if analysis.silhouette_score is not None:
+            print(f"실루엣 점수: {analysis.silhouette_score:.3f}")
         
-        if analysis.topics:
-            print(f"\n🏷️ 주요 주제들:")
-            for topic in analysis.topics[:10]:  # 상위 10개만 표시
-                print(f"\n주제 {topic.id}: {topic.name}")
-                print(f"  문서 수: {topic.document_count}개")
-                print(f"  주요 키워드: {', '.join(topic.keywords[:5])}")
-                if topic.description:
-                    print(f"  설명: {topic.description[:100]}...")
+        if analysis.clusters:
+            print(f"\n🏷️ 주요 클러스터들:")
+            for i, cluster in enumerate(analysis.clusters[:10]):  # 상위 10개만 표시
+                print(f"\n클러스터 {i+1}: {cluster.label}")
+                print(f"  문서 수: {cluster.get_document_count()}개")
+                print(f"  주요 키워드: {', '.join(cluster.keywords[:5]) if cluster.keywords else '없음'}")
+                if cluster.coherence_score is not None:
+                    print(f"  일관성 점수: {cluster.coherence_score:.3f}")
+                if cluster.representative_doc:
+                    print(f"  대표 문서: {cluster.representative_doc.title[:50]}")
+        
+        # 결과를 파일로 저장 (옵션)
+        if output_file:
+            # 파일 확장자에 따라 다른 형식으로 저장
+            if output_file.lower().endswith('.md'):
+                if analyzer.export_markdown_report(analysis, output_file):
+                    print(f"\n💾 마크다운 보고서가 {output_file}에 저장되었습니다.")
+                else:
+                    print(f"\n❌ 마크다운 보고서 저장 실패: {output_file}")
+            else:
+                if analyzer.export_analysis(analysis, output_file):
+                    print(f"\n💾 JSON 분석 결과가 {output_file}에 저장되었습니다.")
+                else:
+                    print(f"\n❌ 분석 결과 저장 실패: {output_file}")
         
         return True
         
@@ -595,7 +623,7 @@ def main():
         if not check_dependencies():
             sys.exit(1)
         
-        if run_topic_analysis(args.vault_path, config):
+        if run_topic_analysis(args.vault_path, args.output, config):
             print("✅ 주제 분석 완료!")
         else:
             print("❌ 주제 분석 실패!")

@@ -6,7 +6,7 @@ model:
   dimension: 768
   batch_size: 32
   cache_folder: "models/"
-  device: null  # null=auto-detect, "cpu", "cuda"
+  device: null # null=auto-detect, "cpu", "cuda"
 
 # 캐시 설정
 cache:
@@ -18,14 +18,32 @@ cache:
 # Vault 설정
 vault:
   excluded_dirs:
-    - ".obsidian"
-    - ".trash"
-    - "ATTACHMENTS"
-    - ".git"
-    - "__pycache__"
     - ".DS_Store"
-    - "cursor-img"
+    - ".backup-tag-normalize-20250815_181312"
+    - ".claude"
+    - ".claude-flow"
+    - ".git"
+    - ".hive-mind"
+    - ".idea"
+    - ".kiro"
+    - ".obsidian"
+    - ".obsidian-tools"
+    - ".serena"
+    - ".smart-env"
+    - ".smtcmp_chat_histories"
+    - ".smtcmp_json_db"
     - ".swarm"
+    - ".trash"
+    - ".vault-intelligence-cache"
+    - ".writing-projects"
+    - "ATTACHMENTS"
+    - "Excalidraw"
+    - "FONTS"
+    - "__pycache__"
+    - "archive-old-scripts"
+    - "cc-logs"
+    - "cursor-img"
+    - "smart-chats"
   file_extensions:
     - ".md"
     - ".markdown"
@@ -47,9 +65,9 @@ duplicates:
 
 # 클러스터링 설정
 clustering:
-  default_n_clusters: 5
+  default_n_clusters: 15
   min_cluster_size: 3
-  algorithm: "kmeans"  # "kmeans", "dbscan", "hierarchical"
+  algorithm: "kmeans" # "kmeans", "dbscan", "hierarchical"
   random_state: 42
 
 # 주제 수집 설정
@@ -61,9 +79,9 @@ collection:
 
 # 로깅 설정
 logging:
-  level: "ERROR"  # DEBUG, INFO, WARNING, ERROR
+  level: "ERROR" # DEBUG, INFO, WARNING, ERROR
   format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-  file: null  # null=console only, 또는 파일 경로
+  file: null # null=console only, 또는 파일 경로
 
 # 성능 설정
 performance:
@@ -71,3 +89,4 @@ performance:
   num_workers: 4
   chunk_size: 1000
   progress_bar: true
+

@@ -17,13 +17,19 @@ from collections import Counter, defaultdict
 
 try:
     from sklearn.cluster import KMeans, DBSCAN, AgglomerativeClustering
-    from sklearn.decomposition import PCA, TSNE
+    from sklearn.decomposition import PCA
+    from sklearn.manifold import TSNE
     from sklearn.metrics import silhouette_score
-    import matplotlib.pyplot as plt
-    import seaborn as sns
     SKLEARN_AVAILABLE = True
 except ImportError:
     SKLEARN_AVAILABLE = False
+
+try:
+    import matplotlib.pyplot as plt
+    import seaborn as sns
+    MATPLOTLIB_AVAILABLE = True
+except ImportError:
+    MATPLOTLIB_AVAILABLE = False
 
 try:
     import networkx as nx
@@ -135,6 +141,15 @@ class TopicAnalyzer:
             'random_state', 42
         )
         
+        # 개발 관련 주요 주제들 정의
+        self.development_topics = [
+            "TDD", "refactoring", "AI", "Spring", "DDD", "Clean Code", 
+            "Architecture", "Testing", "Docker", "Kubernetes", "React",
+            "JavaScript", "Python", "Java", "Database", "API",
+            "Microservices", "Design Patterns", "Agile", "DevOps",
+            "Kent Beck", "Uncle Bob", "Martin Fowler"
+        ]
+        
         logger.info(f"주제 분석기 초기화 - 기본 클러스터 수: {self.default_n_clusters}")
     
     def analyze_topics(
@@ -207,6 +222,114 @@ class TopicAnalyzer:
             logger.error(f"주제 분석 실패: {e}")
             return self._create_empty_analysis()
     
+    def analyze_topics_by_predefined_subjects(self, min_docs_per_topic: int = 10) -> TopicAnalysis:
+        """미리 정의된 주제들로 문서를 분류하는 주제 기반 분석"""
+        try:
+            logger.info(f"주제 기반 분석 시작 - {len(self.development_topics)}개 주제")
+            
+            topic_clusters = []
+            analyzed_docs = set()  # 이미 분석된 문서들 추적
+            
+            # 각 주제별로 관련 문서 수집
+            for topic in self.development_topics:
+                logger.info(f"주제 '{topic}' 분석 중...")
+                
+                # collect 기능을 활용해서 관련 문서 찾기
+                try:
+                    from ..features.topic_collector import TopicCollector
+                    collector = TopicCollector(self.search_engine, self.config)
+                    collection = collector.collect_topic(topic, top_k=min_docs_per_topic * 2)
+                    
+                    if collection and len(collection.documents) >= min_docs_per_topic:
+                        # 이미 다른 주제에 분류된 문서는 제외 (중복 방지)
+                        unique_docs = []
+                        for doc in collection.documents[:min_docs_per_topic * 3]:  # 여유있게 가져와서 필터링
+                            if doc.path not in analyzed_docs:
+                                unique_docs.append(doc)
+                                analyzed_docs.add(doc.path)
+                            if len(unique_docs) >= min_docs_per_topic:
+                                break
+                        
+                        if len(unique_docs) >= min_docs_per_topic:
+                            # 클러스터 생성
+                            cluster = TopicCluster(
+                                id=f"topic_{topic.lower().replace(' ', '_')}",
+                                label=topic,
+                                documents=unique_docs
+                            )
+                            
+                            # 클러스터 분석
+                            self._analyze_cluster(cluster)
+                            topic_clusters.append(cluster)
+                            
+                            logger.info(f"주제 '{topic}': {len(unique_docs)}개 문서 발견")
+                        else:
+                            logger.info(f"주제 '{topic}': 문서 수 부족 ({len(unique_docs)}개 < {min_docs_per_topic}개)")
+                    else:
+                        logger.info(f"주제 '{topic}': 관련 문서 없음")
+                        
+                except Exception as e:
+                    logger.warning(f"주제 '{topic}' 분석 중 오류: {e}")
+                    continue
+            
+            # 분석 결과 생성
+            total_analyzed = sum(len(cluster.documents) for cluster in topic_clusters)
+            
+            analysis = TopicAnalysis(
+                clusters=topic_clusters,
+                total_documents=total_analyzed,
+                algorithm="topic-based",
+                n_clusters=len(topic_clusters),  # 실제 생성된 클러스터 수
+                silhouette_score=None,  # 주제 기반 분석에서는 적용되지 않음
+                analysis_date=datetime.now(),  # 분석 날짜 추가
+                parameters={
+                    "min_docs_per_topic": min_docs_per_topic,
+                    "total_topics_analyzed": len(self.development_topics),
+                    "topics_found": len(topic_clusters),
+                    "analysis_coverage": f"{total_analyzed}/{len(self.search_engine.documents)} ({total_analyzed/len(self.search_engine.documents)*100:.1f}%)"
+                }
+            )
+            
+            logger.info(f"주제 기반 분석 완료: {len(topic_clusters)}개 주제, {total_analyzed}개 문서")
+            return analysis
+            
+        except Exception as e:
+            logger.error(f"주제 기반 분석 실패: {e}")
+            return self._create_empty_analysis()
+    
+    def _analyze_cluster(self, cluster: TopicCluster):
+        """클러스터의 키워드, 대표 문서, 일관성 점수 등을 분석"""
+        try:
+            # 키워드 추출
+            cluster.keywords = self._extract_cluster_keywords(cluster.documents)
+            
+            # 대표 문서 선정 (가장 긴 문서 또는 첫 번째 문서)
+            if cluster.documents:
+                # 단어 수가 가장 많은 문서를 대표 문서로 선정
+                cluster.representative_doc = max(cluster.documents, key=lambda doc: doc.word_count or 0)
+            
+            # 생성 시간 설정
+            cluster.created_at = datetime.now()
+            
+            # 임베딩이 있는 경우 일관성 점수 계산
+            embeddings = []
+            for doc in cluster.documents:
+                if hasattr(doc, 'embedding') and doc.embedding is not None:
+                    embeddings.append(doc.embedding)
+            
+            if len(embeddings) > 1:
+                cluster.coherence_score = self._calculate_cluster_coherence(np.array(embeddings))
+            else:
+                cluster.coherence_score = 1.0
+                
+        except Exception as e:
+            logger.warning(f"클러스터 분석 중 오류: {e}")
+            # 기본값 설정
+            cluster.keywords = []
+            cluster.representative_doc = cluster.documents[0] if cluster.documents else None
+            cluster.coherence_score = 0.0
+            cluster.created_at = datetime.now()
+    
     def _filter_documents_for_analysis(self, topic_query: Optional[str]) -> List[Document]:
         """분석할 문서 필터링"""
         documents = self.search_engine.documents
@@ -227,10 +350,27 @@ class TopicAnalyzer:
             logger.info(f"주제 '{topic_query}' 관련 문서: {len(documents)}개")
         
         # 임베딩이 있는 문서만
-        valid_docs = [
-            doc for doc in documents 
-            if doc.embedding is not None and not np.allclose(doc.embedding, 0)
-        ]
+        valid_docs = []
+        total_checked = 0
+        has_embedding_attr = 0
+        embedding_not_none = 0
+        
+        for doc in documents:
+            total_checked += 1
+            if hasattr(doc, 'embedding'):
+                has_embedding_attr += 1
+                if doc.embedding is not None:
+                    embedding_not_none += 1
+                    # numpy 배열인지 확인하고 0이 아닌지 체크
+                    if isinstance(doc.embedding, np.ndarray) and doc.embedding.size > 0:
+                        if not np.allclose(doc.embedding, 0):
+                            valid_docs.append(doc)
+                    elif hasattr(doc.embedding, '__len__') and len(doc.embedding) > 0:
+                        # 리스트나 다른 형태의 배열인 경우
+                        valid_docs.append(doc)
+        
+        logger.info(f"임베딩 체크 결과: 전체={total_checked}, embedding 속성={has_embedding_attr}, "
+                   f"None이 아님={embedding_not_none}, 유효={len(valid_docs)}")
         
         logger.info(f"유효한 임베딩을 가진 문서: {len(valid_docs)}개")
         return valid_docs
@@ -518,6 +658,10 @@ class TopicAnalyzer:
                 logger.error("scikit-learn이 설치되지 않았습니다.")
                 return False
             
+            if not MATPLOTLIB_AVAILABLE:
+                logger.error("matplotlib이 설치되지 않았습니다.")
+                return False
+            
             if not analysis.clusters:
                 logger.warning("시각화할 클러스터가 없습니다.")
                 return False
@@ -640,6 +784,118 @@ class TopicAnalyzer:
             
         except Exception as e:
             logger.error(f"분석 결과 내보내기 실패: {e}")
+            return False
+    
+    def export_markdown_report(self, analysis: TopicAnalysis, output_file: str) -> bool:
+        """분석 결과를 마크다운 보고서로 내보내기"""
+        try:
+            from datetime import datetime
+            
+            # 마크다운 보고서 생성
+            markdown_content = []
+            
+            # 헤더
+            markdown_content.append("# 📊 Vault 주제 분석 보고서")
+            markdown_content.append("")
+            markdown_content.append(f"**생성일시**: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+            markdown_content.append("")
+            
+            # 전체 통계
+            markdown_content.append("## 📈 전체 통계")
+            markdown_content.append("")
+            markdown_content.append(f"- **분석 문서 수**: {analysis.total_documents:,}개")
+            markdown_content.append(f"- **발견 클러스터 수**: {analysis.get_cluster_count()}개")
+            markdown_content.append(f"- **클러스터링 알고리즘**: {analysis.algorithm}")
+            if analysis.silhouette_score is not None:
+                markdown_content.append(f"- **실루엣 점수**: {analysis.silhouette_score:.3f}")
+            markdown_content.append("")
+            
+            # 클러스터별 분포
+            if analysis.clusters:
+                markdown_content.append("## 📊 클러스터 분포")
+                markdown_content.append("")
+                markdown_content.append("| 순위 | 클러스터명 | 문서 수 | 비율 | 일관성 점수 |")
+                markdown_content.append("|------|------------|---------|------|-------------|")
+                
+                for i, cluster in enumerate(analysis.clusters, 1):
+                    percentage = (cluster.get_document_count() / analysis.total_documents) * 100
+                    coherence = f"{cluster.coherence_score:.3f}" if cluster.coherence_score else "N/A"
+                    cluster_name = cluster.label[:50] + ("..." if len(cluster.label) > 50 else "")
+                    markdown_content.append(
+                        f"| {i} | {cluster_name} | {cluster.get_document_count():,} | {percentage:.1f}% | {coherence} |"
+                    )
+                
+                markdown_content.append("")
+                
+                # 각 클러스터 상세 정보
+                markdown_content.append("## 🏷️ 클러스터 상세 분석")
+                markdown_content.append("")
+                
+                for i, cluster in enumerate(analysis.clusters, 1):
+                    markdown_content.append(f"### {i}. {cluster.label}")
+                    markdown_content.append("")
+                    markdown_content.append(f"**📊 기본 정보**")
+                    markdown_content.append(f"- 문서 수: **{cluster.get_document_count():,}개**")
+                    markdown_content.append(f"- 총 단어 수: {cluster.get_total_word_count():,}개")
+                    if cluster.coherence_score is not None:
+                        markdown_content.append(f"- 일관성 점수: {cluster.coherence_score:.3f}")
+                    markdown_content.append("")
+                    
+                    # 주요 키워드
+                    if cluster.keywords:
+                        markdown_content.append("**🔑 주요 키워드**")
+                        keywords_str = ", ".join([f"`{kw}`" for kw in cluster.keywords[:10]])
+                        markdown_content.append(f"{keywords_str}")
+                        markdown_content.append("")
+                    
+                    # 대표 문서
+                    if cluster.representative_doc:
+                        markdown_content.append("**📄 대표 문서**")
+                        markdown_content.append(f"- [{cluster.representative_doc.title}]({cluster.representative_doc.path})")
+                        markdown_content.append("")
+                    
+                    # 공통 태그
+                    common_tags = cluster.get_common_tags(10)
+                    if common_tags:
+                        markdown_content.append("**🏷️ 공통 태그**")
+                        tags_info = []
+                        for tag, count in common_tags:
+                            tags_info.append(f"`{tag}` ({count})")
+                        markdown_content.append(", ".join(tags_info))
+                        markdown_content.append("")
+                    
+                    # 문서 목록 (상위 10개)
+                    markdown_content.append("**📚 주요 문서들** (상위 10개)")
+                    markdown_content.append("")
+                    for j, doc in enumerate(cluster.documents[:10], 1):
+                        word_count = f"({doc.word_count}단어)" if doc.word_count else ""
+                        markdown_content.append(f"{j}. [{doc.title}]({doc.path}) {word_count}")
+                    
+                    if len(cluster.documents) > 10:
+                        remaining = len(cluster.documents) - 10
+                        markdown_content.append(f"... 외 {remaining}개 문서")
+                    
+                    markdown_content.append("")
+                    markdown_content.append("---")
+                    markdown_content.append("")
+            
+            # 분석 매개변수
+            if analysis.parameters:
+                markdown_content.append("## ⚙️ 분석 매개변수")
+                markdown_content.append("")
+                for key, value in analysis.parameters.items():
+                    markdown_content.append(f"- **{key}**: {value}")
+                markdown_content.append("")
+            
+            # 파일에 저장
+            with open(output_file, 'w', encoding='utf-8') as f:
+                f.write('\n'.join(markdown_content))
+            
+            logger.info(f"마크다운 보고서 저장 완료: {output_file}")
+            return True
+            
+        except Exception as e:
+            logger.error(f"마크다운 보고서 생성 실패: {e}")
             return False
 
 

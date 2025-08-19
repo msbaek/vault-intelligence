@@ -128,23 +128,52 @@ class AdvancedSearchEngine:
                     )
                     
                     if cached and not force_rebuild:
-                        embeddings_list.append(cached.embedding)
-                        doc.embedding = cached.embedding
-                        cache_hits += 1
+                        # 캐시된 임베딩 검증
+                        if (isinstance(cached.embedding, np.ndarray) and 
+                            cached.embedding.size > 0 and 
+                            not np.allclose(cached.embedding, 0)):
+                            embeddings_list.append(cached.embedding)
+                            doc.embedding = cached.embedding
+                            cache_hits += 1
+                        else:
+                            logger.warning(f"유효하지 않은 캐시 임베딩: {doc.path}")
+                            # 새로 생성
+                            embedding = self.engine.encode_text(doc.content)
+                            embeddings_list.append(embedding)
+                            doc.embedding = embedding
+                            self.cache.store_embedding(
+                                str(self.vault_path / doc.path),
+                                embedding,
+                                self.engine.model_name,
+                                doc.word_count
+                            )
+                            new_embeddings += 1
                     else:
                         # 새 임베딩 생성
-                        embedding = self.engine.encode_text(doc.content)
-                        embeddings_list.append(embedding)
-                        doc.embedding = embedding
-                        
-                        # 캐시에 저장
-                        self.cache.store_embedding(
-                            str(self.vault_path / doc.path),
-                            embedding,
-                            self.engine.model_name,
-                            doc.word_count
-                        )
-                        new_embeddings += 1
+                        if doc.content and doc.content.strip():
+                            embedding = self.engine.encode_text(doc.content)
+                            if embedding is not None and not np.allclose(embedding, 0):
+                                embeddings_list.append(embedding)
+                                doc.embedding = embedding
+                                
+                                # 캐시에 저장
+                                self.cache.store_embedding(
+                                    str(self.vault_path / doc.path),
+                                    embedding,
+                                    self.engine.model_name,
+                                    doc.word_count
+                                )
+                                new_embeddings += 1
+                            else:
+                                logger.warning(f"0인 임베딩 생성됨: {doc.path}")
+                                empty_embedding = np.zeros(self.engine.embedding_dimension)
+                                embeddings_list.append(empty_embedding)
+                                doc.embedding = empty_embedding
+                        else:
+                            logger.warning(f"빈 내용 문서: {doc.path}")
+                            empty_embedding = np.zeros(self.engine.embedding_dimension)
+                            embeddings_list.append(empty_embedding)
+                            doc.embedding = empty_embedding
                     
                     # 진행률 콜백
                     if progress_callback and (i + 1) % 50 == 0:
@@ -193,21 +222,37 @@ class AdvancedSearchEngine:
                 self.documents = self.processor.process_all_files()
                 logger.info(f"문서 로딩 완료: {len(self.documents)}개")
                 
-                # 임베딩 배열 재생성 (캐시에서 로드)
+                # TF-IDF 모델이 로드되었지만 새 문서들에 대해 다시 훈련 필요
+                # (캐시된 임베딩이 현재 TF-IDF 모델과 호환되지 않을 수 있음)
+                logger.info("TF-IDF 모델을 현재 문서들로 재훈련 중...")
+                all_contents = [doc.content for doc in self.documents]
+                all_paths = [doc.path for doc in self.documents]
+                self.engine.fit_documents(all_contents, all_paths)
+                logger.info("TF-IDF 재훈련 완료")
+                
+                # 임베딩 배열 재생성 (TF-IDF 재훈련 후 모든 임베딩 새로 생성)
                 embeddings_list = []
-                for doc in self.documents:
-                    cached = self.cache.get_embedding(
-                        str(self.vault_path / doc.path), 
-                        doc.file_hash
+                logger.info("모든 임베딩을 새로 생성 중...")
+                for i, doc in enumerate(self.documents):
+                    # 캐시 무시하고 모든 임베딩 새로 생성 
+                    # (TF-IDF 재훈련으로 인해 기존 캐시가 무효화됨)
+                    embedding = self.engine.encode_text(doc.content)
+                    embeddings_list.append(embedding)
+                    doc.embedding = embedding
+                    
+                    # 새 임베딩을 캐시에 저장
+                    self.cache.store_embedding(
+                        str(self.vault_path / doc.path),
+                        embedding,
+                        self.engine.model_name,
+                        doc.word_count
                     )
-                    if cached:
-                        embeddings_list.append(cached.embedding)
-                        doc.embedding = cached.embedding
-                    else:
-                        # 캐시에 없으면 새로 생성
-                        embedding = self.engine.encode_text(doc.content)
-                        embeddings_list.append(embedding)
-                        doc.embedding = embedding
+                    
+                    # 진행률 표시
+                    if (i + 1) % 100 == 0:
+                        logger.info(f"임베딩 생성 진행률: {i + 1}/{len(self.documents)}")
+                
+                logger.info("모든 임베딩 생성 완료")
                 
                 if embeddings_list:
                     self.embeddings = np.array(embeddings_list)
