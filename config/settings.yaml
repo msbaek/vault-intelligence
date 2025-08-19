@@ -1,0 +1,73 @@
+# Vault Intelligence System V2 Configuration
+
+# 모델 설정
+model:
+  name: "paraphrase-multilingual-mpnet-base-v2"
+  dimension: 768
+  batch_size: 32
+  cache_folder: "models/"
+  device: null  # null=auto-detect, "cpu", "cuda"
+
+# 캐시 설정
+cache:
+  db_path: "cache/embeddings.db"
+  metadata_path: "cache/metadata.json"
+  enable_compression: true
+  clean_on_start: false
+
+# Vault 설정
+vault:
+  excluded_dirs:
+    - ".obsidian"
+    - ".trash"
+    - "ATTACHMENTS"
+    - ".git"
+    - "__pycache__"
+    - ".DS_Store"
+    - "cursor-img"
+    - ".swarm"
+  file_extensions:
+    - ".md"
+    - ".markdown"
+  max_file_size_mb: 10
+
+# 검색 설정
+search:
+  default_top_k: 10
+  similarity_threshold: 0.3
+  enable_hybrid_search: true
+  text_weight: 0.3
+  semantic_weight: 0.7
+
+# 중복 감지 설정
+duplicates:
+  similarity_threshold: 0.85
+  min_word_count: 50
+  group_threshold: 0.9
+
+# 클러스터링 설정
+clustering:
+  default_n_clusters: 5
+  min_cluster_size: 3
+  algorithm: "kmeans"  # "kmeans", "dbscan", "hierarchical"
+  random_state: 42
+
+# 주제 수집 설정
+collection:
+  min_documents: 3
+  group_by_tags: true
+  include_statistics: true
+  output_format: "markdown"
+
+# 로깅 설정
+logging:
+  level: "ERROR"  # DEBUG, INFO, WARNING, ERROR
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  file: null  # null=console only, 또는 파일 경로
+
+# 성능 설정
+performance:
+  enable_gpu: true
+  num_workers: 4
+  chunk_size: 1000
+  progress_bar: true
