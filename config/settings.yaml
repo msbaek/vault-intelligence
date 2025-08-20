@@ -4,12 +4,12 @@
 model:
   name: "BAAI/bge-m3"
   dimension: 1024
-  batch_size: 4  # M1 Pro 최적화: 12→4로 감소
+  batch_size: 8  # 성능 최대화: 4→8로 증가
   cache_folder: "models/"
   device: null # null=auto-detect, "cpu", "cuda"
   use_fp16: false  # M1 Pro CPU에서는 FP16 비활성화
-  max_length: 4096  # 토큰 길이 제한: 8192→4096
-  num_workers: 6    # M1 Pro 10코어의 60% 활용
+  max_length: 8192  # 최대 토큰 길이로 복원
+  num_workers: 8    # M1 Pro 10코어의 80% 활용
 
 # 캐시 설정
 cache:
@@ -94,6 +94,6 @@ logging:
 # 성능 설정
 performance:
   enable_gpu: true
-  num_workers: 4
-  chunk_size: 1000
+  num_workers: 8  # 워커 수 증가
+  chunk_size: 200  # 청크 크기 감소로 더 세밀한 처리
   progress_bar: true

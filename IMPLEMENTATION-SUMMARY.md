@@ -38,6 +38,32 @@
 | 다국어 지원 | 제한적 | 우수 | 크게 개선 |
 | 샘플링 처리 | 미지원 | 50개/1분 | 신규 기능 |
 
+## ⚙️ 성능 설정 옵션
+
+### 안정적 설정 (기본값)
+```yaml
+model:
+  batch_size: 4        # 안정적 메모리 사용
+  max_length: 4096     # 적당한 토큰 길이
+  num_workers: 6       # CPU 60% 활용
+```
+- 소요 시간: 40-60분
+- 시스템 부하: 보통
+- 다른 작업 동시 가능
+
+### 성능 최대화 설정
+```yaml
+model:
+  batch_size: 8        # 2배 증가
+  max_length: 8192     # 최대 토큰 길이
+  num_workers: 8       # CPU 80% 활용
+performance:
+  chunk_size: 200      # 더 세밀한 처리
+```
+- 소요 시간: 25-35분 (50-70% 향상)
+- 시스템 부하: 높음
+- 색인 중 다른 작업 제한적
+
 ## 🛠️ 기술 스택
 
 ### 새로 추가된 의존성
@@ -67,7 +93,11 @@ python -m src reindex --sample-size 200
 
 ### 전체 색인 (프로덕션)
 ```bash
-# 전체 색인 구축 (40-60분, 한 번만)
+# 안정적 설정으로 색인 (40-60분)
+python -m src reindex
+
+# 성능 최대화 설정으로 색인 (25-35분)
+# config/settings.yaml에서 batch_size=8, max_length=8192로 변경 후
 python -m src reindex
 
 # 이후 검색은 1-3초
