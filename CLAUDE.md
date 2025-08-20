@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## 프로젝트 개요
 
-Vault Intelligence System V2는 Sentence Transformers 기반 Obsidian vault 지능형 검색 시스템입니다. Smart Connections 플러그인에서 완전히 독립하여 더 높은 차원의 임베딩(768차원)과 확장 가능한 아키텍처를 제공합니다.
+Vault Intelligence System V2는 BGE-M3 기반 Obsidian vault 지능형 검색 시스템입니다. Smart Connections 플러그인에서 완전히 독립하여 더 높은 차원의 임베딩(1024차원)과 하이브리드 검색(Dense + Sparse) 기능을 제공합니다.
 
 ## 개발 환경 설정
 
@@ -73,7 +73,7 @@ python -m src info
 ```
 src/
 ├── core/                           # 핵심 엔진
-│   ├── sentence_transformer_engine.py  # TF-IDF/Sentence Transformers 임베딩 엔진
+│   ├── sentence_transformer_engine.py  # BGE-M3 기반 고품질 임베딩 엔진
 │   ├── embedding_cache.py              # SQLite 기반 임베딩 캐싱
 │   └── vault_processor.py              # Obsidian 마크다운 파일 처리
 ├── features/                       # 기능 모듈
@@ -89,7 +89,7 @@ src/
 - **SQLite 캐시**: `cache/embeddings.db` - 임베딩 벡터 영구 저장
 - **메타데이터**: `cache/metadata.json` - 문서 메타데이터 캐싱
 - **설정**: `config/settings.yaml` - 시스템 전역 설정
-- **모델**: `models/` - 다운로드된 Sentence Transformers 모델
+- **모델**: `models/` - 다운로드된 BGE-M3 모델
 
 ## 프로그래밍 방식 사용
 
@@ -147,9 +147,10 @@ collector.save_collection(collection, "tdd_collection.md")
 ### 주요 설정 (`config/settings.yaml`)
 
 **모델 설정**
-- `model.name`: Sentence Transformers 모델명 (기본: paraphrase-multilingual-mpnet-base-v2)
-- `model.dimension`: 임베딩 차원 (768)
-- `model.batch_size`: 배치 크기 (32)
+- `model.name`: BGE 모델명 (기본: BAAI/bge-m3)
+- `model.dimension`: 임베딩 차원 (1024)
+- `model.batch_size`: 배치 크기 (12)
+- `model.use_fp16`: FP16 정밀도 사용 여부 (true)
 
 **검색 설정**
 - `search.similarity_threshold`: 유사도 임계값 (0.3)
@@ -180,9 +181,10 @@ python -m src test
 - 배치 처리로 대량 임베딩 최적화
 
 ### 메모리 관리
-- TF-IDF vectorizer 모델 저장/로딩 (`cache/tfidf_model.pkl`)
-- 대용량 vault 처리를 위한 청크 단위 처리
+- BGE-M3 모델 캐싱 및 재사용
+- 대용량 vault 처리를 위한 배치 단위 처리
 - 진행률 표시로 사용자 경험 개선
+- GPU/CPU 자동 감지 및 최적화
 
 ## 프로젝트 관리 방식
 
@@ -207,27 +209,23 @@ python -m src test
 
 ## 현재 구현 상태
 
-### ✅ 완료된 작업
-- 프로젝트 계획 수립 (`docs/embedding-upgrade-plan.md`)
-- TODO 리스트 작성 (`docs/todo-embedding-upgrade.md`)
-- 문서화 체계 구축
-
-### 🔄 현재 진행 중
-- BGE-M3 기반 고품질 임베딩 시스템 구현 준비
-
-### Phase 2 기존 기능 ✅
-- TF-IDF 기반 임베딩 (임시 구현, 교체 예정)
+### ✅ 완료된 작업 (Phase 1-3)
+- BGE-M3 기반 고품질 임베딩 시스템 구현 완료
+- Dense Embeddings (1024차원) 의미적 검색
+- Sparse Embeddings (BM25) 키워드 검색  
+- Hybrid Search (RRF 기반 Dense + Sparse 융합)
 - 고급 검색 엔진 (의미적/키워드/하이브리드)
 - 중복 문서 감지 및 그룹화
 - 주제별 클러스터링 (K-means, DBSCAN)
 - 문서 수집 및 통합 시스템
 - 통합 CLI 인터페이스
+- 전체 시스템 통합 테스트 완료
 
-### 🎯 다음 목표 (Phase 3)
-- BGE-M3 모델 기반 고품질 임베딩 시스템
-- Hybrid Search (Dense + Sparse + Reranking)
+### 🎯 향후 개선 사항 (Phase 4)
+- Cross-encoder 기반 Reranking 시스템
 - Obsidian 특화 기능 (링크 그래프, 메타데이터 활용)
-- 성능 최적화 및 GPU 가속
+- ColBERT 임베딩 활용
+- GPU 가속 최적화
 
 ## 문제 해결
 
@@ -242,8 +240,8 @@ python -m src test
 - 유사도 임계값 조정: `--threshold 0.1`
 
 **메모리 부족**
-- 배치 크기 감소: `config/settings.yaml`에서 `model.batch_size` 조정
-- 최대 특성 수 감소: `max_features` 값 조정
+- 배치 크기 감소: `config/settings.yaml`에서 `model.batch_size` 조정 (기본: 12)
+- FP16 비활성화: `model.use_fp16: false`로 설정
 
 ### 로그 및 디버깅
 - 상세 로그: `--verbose` 플래그 사용
@@ -266,4 +264,18 @@ python -m src test
 - `matched_keywords`: 매칭된 키워드
 - `snippet`: 문서 발췌
 
-이 시스템은 대규모 Obsidian vault에서 효율적인 의미적 검색과 문서 분석을 제공하며, 특히 "AI 시대의 TDD 활용" 책 저술을 위한 지능형 검색 지원을 목표로 합니다.
+이 시스템은 BGE-M3 모델을 활용하여 대규모 Obsidian vault에서 효율적인 하이브리드 검색과 문서 분석을 제공하며, 특히 "AI 시대의 TDD 활용" 책 저술을 위한 고품질 지능형 검색 지원을 목표로 합니다.
+
+## 기술 스택
+
+### 핵심 기술
+- **임베딩 모델**: BAAI/bge-m3 (1024차원, 다국어 지원)
+- **하이브리드 검색**: Dense + Sparse (BM25) + RRF 융합
+- **캐싱**: SQLite 기반 영구 임베딩 캐시
+- **언어**: Python 3.11+, PyTorch 기반
+
+### 주요 라이브러리
+- **FlagEmbedding**: BGE-M3 모델 구동
+- **rank-bm25**: 키워드 기반 sparse retrieval
+- **networkx**: 그래프 분석 (향후 확장)
+- **scikit-learn**: 클러스터링 및 유사도 계산

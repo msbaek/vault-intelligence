@@ -72,9 +72,11 @@ class AdvancedSearchEngine:
         
         # 핵심 컴포넌트 초기화
         self.engine = SentenceTransformerEngine(
-            model_name=self.config.get('model', {}).get('name', 'paraphrase-multilingual-mpnet-base-v2'),
+            model_name=self.config.get('model', {}).get('name', 'BAAI/bge-m3'),
             cache_dir=self.config.get('model', {}).get('cache_folder', 'models'),
-            device=self.config.get('model', {}).get('device')
+            device=self.config.get('model', {}).get('device'),
+            use_fp16=self.config.get('model', {}).get('use_fp16', True),
+            batch_size=self.config.get('model', {}).get('batch_size', 12)
         )
         
         self.cache = EmbeddingCache(cache_dir)

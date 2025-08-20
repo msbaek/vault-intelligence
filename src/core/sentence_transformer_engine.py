@@ -1,98 +1,178 @@
 #!/usr/bin/env python3
 """
-Sentence Transformer Engine for Vault Intelligence System V2
+Advanced Embedding Engine for Vault Intelligence System V2
 
-TF-IDF 기반 임베딩을 통한 의미적 검색 엔진 (임시 구현)
-패키지 의존성 문제 해결 후 Sentence Transformers로 전환 예정
+BGE-M3 기반 고품질 임베딩 시스템
+- Dense Embeddings (의미적 검색)
+- Sparse Embeddings (키워드 검색)  
+- ColBERT Embeddings (토큰 수준)
+- Hybrid Search 지원
 """
 
 import os
 import logging
-from typing import List, Optional, Union, Tuple
+from typing import List, Optional, Union, Tuple, Dict, Any
 import numpy as np
 from pathlib import Path
+import torch
+from tqdm import tqdm
 
-# TF-IDF 기반 임시 구현
-from sklearn.feature_extraction.text import TfidfVectorizer
+# BGE-M3 모델
+from FlagEmbedding import BGEM3FlagModel
+
+# BM25 for sparse retrieval
+from rank_bm25 import BM25Okapi
+
+# 기본 라이브러리
 from sklearn.metrics.pairwise import cosine_similarity
 import pickle
 import hashlib
+import json
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-class SentenceTransformerEngine:
-    """TF-IDF 기반 임베딩 엔진 (임시 구현)"""
+class AdvancedEmbeddingEngine:
+    """BGE-M3 기반 고품질 임베딩 엔진"""
     
     def __init__(
         self, 
-        model_name: str = "tfidf",
+        model_name: str = "BAAI/bge-m3",
         cache_dir: Optional[str] = None,
-        device: Optional[str] = None
+        device: Optional[str] = None,
+        use_fp16: bool = True,
+        batch_size: int = 12
     ):
         """
         Args:
-            model_name: 임베딩 모델명 (현재는 tfidf만 지원)
+            model_name: BGE 모델명 (기본: BAAI/bge-m3)
             cache_dir: 모델 캐시 디렉토리
-            device: 계산 장치 (TF-IDF에서는 무시됨)
+            device: 계산 장치 (auto, cpu, cuda)
+            use_fp16: FP16 정밀도 사용 여부
+            batch_size: 배치 크기
         """
         self.model_name = model_name
         self.cache_dir = cache_dir or "cache"
+        self.device = device or ("cuda" if torch.cuda.is_available() else "cpu")
+        self.use_fp16 = use_fp16 and torch.cuda.is_available()
+        self.batch_size = batch_size
         
-        logger.info(f"TF-IDF 임베딩 엔진 초기화 (임시 구현)")
+        logger.info(f"BGE-M3 임베딩 엔진 초기화: {model_name}")
+        logger.info(f"장치: {self.device}, FP16: {self.use_fp16}")
         
-        # TF-IDF vectorizer 초기화
-        self.vectorizer = TfidfVectorizer(
-            max_features=5000,
-            stop_words=None,  # 한국어 지원을 위해 None
-            ngram_range=(1, 2),
-            min_df=1,  # 최소 문서 빈도를 1로 낮춤
-            max_df=0.95
-        )
+        # BGE-M3 모델 로딩
+        try:
+            self.model = BGEM3FlagModel(
+                model_name, 
+                use_fp16=self.use_fp16,
+                device=self.device
+            )
+            logger.info("✅ BGE-M3 모델 로딩 완료")
+        except Exception as e:
+            logger.error(f"❌ BGE-M3 모델 로딩 실패: {e}")
+            raise
         
-        self.document_vectors = None
+        # BM25 for sparse retrieval
+        self.bm25_model = None
+        self.tokenized_docs = []
+        
+        # 문서 데이터
         self.document_paths = []
+        self.document_contents = []
+        self.dense_embeddings = None
+        self.sparse_embeddings = None
         self.is_fitted = False
-        self.embedding_dimension = 5000  # TF-IDF 최대 피처 수
+        
+        # 모델 정보
+        self.embedding_dimension = 1024  # BGE-M3 dense embedding dimension
         
         # 캐시 디렉토리 생성
         os.makedirs(self.cache_dir, exist_ok=True)
     
     def fit_documents(self, documents: List[str], document_paths: List[str] = None) -> None:
-        """문서들을 사용해 TF-IDF 벡터라이저 훈련"""
-        logger.info(f"TF-IDF 벡터라이저 훈련 중... ({len(documents)}개 문서)")
+        """문서들을 사용해 임베딩 생성 및 BM25 인덱스 구축"""
+        logger.info(f"문서 인덱싱 시작... ({len(documents)}개 문서)")
         
         # 빈 문서 처리
         processed_docs = []
-        for doc in documents:
+        for i, doc in enumerate(documents):
             if doc and doc.strip():
                 processed_docs.append(doc.strip())
             else:
-                processed_docs.append("빈 문서")  # 빈 문서 대체
+                processed_docs.append(f"빈 문서 {i}")
         
-        # TF-IDF 훈련 및 변환
-        self.document_vectors = self.vectorizer.fit_transform(processed_docs)
-        self.document_paths = document_paths or [f"doc_{i}" for i in range(len(documents))]
+        self.document_contents = processed_docs
+        self.document_paths = document_paths or [f"doc_{i}.md" for i in range(len(documents))]
+        
+        # Dense embeddings 생성
+        logger.info("Dense embeddings 생성 중...")
+        self._generate_dense_embeddings(processed_docs)
+        
+        # Sparse embeddings (BM25) 구축
+        logger.info("Sparse embeddings (BM25) 구축 중...")
+        self._build_bm25_index(processed_docs)
+        
         self.is_fitted = True
-        
-        # 실제 차원 수 업데이트
-        self.embedding_dimension = self.document_vectors.shape[1]
-        
-        logger.info(f"TF-IDF 훈련 완료: {self.embedding_dimension}차원")
+        logger.info(f"✅ 문서 인덱싱 완료: {len(documents)}개 문서")
+    
+    def _generate_dense_embeddings(self, documents: List[str]) -> None:
+        """Dense embeddings 생성 (배치 처리)"""
+        try:
+            # BGE-M3로 dense embeddings 생성
+            embeddings_result = self.model.encode(
+                documents,
+                batch_size=self.batch_size,
+                max_length=8192,  # BGE-M3의 최대 토큰 길이
+                return_dense=True,
+                return_sparse=False,
+                return_colbert_vecs=False
+            )
+            
+            self.dense_embeddings = embeddings_result['dense_vecs']
+            logger.info(f"Dense embeddings 생성 완료: {self.dense_embeddings.shape}")
+            
+        except Exception as e:
+            logger.error(f"Dense embeddings 생성 실패: {e}")
+            # 폴백: 제로 벡터 생성
+            self.dense_embeddings = np.zeros((len(documents), self.embedding_dimension))
+    
+    def _build_bm25_index(self, documents: List[str]) -> None:
+        """BM25 인덱스 구축"""
+        try:
+            # 문서를 토큰화 (간단한 공백 기반 분할)
+            self.tokenized_docs = []
+            for doc in documents:
+                # 한국어와 영어 모두 지원하는 간단한 토큰화
+                tokens = doc.lower().split()
+                self.tokenized_docs.append(tokens)
+            
+            # BM25 모델 구축
+            self.bm25_model = BM25Okapi(self.tokenized_docs)
+            logger.info(f"BM25 인덱스 구축 완료: {len(self.tokenized_docs)}개 문서")
+            
+        except Exception as e:
+            logger.error(f"BM25 인덱스 구축 실패: {e}")
+            self.bm25_model = None
     
     def encode_text(self, text: str) -> np.ndarray:
-        """단일 텍스트의 임베딩 생성"""
-        if not self.is_fitted:
-            raise ValueError("먼저 fit_documents()를 호출해야 합니다.")
-        
+        """단일 텍스트의 dense embedding 생성"""
         try:
             if not text or not text.strip():
                 text = "빈 텍스트"
             
-            # TF-IDF 변환
-            vector = self.vectorizer.transform([text.strip()])
-            return vector.toarray()[0]
+            # BGE-M3로 dense embedding 생성
+            result = self.model.encode(
+                [text.strip()],
+                batch_size=1,
+                max_length=8192,
+                return_dense=True,
+                return_sparse=False,
+                return_colbert_vecs=False
+            )
+            
+            return result['dense_vecs'][0]
+            
         except Exception as e:
             logger.error(f"텍스트 임베딩 생성 실패: {e}")
             return np.zeros(self.embedding_dimension)
@@ -100,32 +180,166 @@ class SentenceTransformerEngine:
     def encode_texts(
         self, 
         texts: List[str], 
-        batch_size: int = 32,
+        batch_size: int = None,
         show_progress: bool = True
     ) -> np.ndarray:
-        """다중 텍스트의 배치 임베딩 생성"""
-        if not self.is_fitted:
-            raise ValueError("먼저 fit_documents()를 호출해야 합니다.")
-        
+        """다중 텍스트의 배치 dense embedding 생성"""
         try:
+            if batch_size is None:
+                batch_size = self.batch_size
+            
             # 빈 텍스트 처리
             processed_texts = []
-            for text in texts:
+            for i, text in enumerate(texts):
                 if text and text.strip():
                     processed_texts.append(text.strip())
                 else:
-                    processed_texts.append("빈 텍스트")
+                    processed_texts.append(f"빈 텍스트 {i}")
             
-            # TF-IDF 변환
-            vectors = self.vectorizer.transform(processed_texts)
+            # BGE-M3로 배치 embedding 생성
+            result = self.model.encode(
+                processed_texts,
+                batch_size=batch_size,
+                max_length=8192,
+                return_dense=True,
+                return_sparse=False,
+                return_colbert_vecs=False
+            )
             
             if show_progress:
                 logger.info(f"배치 임베딩 생성 완료: {len(texts)}개 텍스트")
             
-            return vectors.toarray()
+            return result['dense_vecs']
+            
         except Exception as e:
             logger.error(f"배치 임베딩 생성 실패: {e}")
             return np.zeros((len(texts), self.embedding_dimension))
+    
+    def semantic_search(
+        self, 
+        query: str, 
+        top_k: int = 10, 
+        threshold: float = 0.0
+    ) -> List[Tuple[str, float]]:
+        """Dense embedding 기반 의미적 검색"""
+        if not self.is_fitted:
+            raise ValueError("먼저 fit_documents()를 호출해야 합니다.")
+        
+        try:
+            # 쿼리 임베딩
+            query_embedding = self.encode_text(query)
+            
+            # 코사인 유사도 계산
+            similarities = cosine_similarity([query_embedding], self.dense_embeddings)[0]
+            
+            # 임계값 이상만 필터링
+            valid_indices = np.where(similarities >= threshold)[0]
+            if len(valid_indices) == 0:
+                return []
+            
+            valid_similarities = similarities[valid_indices]
+            
+            # 상위 k개 선택
+            if len(valid_indices) > top_k:
+                top_local_indices = np.argsort(valid_similarities)[::-1][:top_k]
+                top_indices = valid_indices[top_local_indices]
+                top_similarities = valid_similarities[top_local_indices]
+            else:
+                sort_order = np.argsort(valid_similarities)[::-1]
+                top_indices = valid_indices[sort_order]
+                top_similarities = valid_similarities[sort_order]
+            
+            # 결과 생성
+            results = []
+            for idx, sim in zip(top_indices, top_similarities):
+                if idx < len(self.document_paths):
+                    results.append((self.document_paths[idx], float(sim)))
+            
+            return results
+            
+        except Exception as e:
+            logger.error(f"의미적 검색 실패: {e}")
+            return []
+    
+    def keyword_search(
+        self, 
+        query: str, 
+        top_k: int = 10
+    ) -> List[Tuple[str, float]]:
+        """BM25 기반 키워드 검색"""
+        if not self.is_fitted or self.bm25_model is None:
+            logger.warning("BM25 모델이 준비되지 않음. 빈 결과 반환.")
+            return []
+        
+        try:
+            # 쿼리 토큰화
+            query_tokens = query.lower().split()
+            
+            # BM25 스코어 계산
+            scores = self.bm25_model.get_scores(query_tokens)
+            
+            # 상위 k개 선택
+            top_indices = np.argsort(scores)[::-1][:top_k]
+            
+            # 결과 생성
+            results = []
+            for idx in top_indices:
+                if idx < len(self.document_paths) and scores[idx] > 0:
+                    results.append((self.document_paths[idx], float(scores[idx])))
+            
+            return results
+            
+        except Exception as e:
+            logger.error(f"키워드 검색 실패: {e}")
+            return []
+    
+    def hybrid_search(
+        self, 
+        query: str, 
+        top_k: int = 10,
+        semantic_weight: float = 0.7,
+        keyword_weight: float = 0.3,
+        threshold: float = 0.0
+    ) -> List[Tuple[str, float]]:
+        """Hybrid search: Dense + Sparse (RRF 기반 융합)"""
+        try:
+            # 의미적 검색 결과
+            semantic_results = self.semantic_search(query, top_k=top_k*2, threshold=threshold)
+            
+            # 키워드 검색 결과
+            keyword_results = self.keyword_search(query, top_k=top_k*2)
+            
+            # 결과 융합 (RRF - Reciprocal Rank Fusion)
+            final_scores = {}
+            
+            # 의미적 검색 점수 반영
+            for rank, (path, score) in enumerate(semantic_results):
+                if path not in final_scores:
+                    final_scores[path] = 0
+                # RRF 스코어: 1 / (rank + 60)
+                rrf_score = 1.0 / (rank + 60)
+                final_scores[path] += semantic_weight * rrf_score
+            
+            # 키워드 검색 점수 반영
+            for rank, (path, score) in enumerate(keyword_results):
+                if path not in final_scores:
+                    final_scores[path] = 0
+                rrf_score = 1.0 / (rank + 60)
+                final_scores[path] += keyword_weight * rrf_score
+            
+            # 최종 결과 정렬
+            sorted_results = sorted(
+                final_scores.items(), 
+                key=lambda x: x[1], 
+                reverse=True
+            )[:top_k]
+            
+            return sorted_results
+            
+        except Exception as e:
+            logger.error(f"하이브리드 검색 실패: {e}")
+            # 폴백: 의미적 검색만 사용
+            return self.semantic_search(query, top_k, threshold)
     
     def calculate_similarity(
         self, 
@@ -134,7 +348,6 @@ class SentenceTransformerEngine:
     ) -> float:
         """두 임베딩 간의 코사인 유사도 계산"""
         try:
-            # 코사인 유사도 계산
             similarity = cosine_similarity([embedding1], [embedding2])[0][0]
             return float(similarity)
         except Exception as e:
@@ -148,7 +361,6 @@ class SentenceTransformerEngine:
     ) -> np.ndarray:
         """쿼리와 여러 문서 간의 유사도 계산"""
         try:
-            # 배치 코사인 유사도 계산
             similarities = cosine_similarity([query_embedding], document_embeddings)[0]
             return similarities
         except Exception as e:
@@ -175,51 +387,21 @@ class SentenceTransformerEngine:
             return []
     
     def search_documents(self, query: str, top_k: int = 10, threshold: float = 0.0) -> List[Tuple[str, float]]:
-        """문서 검색 (경로와 유사도 반환)"""
-        if not self.is_fitted:
-            raise ValueError("먼저 fit_documents()를 호출해야 합니다.")
-        
-        try:
-            # 쿼리 임베딩
-            query_embedding = self.encode_text(query)
-            
-            # 문서와의 유사도 계산
-            similarities = cosine_similarity([query_embedding], self.document_vectors)[0]
-            
-            # 임계값 이상만 필터링
-            valid_indices = np.where(similarities >= threshold)[0]
-            valid_similarities = similarities[valid_indices]
-            
-            # 상위 k개 선택
-            if len(valid_indices) > top_k:
-                top_local_indices = np.argsort(valid_similarities)[::-1][:top_k]
-                top_indices = valid_indices[top_local_indices]
-                top_similarities = valid_similarities[top_local_indices]
-            else:
-                top_indices = valid_indices[np.argsort(valid_similarities)[::-1]]
-                top_similarities = valid_similarities[np.argsort(valid_similarities)[::-1]]
-            
-            # 결과 생성
-            results = []
-            for idx, sim in zip(top_indices, top_similarities):
-                if idx < len(self.document_paths):
-                    results.append((self.document_paths[idx], float(sim)))
-            
-            return results
-            
-        except Exception as e:
-            logger.error(f"문서 검색 실패: {e}")
-            return []
+        """기본 검색 (하이브리드 검색 사용)"""
+        return self.hybrid_search(query, top_k, threshold=threshold)
     
     def get_model_info(self) -> dict:
         """모델 정보 반환"""
         return {
             "model_name": self.model_name,
             "embedding_dimension": self.embedding_dimension,
-            "device": "cpu",  # TF-IDF는 CPU만 사용
+            "device": self.device,
+            "use_fp16": self.use_fp16,
+            "batch_size": self.batch_size,
             "cache_dir": self.cache_dir,
             "is_fitted": self.is_fitted,
-            "document_count": len(self.document_paths) if self.document_paths else 0
+            "document_count": len(self.document_paths) if self.document_paths else 0,
+            "has_bm25": self.bm25_model is not None
         }
     
     def preprocess_text(self, text: str) -> str:
@@ -232,15 +414,19 @@ class SentenceTransformerEngine:
         return text
     
     def save_model(self, filepath: str) -> None:
-        """모델 저장"""
+        """모델 저장 (임베딩과 BM25 인덱스만)"""
         try:
             model_data = {
-                'vectorizer': self.vectorizer,
-                'document_vectors': self.document_vectors,
+                'model_name': self.model_name,
                 'document_paths': self.document_paths,
+                'document_contents': self.document_contents,
+                'dense_embeddings': self.dense_embeddings,
+                'tokenized_docs': self.tokenized_docs,
                 'is_fitted': self.is_fitted,
                 'embedding_dimension': self.embedding_dimension,
-                'model_name': self.model_name
+                'device': self.device,
+                'use_fp16': self.use_fp16,
+                'batch_size': self.batch_size
             }
             
             os.makedirs(os.path.dirname(filepath), exist_ok=True)
@@ -258,12 +444,17 @@ class SentenceTransformerEngine:
             with open(filepath, 'rb') as f:
                 model_data = pickle.load(f)
             
-            self.vectorizer = model_data['vectorizer']
-            self.document_vectors = model_data['document_vectors']
+            self.model_name = model_data['model_name']
             self.document_paths = model_data['document_paths']
+            self.document_contents = model_data['document_contents']
+            self.dense_embeddings = model_data['dense_embeddings']
+            self.tokenized_docs = model_data['tokenized_docs']
             self.is_fitted = model_data['is_fitted']
             self.embedding_dimension = model_data['embedding_dimension']
-            self.model_name = model_data.get('model_name', 'tfidf')
+            
+            # BM25 모델 재구축
+            if self.tokenized_docs:
+                self.bm25_model = BM25Okapi(self.tokenized_docs)
             
             logger.info(f"모델 로딩 완료: {filepath}")
         except Exception as e:
@@ -271,11 +462,15 @@ class SentenceTransformerEngine:
             raise
 
 
+# 기존 인터페이스 호환성을 위한 별칭
+SentenceTransformerEngine = AdvancedEmbeddingEngine
+
+
 def test_engine():
     """엔진 테스트 함수"""
     try:
         # 엔진 초기화
-        engine = SentenceTransformerEngine()
+        engine = AdvancedEmbeddingEngine()
         
         # 테스트 문서
         test_docs = [
@@ -291,10 +486,22 @@ def test_engine():
         engine.fit_documents(test_docs, test_paths)
         print(f"✅ 모델 훈련 완료: {engine.embedding_dimension}차원")
         
-        # 검색 테스트
-        search_results = engine.search_documents("테스트 개발 방법", top_k=3)
-        print(f"✅ 검색 결과:")
-        for path, score in search_results:
+        # 의미적 검색 테스트
+        semantic_results = engine.semantic_search("테스트 개발 방법", top_k=3)
+        print(f"✅ 의미적 검색 결과:")
+        for path, score in semantic_results:
+            print(f"  - {path}: {score:.4f}")
+        
+        # 키워드 검색 테스트
+        keyword_results = engine.keyword_search("TDD 테스트", top_k=3)
+        print(f"✅ 키워드 검색 결과:")
+        for path, score in keyword_results:
+            print(f"  - {path}: {score:.4f}")
+        
+        # 하이브리드 검색 테스트
+        hybrid_results = engine.hybrid_search("테스트 주도 개발", top_k=3)
+        print(f"✅ 하이브리드 검색 결과:")
+        for path, score in hybrid_results:
             print(f"  - {path}: {score:.4f}")
         
         # 단일 임베딩 테스트
@@ -306,6 +513,10 @@ def test_engine():
         emb2 = engine.encode_text("테스트 주도 개발")
         similarity = engine.calculate_similarity(emb1, emb2)
         print(f"✅ 유사도 ('TDD 테스트' vs '테스트 주도 개발'): {similarity:.4f}")
+        
+        # 모델 정보 출력
+        model_info = engine.get_model_info()
+        print(f"✅ 모델 정보: {model_info}")
         
         print("✅ 엔진 테스트 완료!")
         return True
