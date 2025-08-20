@@ -86,7 +86,9 @@ class AdvancedSearchEngine:
         self.processor = VaultProcessor(
             str(vault_path),
             excluded_dirs=self.config.get('vault', {}).get('excluded_dirs'),
-            file_extensions=self.config.get('vault', {}).get('file_extensions')
+            file_extensions=self.config.get('vault', {}).get('file_extensions'),
+            include_folders=self.config.get('vault', {}).get('include_folders'),
+            exclude_folders=self.config.get('vault', {}).get('exclude_folders')
         )
         
         # 문서 및 임베딩 캐시

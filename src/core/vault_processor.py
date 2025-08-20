@@ -42,13 +42,17 @@ class VaultProcessor:
         self, 
         vault_path: str,
         excluded_dirs: Optional[List[str]] = None,
-        file_extensions: Optional[List[str]] = None
+        file_extensions: Optional[List[str]] = None,
+        include_folders: Optional[List[str]] = None,
+        exclude_folders: Optional[List[str]] = None
     ):
         """
         Args:
             vault_path: Vault 루트 경로
             excluded_dirs: 제외할 디렉토리 목록
             file_extensions: 처리할 파일 확장자 목록
+            include_folders: 포함할 폴더 목록 (설정 시 이 폴더들만 처리)
+            exclude_folders: 제외할 폴더 목록
         """
         self.vault_path = Path(vault_path)
         
@@ -58,10 +62,16 @@ class VaultProcessor:
         ]
         
         self.file_extensions = file_extensions or [".md", ".markdown"]
+        self.include_folders = include_folders  # 포함할 폴더 목록
+        self.exclude_folders = exclude_folders  # 추가로 제외할 폴더 목록
         
         logger.info(f"Vault 프로세서 초기화: {self.vault_path}")
         logger.info(f"제외 디렉토리: {self.excluded_dirs}")
         logger.info(f"처리 확장자: {self.file_extensions}")
+        if self.include_folders:
+            logger.info(f"포함 폴더: {self.include_folders}")
+        if self.exclude_folders:
+            logger.info(f"추가 제외 폴더: {self.exclude_folders}")
     
     def find_all_files(self) -> List[Path]:
         """Vault 내 모든 마크다운 파일 검색"""
@@ -71,6 +81,31 @@ class VaultProcessor:
             for root, dirs, file_names in os.walk(self.vault_path):
                 # 제외 디렉토리 필터링
                 dirs[:] = [d for d in dirs if d not in self.excluded_dirs]
+                
+                # 폴더 필터링 로직
+                current_path = Path(root)
+                relative_path = current_path.relative_to(self.vault_path)
+                relative_str = str(relative_path)
+                
+                # include_folders가 설정된 경우: 해당 폴더들만 포함
+                if self.include_folders:
+                    should_include = False
+                    for include_folder in self.include_folders:
+                        if relative_str == include_folder or relative_str.startswith(include_folder + '/') or relative_str == '.':
+                            should_include = True
+                            break
+                    if not should_include:
+                        continue
+                
+                # exclude_folders 추가 필터링
+                if self.exclude_folders:
+                    should_exclude = False
+                    for exclude_folder in self.exclude_folders:
+                        if relative_str == exclude_folder or relative_str.startswith(exclude_folder + '/'):
+                            should_exclude = True
+                            break
+                    if should_exclude:
+                        continue
                 
                 for file_name in file_names:
                     if any(file_name.endswith(ext) for ext in self.file_extensions):

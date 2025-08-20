@@ -440,7 +440,8 @@ def run_topic_analysis(vault_path: str, output_file: str, config: dict):
         return False
 
 
-def run_reindex(vault_path: str, force: bool, config: dict, sample_size: Optional[int] = None):
+def run_reindex(vault_path: str, force: bool, config: dict, sample_size: Optional[int] = None, 
+                include_folders: Optional[list] = None, exclude_folders: Optional[list] = None):
     """전체 재인덱싱 실행"""
     try:
         print("🔄 전체 재인덱싱 시작...")
@@ -448,10 +449,24 @@ def run_reindex(vault_path: str, force: bool, config: dict, sample_size: Optiona
             print("⚠️ 강제 모드: 기존 캐시를 무시하고 모든 문서를 재처리합니다.")
         if sample_size:
             print(f"📊 샘플링 모드: {sample_size}개 문서만 처리합니다.")
+        if include_folders:
+            print(f"📁 폴더 필터: {', '.join(include_folders)} 포함")
+        if exclude_folders:
+            print(f"🚫 폴더 제외: {', '.join(exclude_folders)}")
         
-        # 검색 엔진 초기화
+        # 검색 엔진 초기화 (폴더 필터링 설정)
         cache_dir = str(project_root / "cache")
-        search_engine = AdvancedSearchEngine(vault_path, cache_dir, config)
+        
+        # 임시로 vault 설정에 폴더 필터 추가
+        temp_config = config.copy()
+        if include_folders or exclude_folders:
+            temp_config['vault'] = temp_config.get('vault', {}).copy()
+            if include_folders:
+                temp_config['vault']['include_folders'] = include_folders
+            if exclude_folders:
+                temp_config['vault']['exclude_folders'] = exclude_folders
+        
+        search_engine = AdvancedSearchEngine(vault_path, cache_dir, temp_config)
         
         # 진행률 표시 함수
         def progress_callback(current, total):
@@ -555,6 +570,18 @@ def main():
         help="샘플링할 문서 수 (대규모 vault 성능 최적화용)"
     )
     
+    parser.add_argument(
+        "--include-folders",
+        nargs="+",
+        help="포함할 폴더 목록 (폴더별 점진적 색인)"
+    )
+    
+    parser.add_argument(
+        "--exclude-folders", 
+        nargs="+",
+        help="제외할 폴더 목록"
+    )
+    
     args = parser.parse_args()
     
     if args.verbose:
@@ -645,7 +672,10 @@ def main():
         if not check_dependencies():
             sys.exit(1)
         
-        if run_reindex(args.vault_path, args.force, config, getattr(args, 'sample_size', None)):
+        if run_reindex(args.vault_path, args.force, config, 
+                      getattr(args, 'sample_size', None),
+                      getattr(args, 'include_folders', None),
+                      getattr(args, 'exclude_folders', None)):
             print("✅ 재인덱싱 완료!")
         else:
             print("❌ 재인덱싱 실패!")
