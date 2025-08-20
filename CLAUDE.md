@@ -184,21 +184,50 @@ python -m src test
 - 대용량 vault 처리를 위한 청크 단위 처리
 - 진행률 표시로 사용자 경험 개선
 
+## 프로젝트 관리 방식
+
+### 문서화 전략
+- **계획 문서**: `docs/embedding-upgrade-plan.md`에 전체 구현 계획 관리
+- **TODO 추적**: `docs/todo-embedding-upgrade.md`에 체크리스트 형식으로 진행 상황 관리
+- **커밋 전략**: 각 기능 완성 시점에 의미 있는 커밋 메시지와 함께 커밋
+- **태깅**: 주요 마일스톤 달성 시 Git 태그로 버전 관리
+
+### 개발 워크플로우
+1. TODO 문서에서 다음 작업 항목 선택
+2. 해당 항목을 '진행 중'으로 표시
+3. 기능 구현 완료 후 '완료'로 표시
+4. 관련 문서 업데이트 (README, CLAUDE.md)
+5. 적절한 커밋 메시지와 함께 변경사항 커밋
+
+### 품질 관리
+- 각 단계별 테스트 실행 필수
+- 성능 벤치마크 측정 및 기록
+- 코드 리뷰 및 리팩토링 지속 수행
+- 문서화 동기화 유지
+
 ## 현재 구현 상태
 
-### Phase 2 완료 기능 ✅
-- TF-IDF 기반 임베딩 (Sentence Transformers 의존성 문제로 임시 구현)
+### ✅ 완료된 작업
+- 프로젝트 계획 수립 (`docs/embedding-upgrade-plan.md`)
+- TODO 리스트 작성 (`docs/todo-embedding-upgrade.md`)
+- 문서화 체계 구축
+
+### 🔄 현재 진행 중
+- BGE-M3 기반 고품질 임베딩 시스템 구현 준비
+
+### Phase 2 기존 기능 ✅
+- TF-IDF 기반 임베딩 (임시 구현, 교체 예정)
 - 고급 검색 엔진 (의미적/키워드/하이브리드)
 - 중복 문서 감지 및 그룹화
 - 주제별 클러스터링 (K-means, DBSCAN)
 - 문서 수집 및 통합 시스템
 - 통합 CLI 인터페이스
 
-### 향후 계획 (Phase 3)
-- Sentence Transformers 완전 통합
-- GPU 가속 처리
-- 웹 인터페이스 구축
-- 지식 그래프 기능
+### 🎯 다음 목표 (Phase 3)
+- BGE-M3 모델 기반 고품질 임베딩 시스템
+- Hybrid Search (Dense + Sparse + Reranking)
+- Obsidian 특화 기능 (링크 그래프, 메타데이터 활용)
+- 성능 최적화 및 GPU 가속
 
 ## 문제 해결
 
