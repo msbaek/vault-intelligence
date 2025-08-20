@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__sequential-thinking__sequentialthinking",
+      "Bash(python test_dependencies:*)",
+      "Bash(python -m:*)",
+      "Bash(time python:*)",
+      "Bash(pip install:*)",
+      "Bash(python:*)",
+      "Bash(/opt/homebrew/bin/python3:*)",
+      "Bash(pyenv:*)",
+      "Bash(rm:*)",
+      "Bash(timeout 30s python -m src search:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
