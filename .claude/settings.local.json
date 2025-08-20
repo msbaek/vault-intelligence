@@ -10,7 +10,12 @@
       "Bash(/opt/homebrew/bin/python3:*)",
       "Bash(pyenv:*)",
       "Bash(rm:*)",
-      "Bash(timeout 30s python -m src search:*)"
+      "Bash(timeout 30s python -m src search:*)",
+      "Bash(mkdir:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(top:*)",
+      "Bash(sqlite3:*)"
     ],
     "deny": [],
     "ask": []

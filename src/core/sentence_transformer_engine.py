@@ -41,8 +41,10 @@ class AdvancedEmbeddingEngine:
         model_name: str = "BAAI/bge-m3",
         cache_dir: Optional[str] = None,
         device: Optional[str] = None,
-        use_fp16: bool = True,
-        batch_size: int = 12
+        use_fp16: bool = False,
+        batch_size: int = 4,
+        max_length: int = 4096,
+        num_workers: int = 6
     ):
         """
         Args:
@@ -51,15 +53,20 @@ class AdvancedEmbeddingEngine:
             device: 계산 장치 (auto, cpu, cuda)
             use_fp16: FP16 정밀도 사용 여부
             batch_size: 배치 크기
+            max_length: 최대 토큰 길이
+            num_workers: 워커 프로세스 수
         """
         self.model_name = model_name
         self.cache_dir = cache_dir or "cache"
         self.device = device or ("cuda" if torch.cuda.is_available() else "cpu")
         self.use_fp16 = use_fp16 and torch.cuda.is_available()
         self.batch_size = batch_size
+        self.max_length = max_length
+        self.num_workers = num_workers
         
         logger.info(f"BGE-M3 임베딩 엔진 초기화: {model_name}")
-        logger.info(f"장치: {self.device}, FP16: {self.use_fp16}")
+        logger.info(f"장치: {self.device}, FP16: {self.use_fp16}, 배치크기: {self.batch_size}")
+        logger.info(f"최적화 설정 - 토큰길이: {self.max_length}, 워커수: {self.num_workers}")
         
         # BGE-M3 모델 로딩
         try:
@@ -90,9 +97,30 @@ class AdvancedEmbeddingEngine:
         # 캐시 디렉토리 생성
         os.makedirs(self.cache_dir, exist_ok=True)
     
-    def fit_documents(self, documents: List[str], document_paths: List[str] = None) -> None:
-        """문서들을 사용해 임베딩 생성 및 BM25 인덱스 구축"""
+    def fit_documents(self, documents: List[str], document_paths: List[str] = None, sample_size: Optional[int] = None) -> None:
+        """문서들을 사용해 임베딩 생성 및 BM25 인덱스 구축
+        
+        Args:
+            documents: 문서 리스트
+            document_paths: 문서 경로 리스트
+            sample_size: 샘플링할 문서 수 (None이면 전체 처리)
+        """
         logger.info(f"문서 인덱싱 시작... ({len(documents)}개 문서)")
+        
+        # 샘플링 처리
+        if sample_size and sample_size < len(documents):
+            logger.warning(f"⚠️  성능 최적화를 위해 {len(documents)}개 문서 중 {sample_size}개만 샘플링")
+            
+            # 인덱스 기반 균등 샘플링 (전체 문서에서 균등하게 선택)
+            step = len(documents) // sample_size
+            sample_indices = list(range(0, len(documents), step))[:sample_size]
+            
+            sampled_docs = [documents[i] for i in sample_indices]
+            sampled_paths = [document_paths[i] if document_paths else f"doc_{i}.md" for i in sample_indices]
+            
+            logger.info(f"📊 샘플링 완료: {len(sampled_docs)}개 문서 선택")
+            documents = sampled_docs
+            document_paths = sampled_paths
         
         # 빈 문서 처리
         processed_docs = []
@@ -117,19 +145,41 @@ class AdvancedEmbeddingEngine:
         logger.info(f"✅ 문서 인덱싱 완료: {len(documents)}개 문서")
     
     def _generate_dense_embeddings(self, documents: List[str]) -> None:
-        """Dense embeddings 생성 (배치 처리)"""
+        """Dense embeddings 생성 (청크 단위 배치 처리)"""
         try:
-            # BGE-M3로 dense embeddings 생성
-            embeddings_result = self.model.encode(
-                documents,
-                batch_size=self.batch_size,
-                max_length=8192,  # BGE-M3의 최대 토큰 길이
-                return_dense=True,
-                return_sparse=False,
-                return_colbert_vecs=False
-            )
+            total_docs = len(documents)
+            chunk_size = max(100, self.batch_size * 10)  # 청크 크기: 최소 100개 또는 배치크기의 10배
             
-            self.dense_embeddings = embeddings_result['dense_vecs']
+            logger.info(f"배치 임베딩 생성 시작: {total_docs}개 문서, 배치크기: {self.batch_size}")
+            logger.info(f"청크 단위 처리: 청크크기 {chunk_size}개")
+            
+            all_embeddings = []
+            
+            # 청크 단위로 처리
+            for i in range(0, total_docs, chunk_size):
+                chunk_docs = documents[i:i + chunk_size]
+                chunk_num = i // chunk_size + 1
+                total_chunks = (total_docs + chunk_size - 1) // chunk_size
+                
+                logger.info(f"청크 {chunk_num}/{total_chunks} 처리 중... ({len(chunk_docs)}개 문서)")
+                
+                embeddings_result = self.model.encode(
+                    chunk_docs,
+                    batch_size=self.batch_size,
+                    max_length=self.max_length,
+                    return_dense=True,
+                    return_sparse=False,
+                    return_colbert_vecs=False
+                )
+                
+                all_embeddings.append(embeddings_result['dense_vecs'])
+                
+                # 진행률 표시
+                progress = min(100, (i + len(chunk_docs)) * 100 // total_docs)
+                logger.info(f"진행률: {progress}% ({i + len(chunk_docs)}/{total_docs})")
+            
+            # 모든 청크의 임베딩을 합침
+            self.dense_embeddings = np.vstack(all_embeddings) if all_embeddings else np.zeros((0, self.embedding_dimension))
             logger.info(f"Dense embeddings 생성 완료: {self.dense_embeddings.shape}")
             
         except Exception as e:
@@ -165,7 +215,7 @@ class AdvancedEmbeddingEngine:
             result = self.model.encode(
                 [text.strip()],
                 batch_size=1,
-                max_length=8192,
+                max_length=self.max_length,
                 return_dense=True,
                 return_sparse=False,
                 return_colbert_vecs=False
@@ -200,7 +250,7 @@ class AdvancedEmbeddingEngine:
             result = self.model.encode(
                 processed_texts,
                 batch_size=batch_size,
-                max_length=8192,
+                max_length=self.max_length,
                 return_dense=True,
                 return_sparse=False,
                 return_colbert_vecs=False

@@ -70,13 +70,15 @@ class AdvancedSearchEngine:
         self.vault_path = Path(vault_path)
         self.config = config or {}
         
-        # 핵심 컴포넌트 초기화
+        # 핵심 컴포넌트 초기화 (성능 최적화 설정)
         self.engine = SentenceTransformerEngine(
             model_name=self.config.get('model', {}).get('name', 'BAAI/bge-m3'),
             cache_dir=self.config.get('model', {}).get('cache_folder', 'models'),
             device=self.config.get('model', {}).get('device'),
-            use_fp16=self.config.get('model', {}).get('use_fp16', True),
-            batch_size=self.config.get('model', {}).get('batch_size', 12)
+            use_fp16=self.config.get('model', {}).get('use_fp16', False),
+            batch_size=self.config.get('model', {}).get('batch_size', 4),
+            max_length=self.config.get('model', {}).get('max_length', 4096),
+            num_workers=self.config.get('model', {}).get('num_workers', 6)
         )
         
         self.cache = EmbeddingCache(cache_dir)
@@ -91,14 +93,22 @@ class AdvancedSearchEngine:
         self.documents: List[Document] = []
         self.embeddings: Optional[np.ndarray] = None
         self.indexed = False
+        self.is_sampled = False
+        self.sample_size = None
         
         logger.info(f"고급 검색 엔진 초기화: {vault_path}")
         
         # 기존 인덱스 자동 로드 시도
         self.load_index()
     
-    def build_index(self, force_rebuild: bool = False, progress_callback=None) -> bool:
-        """검색 인덱스 구축"""
+    def build_index(self, force_rebuild: bool = False, progress_callback=None, sample_size: Optional[int] = None) -> bool:
+        """검색 인덱스 구축
+        
+        Args:
+            force_rebuild: 강제 재구축 여부
+            progress_callback: 진행률 콜백
+            sample_size: 샘플링할 문서 수 (None이면 전체 처리)
+        """
         try:
             logger.info("검색 인덱스 구축 시작...")
             
@@ -110,13 +120,55 @@ class AdvancedSearchEngine:
                 logger.warning("처리할 문서가 없습니다.")
                 return False
             
-            # TF-IDF vectorizer 훈련 (모든 문서 내용)
+            # 대규모 vault에 대한 자동 샘플링 권장
+            if sample_size is None and len(self.documents) > 1000:
+                recommended_size = min(500, len(self.documents) // 2)
+                logger.warning(f"⚠️  대규모 vault 감지 ({len(self.documents)}개 문서)")
+                logger.warning(f"📊 성능 최적화를 위해 --sample-size {recommended_size} 옵션 사용을 권장합니다")
+            
+            # BGE-M3 임베딩 엔진 훈련 (샘플링 지원)
             all_contents = [doc.content for doc in self.documents]
             all_paths = [doc.path for doc in self.documents]
-            self.engine.fit_documents(all_contents, all_paths)
-            logger.info("TF-IDF vectorizer 훈련 완료")
+            self.engine.fit_documents(all_contents, all_paths, sample_size=sample_size)
+            logger.info("BGE-M3 임베딩 엔진 훈련 완료")
             
-            # 임베딩 생성/로딩
+            # 샘플링 모드일 때는 BGE-M3 엔진의 임베딩을 직접 사용
+            if sample_size and sample_size < len(self.documents):
+                logger.info("📊 샘플링 모드: BGE-M3 엔진의 임베딩을 직접 사용")
+                embeddings_list = []
+                
+                # BGE-M3 엔진에서 샘플링된 인덱스 계산
+                step = len(self.documents) // sample_size
+                sample_indices = list(range(0, len(self.documents), step))[:sample_size]
+                
+                # 샘플링된 문서들만 선택
+                sampled_documents = [self.documents[i] for i in sample_indices]
+                
+                # BGE-M3 엔진에서 생성된 임베딩 직접 사용
+                if hasattr(self.engine, 'dense_embeddings') and self.engine.dense_embeddings is not None:
+                    for i, doc in enumerate(sampled_documents):
+                        if i < len(self.engine.dense_embeddings):
+                            doc.embedding = self.engine.dense_embeddings[i]
+                            embeddings_list.append(self.engine.dense_embeddings[i])
+                        else:
+                            # 폴백: 제로 벡터
+                            doc.embedding = np.zeros(self.engine.embedding_dimension)
+                            embeddings_list.append(doc.embedding)
+                    
+                    self.documents = sampled_documents
+                    self.embeddings = np.array(embeddings_list)
+                    self.indexed = True
+                    self.is_sampled = True
+                    self.sample_size = len(sampled_documents)
+                    
+                    logger.info(f"✅ 샘플링 인덱스 구축 완료: {len(sampled_documents)}개 문서")
+                    
+                    # 샘플링 인덱스 저장
+                    self.save_index()
+                    
+                    return True
+            
+            # 전체 문서 처리 (기존 로직)
             embeddings_list = []
             cache_hits = 0
             new_embeddings = 0
@@ -213,60 +265,26 @@ class AdvancedSearchEngine:
     def load_index(self) -> bool:
         """저장된 인덱스 로드"""
         try:
-            # TF-IDF 모델 로드
-            model_path = os.path.join(self.cache.cache_dir, "tfidf_model.pkl")
-            if os.path.exists(model_path):
-                self.engine.load_model(model_path)
-                logger.info("TF-IDF 모델 로딩 완료")
+            # 샘플링 메타데이터 확인
+            metadata_path = os.path.join(self.cache.cache_dir, "index_metadata.json")
+            if os.path.exists(metadata_path):
+                import json
+                with open(metadata_path, 'r', encoding='utf-8') as f:
+                    index_metadata = json.load(f)
                 
-                # 문서 데이터 다시 로드
-                logger.info("문서 데이터 로딩 중...")
-                self.documents = self.processor.process_all_files()
-                logger.info(f"문서 로딩 완료: {len(self.documents)}개")
-                
-                # TF-IDF 모델이 로드되었지만 새 문서들에 대해 다시 훈련 필요
-                # (캐시된 임베딩이 현재 TF-IDF 모델과 호환되지 않을 수 있음)
-                logger.info("TF-IDF 모델을 현재 문서들로 재훈련 중...")
-                all_contents = [doc.content for doc in self.documents]
-                all_paths = [doc.path for doc in self.documents]
-                self.engine.fit_documents(all_contents, all_paths)
-                logger.info("TF-IDF 재훈련 완료")
-                
-                # 임베딩 배열 재생성 (TF-IDF 재훈련 후 모든 임베딩 새로 생성)
-                embeddings_list = []
-                logger.info("모든 임베딩을 새로 생성 중...")
-                for i, doc in enumerate(self.documents):
-                    # 캐시 무시하고 모든 임베딩 새로 생성 
-                    # (TF-IDF 재훈련으로 인해 기존 캐시가 무효화됨)
-                    embedding = self.engine.encode_text(doc.content)
-                    embeddings_list.append(embedding)
-                    doc.embedding = embedding
-                    
-                    # 새 임베딩을 캐시에 저장
-                    self.cache.store_embedding(
-                        str(self.vault_path / doc.path),
-                        embedding,
-                        self.engine.model_name,
-                        doc.word_count
-                    )
-                    
-                    # 진행률 표시
-                    if (i + 1) % 100 == 0:
-                        logger.info(f"임베딩 생성 진행률: {i + 1}/{len(self.documents)}")
-                
-                logger.info("모든 임베딩 생성 완료")
-                
-                if embeddings_list:
-                    self.embeddings = np.array(embeddings_list)
-                    self.indexed = True
-                    logger.info(f"인덱스 로딩 완료: {len(self.documents)}개 문서, {self.embeddings.shape}")
-                    return True
+                if index_metadata.get('is_sampled', False):
+                    logger.info(f"📊 이전 샘플링 인덱스 발견: {index_metadata.get('sample_size', 'unknown')}개 문서")
+                    logger.info("💡 샘플링 인덱스는 빠른 프로토타이핑용입니다.")
+                    self.is_sampled = True
+                    self.sample_size = index_metadata.get('sample_size')
                 else:
-                    logger.warning("임베딩 데이터를 로드할 수 없습니다.")
-                    return False
-            else:
-                logger.warning("저장된 모델을 찾을 수 없습니다.")
-                return False
+                    self.is_sampled = False
+                    self.sample_size = None
+            
+            # 현재는 복잡한 인덱스 로딩보다는 매번 재구축하는 것이 안전
+            # (BGE-M3 모델과 BM25 인덱스를 정확히 복원하는 것이 복잡)
+            logger.info("🔄 성능과 정확성을 위해 인덱스를 새로 구축합니다.")
+            return False
         except Exception as e:
             logger.error(f"인덱스 로딩 실패: {e}")
             return False
@@ -278,10 +296,22 @@ class AdvancedSearchEngine:
                 logger.warning("저장할 인덱스가 없습니다.")
                 return False
             
-            # TF-IDF 모델 저장
-            model_path = os.path.join(self.cache.cache_dir, "tfidf_model.pkl")
-            self.engine.save_model(model_path)
-            logger.info("인덱스 저장 완료")
+            # BGE-M3 모델 저장 (BGE-M3는 자동으로 캐시됨)
+            # 샘플링 메타데이터 저장
+            index_metadata = {
+                'is_sampled': getattr(self, 'is_sampled', False),
+                'sample_size': getattr(self, 'sample_size', None),
+                'total_documents': len(self.documents),
+                'embedding_dimension': self.engine.embedding_dimension,
+                'model_name': self.engine.model_name
+            }
+            
+            metadata_path = os.path.join(self.cache.cache_dir, "index_metadata.json")
+            import json
+            with open(metadata_path, 'w', encoding='utf-8') as f:
+                json.dump(index_metadata, f, ensure_ascii=False, indent=2)
+            
+            logger.info(f"인덱스 저장 완료 - 샘플링: {index_metadata['is_sampled']}, 문서: {index_metadata['total_documents']}개")
             return True
         except Exception as e:
             logger.error(f"인덱스 저장 실패: {e}")

@@ -10,6 +10,7 @@ import os
 import argparse
 import logging
 from pathlib import Path
+from typing import Optional
 
 # 프로젝트 루트를 Python path에 추가
 project_root = Path(__file__).parent.parent
@@ -232,10 +233,12 @@ def show_system_info():
     print("  python -m src duplicates")
 
 
-def run_search(vault_path: str, query: str, top_k: int, threshold: float, config: dict):
+def run_search(vault_path: str, query: str, top_k: int, threshold: float, config: dict, sample_size: Optional[int] = None):
     """검색 실행"""
     try:
         print(f"🔍 검색 시작: '{query}'")
+        if sample_size:
+            print(f"📊 샘플링 모드: {sample_size}개 문서만 처리")
         
         # 검색 엔진 초기화
         cache_dir = str(project_root / "cache")
@@ -243,7 +246,7 @@ def run_search(vault_path: str, query: str, top_k: int, threshold: float, config
         
         if not search_engine.indexed:
             print("📚 인덱스 구축 중...")
-            if not search_engine.build_index():
+            if not search_engine.build_index(sample_size=sample_size):
                 print("❌ 인덱스 구축 실패")
                 return False
         
@@ -437,12 +440,14 @@ def run_topic_analysis(vault_path: str, output_file: str, config: dict):
         return False
 
 
-def run_reindex(vault_path: str, force: bool, config: dict):
+def run_reindex(vault_path: str, force: bool, config: dict, sample_size: Optional[int] = None):
     """전체 재인덱싱 실행"""
     try:
         print("🔄 전체 재인덱싱 시작...")
         if force:
             print("⚠️ 강제 모드: 기존 캐시를 무시하고 모든 문서를 재처리합니다.")
+        if sample_size:
+            print(f"📊 샘플링 모드: {sample_size}개 문서만 처리합니다.")
         
         # 검색 엔진 초기화
         cache_dir = str(project_root / "cache")
@@ -453,11 +458,12 @@ def run_reindex(vault_path: str, force: bool, config: dict):
             percentage = (current / total) * 100
             print(f"📊 진행률: {current}/{total} ({percentage:.1f}%)")
         
-        # 인덱스 구축 (force_rebuild 옵션 사용)
+        # 인덱스 구축 (샘플링 지원)
         print("📚 인덱스 구축 중...")
         success = search_engine.build_index(
             force_rebuild=force, 
-            progress_callback=progress_callback
+            progress_callback=progress_callback,
+            sample_size=sample_size
         )
         
         if success:
@@ -543,6 +549,12 @@ def main():
         help="강제 전체 재인덱싱 (기존 캐시 무시)"
     )
     
+    parser.add_argument(
+        "--sample-size",
+        type=int,
+        help="샘플링할 문서 수 (대규모 vault 성능 최적화용)"
+    )
+    
     args = parser.parse_args()
     
     if args.verbose:
@@ -589,7 +601,7 @@ def main():
             print("❌ 검색 쿼리가 필요합니다. --query 옵션을 사용하세요.")
             sys.exit(1)
         
-        if run_search(args.vault_path, args.query, args.top_k, args.threshold, config):
+        if run_search(args.vault_path, args.query, args.top_k, args.threshold, config, getattr(args, 'sample_size', None)):
             print("✅ 검색 완료!")
         else:
             print("❌ 검색 실패!")
@@ -633,7 +645,7 @@ def main():
         if not check_dependencies():
             sys.exit(1)
         
-        if run_reindex(args.vault_path, args.force, config):
+        if run_reindex(args.vault_path, args.force, config, getattr(args, 'sample_size', None)):
             print("✅ 재인덱싱 완료!")
         else:
             print("❌ 재인덱싱 실패!")
