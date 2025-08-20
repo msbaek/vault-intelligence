@@ -37,11 +37,16 @@ vault:
     - ".vault-intelligence-cache"
     - ".writing-projects"
     - "ATTACHMENTS"
+    - "DATA-VIEW"
     - "Excalidraw"
     - "FONTS"
+    - "Template"
+    - "WIP"
     - "__pycache__"
     - "archive-old-scripts"
+    - "cc-agents"
     - "cc-logs"
+    - "copilot-custom-prompts"
     - "cursor-img"
     - "smart-chats"
   file_extensions:
@@ -89,4 +94,3 @@ performance:
   num_workers: 4
   chunk_size: 1000
   progress_bar: true
-
