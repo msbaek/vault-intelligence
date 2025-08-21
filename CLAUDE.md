@@ -4,7 +4,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## 프로젝트 개요
 
-Vault Intelligence System V2는 BGE-M3 기반 Obsidian vault 지능형 검색 시스템입니다. Smart Connections 플러그인에서 완전히 독립하여 더 높은 차원의 임베딩(1024차원)과 하이브리드 검색(Dense + Sparse) 기능을 제공합니다.
+Vault Intelligence System V2는 BGE-M3 기반 Obsidian vault 지능형 검색 시스템입니다. Smart Connections 플러그인에서 완전히 독립하여 더 높은 차원의 임베딩(1024차원)과 다층 검색 시스템을 제공합니다. Phase 5 완료로 최고 품질의 검색 경험을 제공하는 완성된 시스템입니다.
+
+**주요 특징**:
+- 🔍 **다층 검색 시스템**: Dense + Sparse + ColBERT + Reranking
+- 🇰🇷 **한국어 최적화**: 동의어 확장 및 HyDE 기술
+- ⚡ **M1 Pro 최적화**: Metal Performance Shaders 가속
+- 🎯 **최고 품질**: Cross-encoder 재순위화로 정밀도 극대화
 
 ## 개발 환경 설정
 
@@ -26,12 +32,41 @@ python -m src init --vault-path /Users/msbaek/DocumentsLocal/msbaek_vault
 ## 주요 명령어
 
 ### 검색 기능
+
+#### 기본 검색 방법들
 ```bash
-# 하이브리드 검색 (의미적 + 키워드)
-python -m src search --query "TDD" --top-k 10
+# 의미적 검색
+python -m src search --query "TDD" --search-method semantic
+
+# 키워드 검색  
+python -m src search --query "TDD" --search-method keyword
+
+# 하이브리드 검색 (기본값, 의미적 + 키워드)
+python -m src search --query "TDD" --search-method hybrid
+
+# ColBERT 토큰 수준 검색 (Phase 5.2)
+python -m src search --query "TDD" --search-method colbert
 
 # 유사도 임계값 조정
 python -m src search --query "리팩토링" --threshold 0.3
+```
+
+#### 고급 검색 기능들 (Phase 5 완료)
+```bash
+# 재순위화 포함 검색 (최고 품질)
+python -m src search --query "TDD" --rerank
+
+# 쿼리 확장 검색 (최대 포괄성)
+python -m src search --query "TDD" --expand
+
+# 동의어만 확장 (HyDE 제외)
+python -m src search --query "TDD" --expand --no-hyde
+
+# HyDE만 활용 (동의어 제외)
+python -m src search --query "TDD" --expand --no-synonyms
+
+# 모든 기능 결합 (최고 성능)
+python -m src search --query "TDD" --rerank --expand
 ```
 
 ### 중복 문서 감지
@@ -94,7 +129,10 @@ src/
 │   ├── embedding_cache.py              # SQLite 기반 임베딩 캐싱
 │   └── vault_processor.py              # Obsidian 마크다운 파일 처리
 ├── features/                       # 기능 모듈
-│   ├── advanced_search.py              # 의미적/키워드/하이브리드 검색
+│   ├── advanced_search.py              # 의미적/키워드/하이브리드/확장 검색
+│   ├── reranker.py                     # Cross-encoder 재순위화 (Phase 5.1)
+│   ├── colbert_search.py               # ColBERT 토큰 수준 검색 (Phase 5.2)
+│   ├── query_expansion.py              # 쿼리 확장 및 HyDE (Phase 5.3)
 │   ├── duplicate_detector.py           # 중복 문서 감지
 │   ├── topic_collector.py              # 주제별 문서 수집
 │   ├── topic_analyzer.py               # 주제 분석 및 클러스터링
@@ -178,6 +216,29 @@ collector.save_collection(collection, "tdd_collection.md")
 - `duplicates.similarity_threshold`: 중복 판정 임계값 (0.85)
 - `duplicates.min_word_count`: 최소 단어 수 (50)
 
+**Reranker 설정 (Phase 5.1)**
+- `reranker.model_name`: Reranker 모델명 (BAAI/bge-reranker-v2-m3)
+- `reranker.batch_size`: 배치 크기 (4)
+- `reranker.initial_candidates_multiplier`: 초기 후보 배수 (3)
+
+**ColBERT 설정 (Phase 5.2)**
+- `colbert.model_name`: ColBERT 모델명 (BAAI/bge-m3)
+- `colbert.max_documents`: 최대 처리 문서 수 (20)
+- `colbert.batch_size`: 배치 크기 (2)
+
+**쿼리 확장 설정 (Phase 5.3)**
+- `query_expansion.enable_hyde`: HyDE 활성화 여부 (true)
+- `query_expansion.max_synonyms`: 최대 동의어 수 (3)
+- `query_expansion.synonym_weight`: 동의어 가중치 (0.8)
+- `query_expansion.hyde_weight`: HyDE 가중치 (0.6)
+
+**파일 제외 설정**
+- `vault.excluded_dirs`: 제외할 디렉토리 목록 (`.obsidian`, `.trash` 등)
+- `vault.excluded_files`: 제외할 파일 패턴 목록 (glob 패턴 지원)
+  - 예시: `*.tmp`, `*.backup`, `README.md`, `LICENSE*`
+  - 시스템 파일: `.DS_Store`, `Thumbs.db`, `desktop.ini`
+  - 임시 파일: `*.tmp`, `*.temp`, `*.bak`, `*~`
+
 ## 테스트
 
 ### 단위 테스트 실행
@@ -189,6 +250,9 @@ python -m src test
 - `src.core.sentence_transformer_engine.test_engine()`
 - `src.core.embedding_cache.test_cache()`
 - `src.core.vault_processor.test_processor()`
+- `src.features.reranker.test_reranker()` (Phase 5.1)
+- `src.features.colbert_search.test_colbert_search()` (Phase 5.2)
+- `src.features.query_expansion.test_query_expansion()` (Phase 5.3)
 
 ## 성능 최적화
 
@@ -226,23 +290,30 @@ python -m src test
 
 ## 현재 구현 상태
 
-### ✅ 완료된 작업 (Phase 1-3)
-- BGE-M3 기반 고품질 임베딩 시스템 구현 완료
-- Dense Embeddings (1024차원) 의미적 검색
-- Sparse Embeddings (BM25) 키워드 검색  
-- Hybrid Search (RRF 기반 Dense + Sparse 융합)
-- 고급 검색 엔진 (의미적/키워드/하이브리드)
-- 중복 문서 감지 및 그룹화
-- 주제별 클러스터링 (K-means, DBSCAN)
-- 문서 수집 및 통합 시스템
-- 통합 CLI 인터페이스
-- 전체 시스템 통합 테스트 완료
+### ✅ 완료된 작업 (Phase 1-5) 🎉
+- **BGE-M3 기반 고품질 임베딩 시스템** 구현 완료
+- **Dense Embeddings** (1024차원) 의미적 검색
+- **Sparse Embeddings** (BM25) 키워드 검색  
+- **Hybrid Search** (RRF 기반 Dense + Sparse 융합)
+- **고급 검색 엔진** (의미적/키워드/하이브리드/ColBERT/확장)
+- **중복 문서 감지** 및 그룹화
+- **주제별 클러스터링** (K-means, DBSCAN)
+- **문서 수집 및 통합** 시스템
+- **통합 CLI 인터페이스**
+- **전체 시스템 통합 테스트** 완료
 
-### 🎯 향후 개선 사항 (Phase 4)
-- Cross-encoder 기반 Reranking 시스템
+#### 🆕 Phase 5: 검색 품질 향상 시스템 (2025-08-21 완료)
+- **Cross-encoder Reranking**: BAAI/bge-reranker-v2-m3 기반 2단계 검색
+- **ColBERT 토큰 수준 검색**: 세밀한 토큰 매칭 및 late interaction
+- **쿼리 확장 시스템**: 한국어 동의어 사전 + HyDE (Hypothetical Document Embeddings)
+- **다중 검색 모드**: semantic, keyword, hybrid, colbert, rerank, expand
+- **MPS 가속 최적화**: M1 Pro Metal Performance Shaders 완전 활용
+
+### 🎯 향후 개선 사항 (Phase 6+)
 - Obsidian 특화 기능 (링크 그래프, 메타데이터 활용)
-- ColBERT 임베딩 활용
-- GPU 가속 최적화
+- 웹 인터페이스 (FastAPI + React)
+- 실시간 모니터링 대시보드
+- 자동 태깅 및 문서 분류
 
 ## 문제 해결
 

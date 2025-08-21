@@ -9,6 +9,7 @@ import os
 import re
 import yaml
 import logging
+import fnmatch
 from typing import Dict, List, Optional, Tuple, Set
 from pathlib import Path
 from dataclasses import dataclass, asdict
@@ -42,6 +43,7 @@ class VaultProcessor:
         self, 
         vault_path: str,
         excluded_dirs: Optional[List[str]] = None,
+        excluded_files: Optional[List[str]] = None,
         file_extensions: Optional[List[str]] = None,
         include_folders: Optional[List[str]] = None,
         exclude_folders: Optional[List[str]] = None
@@ -50,6 +52,7 @@ class VaultProcessor:
         Args:
             vault_path: Vault 루트 경로
             excluded_dirs: 제외할 디렉토리 목록
+            excluded_files: 제외할 파일 패턴 목록 (glob 패턴 지원)
             file_extensions: 처리할 파일 확장자 목록
             include_folders: 포함할 폴더 목록 (설정 시 이 폴더들만 처리)
             exclude_folders: 제외할 폴더 목록
@@ -61,12 +64,18 @@ class VaultProcessor:
             "__pycache__", ".DS_Store"
         ]
         
+        self.excluded_files = excluded_files or [
+            ".DS_Store", "Thumbs.db", "desktop.ini",
+            "*.tmp", "*.temp", "*.backup", "*.bak", "*.log", "*~"
+        ]
+        
         self.file_extensions = file_extensions or [".md", ".markdown"]
         self.include_folders = include_folders  # 포함할 폴더 목록
         self.exclude_folders = exclude_folders  # 추가로 제외할 폴더 목록
         
         logger.info(f"Vault 프로세서 초기화: {self.vault_path}")
         logger.info(f"제외 디렉토리: {self.excluded_dirs}")
+        logger.info(f"제외 파일 패턴: {self.excluded_files}")
         logger.info(f"처리 확장자: {self.file_extensions}")
         if self.include_folders:
             logger.info(f"포함 폴더: {self.include_folders}")
@@ -108,9 +117,16 @@ class VaultProcessor:
                         continue
                 
                 for file_name in file_names:
-                    if any(file_name.endswith(ext) for ext in self.file_extensions):
-                        file_path = Path(root) / file_name
-                        files.append(file_path)
+                    # 파일 확장자 필터링
+                    if not any(file_name.endswith(ext) for ext in self.file_extensions):
+                        continue
+                    
+                    # 제외 파일 패턴 필터링
+                    if self._should_exclude_file(file_name):
+                        continue
+                    
+                    file_path = Path(root) / file_name
+                    files.append(file_path)
             
             logger.info(f"발견된 파일: {len(files)}개")
             return files
@@ -118,6 +134,14 @@ class VaultProcessor:
         except Exception as e:
             logger.error(f"파일 검색 실패: {e}")
             return []
+    
+    def _should_exclude_file(self, file_name: str) -> bool:
+        """파일이 제외 패턴에 매칭되는지 확인"""
+        for pattern in self.excluded_files:
+            if fnmatch.fnmatch(file_name, pattern):
+                logger.debug(f"파일 제외: {file_name} (패턴: {pattern})")
+                return True
+        return False
     
     def _calculate_file_hash(self, file_path: Path) -> str:
         """파일 해시 계산"""

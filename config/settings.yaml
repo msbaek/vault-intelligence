@@ -34,6 +34,28 @@ vault:
     - ".trash"
     - "cc-logs"
     - "smart-chats"
+    - "Excalidraw"
+    - "Template"
+    - "DATA-VIEW"
+    - "WIP"
+    - "ATTACHMENTS"
+    - "FONTS"
+  excluded_files:
+    - ".DS_Store"
+    - "Thumbs.db"
+    - "desktop.ini"
+    - "*.tmp"
+    - "*.temp"
+    - "*.backup"
+    - "*.bak"
+    - "*.log"
+    - "*~"
+    - ".gitignore"
+    - ".gitkeep"
+    - "README.md" # 원하지 않는 경우
+    - "CLAUDE.md" # 원하지 않는 경우
+    - "LICENSE*"
+    - "CHANGELOG*"
   file_extensions:
     - ".md"
     - ".markdown"
@@ -46,6 +68,35 @@ search:
   enable_hybrid_search: true
   text_weight: 0.3
   semantic_weight: 0.7
+
+# Reranker 설정 (Phase 5.1)
+reranker:
+  model_name: "BAAI/bge-reranker-v2-m3"
+  use_fp16: true
+  cache_folder: "models/"
+  device: "mps" # M1 Pro Metal Performance Shaders 가속
+  batch_size: 4
+  initial_candidates_multiplier: 3 # 초기 검색에서 final_k * 3개 후보 검색
+
+# ColBERT 설정 (Phase 5.2)
+colbert:
+  model_name: "BAAI/bge-m3" # BGE-M3 ColBERT 기능 사용
+  use_fp16: true
+  cache_folder: "models/"
+  device: "mps" # M1 Pro Metal Performance Shaders 가속
+  max_length: 4096
+  batch_size: 2 # ColBERT는 메모리 사용량이 높아 배치 크기 작게 설정
+  max_documents: 20 # 성능을 위해 상위 20개 문서만 ColBERT 인덱싱
+
+# 쿼리 확장 설정 (Phase 5.3)
+query_expansion:
+  model_name: "BAAI/bge-m3" # BGE-M3 모델 사용
+  device: "mps" # M1 Pro Metal Performance Shaders 가속
+  use_fp16: true
+  enable_hyde: true # HyDE (Hypothetical Document Embeddings) 활성화
+  max_synonyms: 3 # 최대 동의어 수
+  synonym_weight: 0.8 # 동의어 검색 결과 가중치
+  hyde_weight: 0.6 # HyDE 검색 결과 가중치
 
 # 중복 감지 설정
 duplicates:

@@ -86,6 +86,7 @@ class AdvancedSearchEngine:
         self.processor = VaultProcessor(
             str(vault_path),
             excluded_dirs=self.config.get('vault', {}).get('excluded_dirs'),
+            excluded_files=self.config.get('vault', {}).get('excluded_files'),
             file_extensions=self.config.get('vault', {}).get('file_extensions'),
             include_folders=self.config.get('vault', {}).get('include_folders'),
             exclude_folders=self.config.get('vault', {}).get('exclude_folders')
@@ -707,6 +708,290 @@ class AdvancedSearchEngine:
         except Exception as e:
             logger.error(f"통계 생성 실패: {e}")
             return {}
+    
+    def search_with_reranking(
+        self,
+        query: str,
+        search_method: str = "hybrid",
+        initial_k: int = 100,
+        final_k: int = 10,
+        threshold: float = 0.0,
+        use_reranker: bool = True,
+        **search_kwargs
+    ) -> List[SearchResult]:
+        """
+        재순위화를 포함한 고급 검색
+        
+        Args:
+            query: 검색 쿼리
+            search_method: 검색 방법 ("semantic", "keyword", "hybrid")
+            initial_k: 1차 검색에서 가져올 후보 수
+            final_k: 최종 반환할 결과 수
+            threshold: 유사도 임계값
+            use_reranker: 재순위화 사용 여부
+            **search_kwargs: 추가 검색 매개변수
+            
+        Returns:
+            재순위화된 검색 결과 (SearchResult 형태로 변환)
+        """
+        # Reranker가 요청되었지만 사용 불가능한 경우
+        if use_reranker:
+            try:
+                from .reranker import BGEReranker, RerankerPipeline
+                
+                # 설정에서 reranker 정보 가져오기
+                reranker_config = self.config.get('reranker', {})
+                
+                # Reranker 초기화
+                reranker = BGEReranker(
+                    model_name=reranker_config.get('model_name', 'BAAI/bge-reranker-v2-m3'),
+                    use_fp16=reranker_config.get('use_fp16', True),
+                    cache_folder=reranker_config.get('cache_folder', self.config.get('model', {}).get('cache_folder')),
+                    device=reranker_config.get('device', self.config.get('model', {}).get('device'))
+                )
+                
+                if reranker.is_available():
+                    # 파이프라인 생성 및 실행
+                    pipeline = RerankerPipeline(self, reranker, self.config)
+                    rerank_results = pipeline.search_and_rerank(
+                        query=query,
+                        search_method=search_method,
+                        initial_k=initial_k,
+                        final_k=final_k,
+                        similarity_threshold=threshold,
+                        **search_kwargs
+                    )
+                    
+                    # RerankResult를 SearchResult로 변환
+                    search_results = []
+                    for rerank_result in rerank_results:
+                        # 원본 SearchResult를 복사하고 점수 업데이트
+                        search_result = rerank_result.search_result
+                        search_result.similarity_score = rerank_result.rerank_score
+                        search_result.rank = rerank_result.new_rank + 1
+                        search_result.match_type = f"{search_result.match_type}_reranked"
+                        search_results.append(search_result)
+                    
+                    logger.info(f"재순위화 검색 완료: {len(search_results)}개 결과")
+                    return search_results
+                else:
+                    logger.warning("Reranker를 사용할 수 없습니다. 일반 검색으로 진행합니다.")
+                    use_reranker = False
+                    
+            except ImportError:
+                logger.warning("Reranker 모듈을 가져올 수 없습니다. 일반 검색으로 진행합니다.")
+                use_reranker = False
+            except Exception as e:
+                logger.warning(f"Reranker 초기화 실패: {e}. 일반 검색으로 진행합니다.")
+                use_reranker = False
+        
+        # 일반 검색 수행 (reranker 없이)
+        if search_method == "semantic":
+            return self.semantic_search(query, top_k=final_k, threshold=threshold, **search_kwargs)
+        elif search_method == "keyword":
+            return self.keyword_search(query, top_k=final_k, **search_kwargs)
+        elif search_method == "hybrid":
+            return self.hybrid_search(query, top_k=final_k, threshold=threshold, **search_kwargs)
+        else:
+            raise ValueError(f"지원하지 않는 검색 방법: {search_method}")
+    
+    def colbert_search(
+        self,
+        query: str,
+        top_k: int = 10,
+        threshold: float = 0.0
+    ) -> List[SearchResult]:
+        """
+        ColBERT 기반 토큰 수준 late interaction 검색
+        
+        Args:
+            query: 검색 쿼리
+            top_k: 반환할 상위 결과 수
+            threshold: 유사도 임계값
+            
+        Returns:
+            ColBERT 검색 결과
+        """
+        try:
+            from .colbert_search import ColBERTSearchEngine
+            
+            # ColBERT 엔진 설정
+            colbert_config = self.config.get('colbert', {})
+            
+            # ColBERT 엔진 초기화
+            colbert_engine = ColBERTSearchEngine(
+                model_name=colbert_config.get('model_name', 'BAAI/bge-m3'),
+                device=colbert_config.get('device', self.config.get('model', {}).get('device')),
+                use_fp16=colbert_config.get('use_fp16', True),
+                cache_folder=colbert_config.get('cache_folder', self.config.get('model', {}).get('cache_folder')),
+                max_length=colbert_config.get('max_length', self.config.get('model', {}).get('max_length', 4096))
+            )
+            
+            if not colbert_engine.is_available():
+                logger.warning("ColBERT 엔진을 사용할 수 없습니다. 의미적 검색으로 대체합니다.")
+                return self.semantic_search(query, top_k, threshold)
+            
+            # 인덱스가 없으면 구축 (성능을 위해 문서 수 제한)
+            if not colbert_engine.is_indexed:
+                logger.info("ColBERT 인덱스 구축 중...")
+                max_docs = colbert_config.get('max_documents', 50)  # 기본값 50개로 제한
+                if not colbert_engine.build_index(self.documents, max_documents=max_docs):
+                    logger.error("ColBERT 인덱스 구축 실패")
+                    return self.semantic_search(query, top_k, threshold)
+            
+            # ColBERT 검색 수행
+            colbert_results = colbert_engine.search(query, top_k, threshold)
+            
+            # SearchResult 형태로 변환
+            search_results = colbert_engine.convert_to_search_results(colbert_results)
+            
+            logger.info(f"ColBERT 검색 완료: {len(search_results)}개 결과")
+            return search_results
+            
+        except ImportError:
+            logger.warning("ColBERT 모듈을 가져올 수 없습니다. 의미적 검색으로 대체합니다.")
+            return self.semantic_search(query, top_k, threshold)
+        except Exception as e:
+            logger.error(f"ColBERT 검색 실패: {e}. 의미적 검색으로 대체합니다.")
+            return self.semantic_search(query, top_k, threshold)
+    
+    def expanded_search(
+        self,
+        query: str,
+        search_method: str = "hybrid",
+        top_k: int = 10,
+        threshold: float = 0.0,
+        include_synonyms: bool = True,
+        include_hyde: bool = True,
+        **search_kwargs
+    ) -> List[SearchResult]:
+        """
+        쿼리 확장을 포함한 고급 검색
+        
+        Args:
+            query: 검색 쿼리
+            search_method: 검색 방법 ("semantic", "keyword", "hybrid", "colbert")
+            top_k: 반환할 상위 결과 수
+            threshold: 유사도 임계값
+            include_synonyms: 동의어 포함 여부
+            include_hyde: HyDE 포함 여부
+            **search_kwargs: 추가 검색 매개변수
+            
+        Returns:
+            확장된 쿼리로 검색한 결과
+        """
+        try:
+            from .query_expansion import QueryExpansionEngine
+            
+            # 쿼리 확장 설정
+            expansion_config = self.config.get('query_expansion', {})
+            
+            # 쿼리 확장 엔진 초기화
+            expansion_engine = QueryExpansionEngine(
+                model_name=expansion_config.get('model_name', 'BAAI/bge-m3'),
+                device=expansion_config.get('device', self.config.get('model', {}).get('device')),
+                use_fp16=expansion_config.get('use_fp16', True),
+                enable_hyde=expansion_config.get('enable_hyde', True)
+            )
+            
+            # 쿼리 확장 실행
+            expanded_query = expansion_engine.expand_query(
+                query=query,
+                include_synonyms=include_synonyms,
+                include_hyde=include_hyde,
+                max_synonyms=expansion_config.get('max_synonyms', 3)
+            )
+            
+            logger.info(f"쿼리 확장 완료: {expanded_query.expansion_method}")
+            
+            # 여러 검색 쿼리 생성
+            search_queries = expansion_engine.create_expanded_search_queries(expanded_query)
+            
+            # 각 쿼리로 검색 수행 및 결과 통합
+            all_results = []
+            seen_docs = set()  # 중복 문서 제거용
+            
+            for i, search_query in enumerate(search_queries):
+                try:
+                    # 각 쿼리별 가중치 (원본 쿼리가 가장 높음)
+                    weight = 1.0 - (i * 0.1)  # 0.9, 0.8, 0.7, ...
+                    weight = max(weight, 0.3)  # 최소 0.3
+                    
+                    # 검색 실행
+                    if search_method == "semantic":
+                        results = self.semantic_search(search_query, top_k * 2, threshold, **search_kwargs)
+                    elif search_method == "keyword":
+                        results = self.keyword_search(search_query, top_k * 2, **search_kwargs)
+                    elif search_method == "hybrid":
+                        results = self.hybrid_search(search_query, top_k * 2, threshold, **search_kwargs)
+                    elif search_method == "colbert":
+                        results = self.colbert_search(search_query, top_k * 2, threshold, **search_kwargs)
+                    else:
+                        continue
+                    
+                    # 결과 가중치 적용 및 중복 제거
+                    for result in results:
+                        doc_id = result.document.path
+                        if doc_id not in seen_docs:
+                            # 점수에 가중치 적용
+                            result.similarity_score *= weight
+                            result.match_type = f"{result.match_type}_expanded"
+                            
+                            # 확장 정보 추가
+                            if i == 0:
+                                result.match_type += "_original"
+                            elif search_query in expanded_query.synonyms:
+                                result.match_type += "_synonym"
+                            elif search_query == expanded_query.hypothetical_doc:
+                                result.match_type += "_hyde"
+                            else:
+                                result.match_type += "_related"
+                            
+                            all_results.append(result)
+                            seen_docs.add(doc_id)
+                
+                except Exception as e:
+                    logger.warning(f"확장 쿼리 '{search_query[:50]}...' 검색 실패: {e}")
+                    continue
+            
+            # 통합 결과 정렬 및 상위 K개 선택
+            all_results.sort(key=lambda x: x.similarity_score, reverse=True)
+            final_results = all_results[:top_k]
+            
+            # 순위 재할당
+            for rank, result in enumerate(final_results):
+                result.rank = rank + 1
+            
+            logger.info(f"확장 검색 완료: {len(search_queries)}개 쿼리로 {len(final_results)}개 결과")
+            
+            return final_results
+            
+        except ImportError:
+            logger.warning("쿼리 확장 모듈을 가져올 수 없습니다. 일반 검색으로 진행합니다.")
+            # 폴백: 일반 검색
+            if search_method == "semantic":
+                return self.semantic_search(query, top_k, threshold, **search_kwargs)
+            elif search_method == "keyword":
+                return self.keyword_search(query, top_k, **search_kwargs)
+            elif search_method == "hybrid":
+                return self.hybrid_search(query, top_k, threshold, **search_kwargs)
+            elif search_method == "colbert":
+                return self.colbert_search(query, top_k, threshold, **search_kwargs)
+            else:
+                raise ValueError(f"지원하지 않는 검색 방법: {search_method}")
+        except Exception as e:
+            logger.error(f"확장 검색 실패: {e}. 일반 검색으로 대체합니다.")
+            # 폴백: 일반 검색
+            if search_method == "semantic":
+                return self.semantic_search(query, top_k, threshold, **search_kwargs)
+            elif search_method == "keyword":
+                return self.keyword_search(query, top_k, **search_kwargs)
+            elif search_method == "hybrid":
+                return self.hybrid_search(query, top_k, threshold, **search_kwargs)
+            elif search_method == "colbert":
+                return self.colbert_search(query, top_k, threshold, **search_kwargs)
+            else:
+                raise ValueError(f"지원하지 않는 검색 방법: {search_method}")
 
 
 def test_search_engine():

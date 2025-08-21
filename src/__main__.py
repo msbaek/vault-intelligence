@@ -233,12 +233,22 @@ def show_system_info():
     print("  python -m src duplicates")
 
 
-def run_search(vault_path: str, query: str, top_k: int, threshold: float, config: dict, sample_size: Optional[int] = None):
+def run_search(vault_path: str, query: str, top_k: int, threshold: float, config: dict, sample_size: Optional[int] = None, use_reranker: bool = False, search_method: str = "hybrid", use_expansion: bool = False, include_synonyms: bool = True, include_hyde: bool = True):
     """검색 실행"""
     try:
         print(f"🔍 검색 시작: '{query}'")
         if sample_size:
             print(f"📊 샘플링 모드: {sample_size}개 문서만 처리")
+        if use_reranker:
+            print("🎯 재순위화 모드 활성화")
+        if use_expansion:
+            print("📝 쿼리 확장 모드 활성화")
+            expand_features = []
+            if include_synonyms:
+                expand_features.append("동의어")
+            if include_hyde:
+                expand_features.append("HyDE")
+            print(f"   확장 기능: {', '.join(expand_features)}")
         
         # 검색 엔진 초기화
         cache_dir = str(project_root / "cache")
@@ -250,8 +260,37 @@ def run_search(vault_path: str, query: str, top_k: int, threshold: float, config
                 print("❌ 인덱스 구축 실패")
                 return False
         
-        # 하이브리드 검색 수행
-        results = search_engine.hybrid_search(query, top_k=top_k, threshold=threshold)
+        # 검색 수행 (확장, 재순위화 옵션 포함)
+        if use_expansion:
+            # 쿼리 확장을 포함한 검색
+            results = search_engine.expanded_search(
+                query=query,
+                search_method=search_method,
+                top_k=top_k,
+                threshold=threshold,
+                include_synonyms=include_synonyms,
+                include_hyde=include_hyde
+            )
+        elif use_reranker:
+            # 재순위화를 포함한 고급 검색
+            results = search_engine.search_with_reranking(
+                query=query, 
+                search_method=search_method,
+                initial_k=top_k * 3,  # 3배수 후보 검색
+                final_k=top_k, 
+                threshold=threshold,
+                use_reranker=True
+            )
+        else:
+            # 기존 검색 방법
+            if search_method == "semantic":
+                results = search_engine.semantic_search(query, top_k=top_k, threshold=threshold)
+            elif search_method == "keyword":
+                results = search_engine.keyword_search(query, top_k=top_k)
+            elif search_method == "colbert":
+                results = search_engine.colbert_search(query, top_k=top_k, threshold=threshold)
+            else:  # hybrid
+                results = search_engine.hybrid_search(query, top_k=top_k, threshold=threshold)
         
         if not results:
             print("❌ 검색 결과가 없습니다.")
@@ -549,6 +588,37 @@ def main():
     )
     
     parser.add_argument(
+        "--rerank",
+        action="store_true",
+        help="재순위화 활성화 (BGE Reranker V2-M3 사용)"
+    )
+    
+    parser.add_argument(
+        "--search-method",
+        choices=["semantic", "keyword", "hybrid", "colbert"],
+        default="hybrid",
+        help="검색 방법 (기본값: hybrid)"
+    )
+    
+    parser.add_argument(
+        "--expand",
+        action="store_true",
+        help="쿼리 확장 활성화 (동의어 + HyDE)"
+    )
+    
+    parser.add_argument(
+        "--no-synonyms",
+        action="store_true",
+        help="동의어 확장 비활성화"
+    )
+    
+    parser.add_argument(
+        "--no-hyde",
+        action="store_true",
+        help="HyDE 확장 비활성화"
+    )
+    
+    parser.add_argument(
         "--topic",
         help="수집할 주제"
     )
@@ -628,7 +698,19 @@ def main():
             print("❌ 검색 쿼리가 필요합니다. --query 옵션을 사용하세요.")
             sys.exit(1)
         
-        if run_search(args.vault_path, args.query, args.top_k, args.threshold, config, getattr(args, 'sample_size', None)):
+        if run_search(
+            args.vault_path, 
+            args.query, 
+            args.top_k, 
+            args.threshold, 
+            config, 
+            getattr(args, 'sample_size', None),
+            use_reranker=args.rerank,
+            search_method=args.search_method,
+            use_expansion=args.expand,
+            include_synonyms=not args.no_synonyms,
+            include_hyde=not args.no_hyde
+        ):
             print("✅ 검색 완료!")
         else:
             print("❌ 검색 실패!")
