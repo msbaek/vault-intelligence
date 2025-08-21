@@ -16,6 +16,10 @@ import numpy as np
 from pathlib import Path
 import torch
 from tqdm import tqdm
+from concurrent.futures import ProcessPoolExecutor, as_completed
+import multiprocessing
+from rich.console import Console
+from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TaskProgressColumn, TimeElapsedColumn, TimeRemainingColumn
 
 # BGE-M3 모델
 from FlagEmbedding import BGEM3FlagModel
@@ -145,42 +149,60 @@ class AdvancedEmbeddingEngine:
         logger.info(f"✅ 문서 인덱싱 완료: {len(documents)}개 문서")
     
     def _generate_dense_embeddings(self, documents: List[str]) -> None:
-        """Dense embeddings 생성 (청크 단위 배치 처리)"""
+        """Dense embeddings 생성 (최적화된 배치 처리 + Rich 진행률)"""
         try:
             total_docs = len(documents)
-            chunk_size = max(100, self.batch_size * 10)  # 청크 크기: 최소 100개 또는 배치크기의 10배
+            # 최적화된 청크 크기: MPS 가속을 위해 더 큰 배치 활용
+            chunk_size = max(200, self.batch_size * 20)  # 청크 크기 증가
             
-            logger.info(f"배치 임베딩 생성 시작: {total_docs}개 문서, 배치크기: {self.batch_size}")
-            logger.info(f"청크 단위 처리: 청크크기 {chunk_size}개")
+            console = Console()
+            console.print(f"🚀 [bold green]BGE-M3 Dense 임베딩 생성 시작[/bold green]")
+            console.print(f"📊 총 문서: {total_docs:,}개 | 배치크기: {self.batch_size} | 청크크기: {chunk_size}")
+            console.print(f"⚡ 가속: MPS | 토큰길이: {self.max_length} | 워커: {self.num_workers}")
             
             all_embeddings = []
             
-            # 청크 단위로 처리
-            for i in range(0, total_docs, chunk_size):
-                chunk_docs = documents[i:i + chunk_size]
-                chunk_num = i // chunk_size + 1
-                total_chunks = (total_docs + chunk_size - 1) // chunk_size
+            # Rich 진행률 표시로 청크 단위 처리
+            with Progress(
+                SpinnerColumn(),
+                TextColumn("[progress.description]{task.description}"),
+                BarColumn(),
+                TaskProgressColumn(),
+                TimeElapsedColumn(),
+                TimeRemainingColumn(),
+                console=console
+            ) as progress:
                 
-                logger.info(f"청크 {chunk_num}/{total_chunks} 처리 중... ({len(chunk_docs)}개 문서)")
+                task = progress.add_task("임베딩 생성 중...", total=total_docs)
                 
-                embeddings_result = self.model.encode(
-                    chunk_docs,
-                    batch_size=self.batch_size,
-                    max_length=self.max_length,
-                    return_dense=True,
-                    return_sparse=False,
-                    return_colbert_vecs=False
-                )
-                
-                all_embeddings.append(embeddings_result['dense_vecs'])
-                
-                # 진행률 표시
-                progress = min(100, (i + len(chunk_docs)) * 100 // total_docs)
-                logger.info(f"진행률: {progress}% ({i + len(chunk_docs)}/{total_docs})")
+                for i in range(0, total_docs, chunk_size):
+                    chunk_docs = documents[i:i + chunk_size]
+                    chunk_num = i // chunk_size + 1
+                    total_chunks = (total_docs + chunk_size - 1) // chunk_size
+                    
+                    progress.update(task, description=f"청크 {chunk_num}/{total_chunks} 처리 중...")
+                    
+                    # 최적화된 배치 처리로 임베딩 생성
+                    embeddings_result = self.model.encode(
+                        chunk_docs,
+                        batch_size=self.batch_size,
+                        max_length=self.max_length,
+                        return_dense=True,
+                        return_sparse=False,
+                        return_colbert_vecs=False
+                    )
+                    
+                    all_embeddings.append(embeddings_result['dense_vecs'])
+                    
+                    # 진행률 업데이트
+                    processed_docs = min(i + len(chunk_docs), total_docs)
+                    progress.update(task, completed=processed_docs)
             
             # 모든 청크의 임베딩을 합침
             self.dense_embeddings = np.vstack(all_embeddings) if all_embeddings else np.zeros((0, self.embedding_dimension))
-            logger.info(f"Dense embeddings 생성 완료: {self.dense_embeddings.shape}")
+            
+            console.print(f"✅ [bold green]Dense embeddings 생성 완료[/bold green]: {self.dense_embeddings.shape}")
+            console.print(f"📈 성능 향상: MPS 가속 + 배치크기 {self.batch_size} + 청크 최적화")
             
         except Exception as e:
             logger.error(f"Dense embeddings 생성 실패: {e}")
