@@ -25,26 +25,85 @@ python -m src search --query "TDD"
 
 ## 🔍 검색 기능
 
-### 기본 검색
+### 기본 검색 모드
 ```bash
-# 기본 하이브리드 검색 (추천)
+# 1. 기본 하이브리드 검색 (빠르고 균형잡힌 결과)
 python -m src search --query "테스트 주도 개발"
 
-# 상위 5개 결과만
-python -m src search --query "리팩토링" --top-k 5
+# 2. 의미적 검색 (개념 중심)
+python -m src search --query "TDD" --search-method semantic
 
-# 높은 정확도 (임계값 상향)
-python -m src search --query "클린 코드" --threshold 0.5
+# 3. 키워드 검색 (정확한 매칭)
+python -m src search --query "리팩토링" --search-method keyword
+
+# 4. ColBERT 토큰 수준 검색 (세밀한 매칭)
+python -m src search --query "클린 코드" --search-method colbert
 ```
 
-### 고급 검색 옵션
+### 🎯 고급 검색 기능 (Phase 5)
+
+#### 1️⃣ **재순위화 검색** (`--rerank`) - 최고 정확도
 ```bash
-# 다양한 옵션 조합
+python -m src search --query "TDD" --rerank
+
+# 작동 방식:
+# 1. 하이브리드 검색으로 상위 30개 후보 추출
+# 2. Cross-encoder (BAAI/bge-reranker-v2-m3)로 정밀 재순위화
+# 3. 최고 관련성 문서가 상위로 재배치
+```
+
+#### 2️⃣ **쿼리 확장 검색** (`--expand`) - 최대 포괄성
+```bash
+python -m src search --query "TDD" --expand
+
+# 작동 방식:
+# 1. 동의어 확장: TDD → "테스트 주도 개발", "Test Driven Development"
+# 2. HyDE 생성: 161자 분량의 가상 문서 생성
+# 3. 6개 쿼리로 병렬 검색 후 결과 통합
+```
+
+#### 3️⃣ **동의어만 확장** (`--expand --no-hyde`)
+```bash
+python -m src search --query "TDD" --expand --no-hyde
+
+# 한국어↔영어 동의어만 사용
+# 빠른 확장 검색, 용어 중심
+```
+
+#### 4️⃣ **HyDE만 활용** (`--expand --no-synonyms`)
+```bash
+python -m src search --query "TDD" --expand --no-synonyms
+
+# 가상 문서로 맥락 확장
+# 개념적 유사성 포착
+```
+
+#### 5️⃣ **최고 성능 모드** (`--rerank --expand`)
+```bash
+python -m src search --query "TDD" --rerank --expand
+
+# 모든 기능 결합:
+# 1. 쿼리 확장 (동의어 + HyDE)
+# 2. 다중 검색 및 통합
+# 3. Cross-encoder 재순위화
+# 최고 품질, 3-5초 소요
+```
+
+### 검색 옵션 조합
+```bash
+# 상위 20개, 높은 정확도, 재순위화
 python -m src search \
   --query "SOLID principles" \
-  --top-k 10 \
-  --threshold 0.3 \
-  --verbose
+  --top-k 20 \
+  --threshold 0.5 \
+  --rerank
+
+# 포괄적 검색, 동의어만 사용
+python -m src search \
+  --query "마이크로서비스" \
+  --expand \
+  --no-hyde \
+  --top-k 30
 ```
 
 ### 검색 결과 해석
@@ -53,11 +112,22 @@ python -m src search \
 --------------------------------------------------------------------------------
 1. Clean Architecture 책 정리        # 1위 결과
    경로: 997-BOOKS/clean-architecture.md
-   유사도: 0.8542                     # 높을수록 관련성 높음 (0~1)
-   타입: hybrid                       # 검색 방식
+   유사도: 2.8542                     # 높을수록 관련성 높음
+   타입: hybrid_expanded_reranked     # 확장 + 재순위화
    키워드: solid, principles          # 매칭된 키워드
    내용: SOLID 원칙은 객체지향...      # 미리보기 스니펫
 ```
+
+#### 검색 타입 설명
+- **`semantic`**: 의미적 검색 (개념 기반)
+- **`keyword`**: 키워드 검색 (정확한 단어 매칭)
+- **`hybrid`**: 하이브리드 검색 (의미적 + 키워드)
+- **`colbert`**: ColBERT 토큰 수준 검색
+- **`*_reranked`**: Cross-encoder로 재순위화된 결과
+- **`*_expanded_*`**: 쿼리 확장이 적용된 결과
+  - `*_original`**: 원본 쿼리 결과
+  - `*_synonym`**: 동의어 확장 결과  
+  - `*_hyde`**: HyDE 가상 문서 결과
 
 ## 🔎 중복 문서 감지
 
@@ -181,10 +251,30 @@ python -m src reindex --force
 ```yaml
 # 모델 설정
 model:
-  name: "paraphrase-multilingual-mpnet-base-v2"
-  dimension: 5000
-  batch_size: 32
-  device: null  # null: 자동선택, "cpu", "cuda"
+  name: "BAAI/bge-m3"              # BGE-M3 임베딩 모델
+  dimension: 1024                   # 임베딩 차원 (BGE-M3)
+  batch_size: 12                    # 배치 크기
+  max_length: 4096                  # 최대 토큰 길이
+  use_fp16: true                    # FP16 정밀도 사용
+  device: null                      # null: 자동선택, "cpu", "cuda", "mps"
+
+# Phase 5: 고급 검색 품질 향상 설정
+reranker:
+  model_name: "BAAI/bge-reranker-v2-m3"  # Cross-encoder 재순위화 모델
+  use_fp16: true
+  batch_size: 4
+  cache_folder: "models"
+
+colbert:
+  batch_size: 4
+  max_length: 4096
+  max_documents: 20                 # ColBERT 처리 문서 수 제한 (성능 최적화)
+
+query_expansion:
+  use_synonyms: true
+  use_hyde: true
+  hyde_templates: 3
+  max_expanded_queries: 6
 
 # 검색 설정
 search:
@@ -208,6 +298,12 @@ vault:
     - ".DS_Store"
     - "cursor-img"
     - ".swarm"
+  excluded_files:              # 제외할 파일 패턴 (glob 지원)
+    - ".DS_Store"
+    - "*.tmp"
+    - "*.backup"
+    - "**/temp/**/*"
+    - "**/.obsidian/**/*"
   file_extensions:             # 처리할 파일 확장자
     - ".md"
     - ".markdown"
@@ -344,7 +440,15 @@ python -m src reindex --verbose
 ```yaml
 # config/settings.yaml
 model:
-  batch_size: 16  # 기본값 32에서 16으로 감소
+  batch_size: 8   # 기본값 12에서 8로 감소
+  use_fp16: false # FP16 비활성화로 메모리 절약
+
+reranker:
+  batch_size: 2   # 재순위화 배치 크기 감소
+
+colbert:
+  batch_size: 2
+  max_documents: 10  # ColBERT 처리 문서 수 감소
 ```
 
 #### 4. 캐시 파일 손상
@@ -370,27 +474,65 @@ python -m src reindex --verbose 2>&1 | tee reindex.log
 #### 소규모 vault (< 1,000 문서)
 ```yaml
 model:
-  batch_size: 16
+  batch_size: 8
 search:
   default_top_k: 10
+reranker:
+  batch_size: 4
+colbert:
+  max_documents: 20
 ```
 
 #### 중규모 vault (1,000 ~ 5,000 문서)
 ```yaml
 model:
-  batch_size: 32
+  batch_size: 12
 search:
   default_top_k: 20
+reranker:
+  batch_size: 4
+colbert:
+  max_documents: 20
 ```
 
 #### 대규모 vault (> 5,000 문서)
 ```yaml
 model:
-  batch_size: 64
+  batch_size: 16
 search:
   default_top_k: 50
 duplicates:
   min_word_count: 100  # 짧은 문서 제외로 성능 향상
+reranker:
+  batch_size: 6
+colbert:
+  max_documents: 30
+```
+
+### Phase 5 성능 가이드
+
+#### 검색 방법별 성능 비교
+| 검색 방법 | 속도 | 정확도 | 메모리 사용 | 권장 사용처 |
+|-----------|------|--------|-------------|-------------|
+| `hybrid` | ⚡⚡⚡ | ⭐⭐⭐ | 💾 | 일반적 검색 |
+| `--rerank` | ⚡⚡ | ⭐⭐⭐⭐⭐ | 💾💾 | 고정확도 필요 |
+| `--expand` | ⚡ | ⭐⭐⭐⭐ | 💾💾 | 포괄적 검색 |
+| `colbert` | ⚡ | ⭐⭐⭐⭐ | 💾💾💾 | 토큰 수준 매칭 |
+| `--rerank --expand` | ⚡ | ⭐⭐⭐⭐⭐ | 💾💾💾 | 최고 품질 |
+
+#### 성능 최적화 팁
+```bash
+# 빠른 탐색용
+python -m src search --query "TDD"
+
+# 정확도 우선
+python -m src search --query "TDD" --rerank
+
+# 포괄성 우선  
+python -m src search --query "TDD" --expand --no-hyde
+
+# 최고 품질 (시간 소요)
+python -m src search --query "TDD" --rerank --expand
 ```
 
 ### 성능 모니터링
@@ -400,6 +542,11 @@ python -m src info
 
 # 검색 성능 테스트
 time python -m src search --query "performance test"
+
+# 개별 모듈 테스트
+python -c "from src.features.reranker import test_reranker; test_reranker()"
+python -c "from src.features.colbert_search import test_colbert_search; test_colbert_search()"
+python -c "from src.features.query_expansion import test_query_expansion; test_query_expansion()"
 ```
 
 ## 🎯 실제 사용 사례
@@ -497,5 +644,12 @@ python -m src search --query "개발"  # 대신 "소프트웨어 개발" 권장
 
 ---
 
-**최종 업데이트**: 2025-08-19  
-**버전**: V2.1 (Phase 2 완료)
+**최종 업데이트**: 2025-08-21  
+**버전**: V2.5 (Phase 5 완료 - 고급 검색 품질 향상)
+
+### 주요 업데이트 (V2.5)
+- 🎯 **Cross-encoder Reranking**: BGE Reranker V2-M3 기반 정밀 재순위화
+- 🔍 **ColBERT Search**: 토큰 수준 late interaction 검색
+- 🔄 **Query Expansion**: 한영 동의어 확장 + HyDE 가상 문서 생성
+- ⚙️ **File Exclusion**: glob 패턴 기반 파일 제외 기능
+- 📊 **Performance Optimization**: 다양한 검색 모드별 성능 최적화
