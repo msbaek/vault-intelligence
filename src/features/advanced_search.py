@@ -992,6 +992,467 @@ class AdvancedSearchEngine:
                 return self.colbert_search(query, top_k, threshold, **search_kwargs)
             else:
                 raise ValueError(f"지원하지 않는 검색 방법: {search_method}")
+    
+    def get_related_documents(
+        self,
+        document_path: str,
+        top_k: int = 5,
+        include_centrality_boost: bool = True,
+        similarity_threshold: float = 0.3
+    ) -> List[SearchResult]:
+        """
+        특정 문서와 관련된 문서들을 추천합니다.
+        
+        Args:
+            document_path: 기준이 되는 문서 경로
+            top_k: 반환할 관련 문서 수
+            include_centrality_boost: 중심성 점수를 반영할지 여부
+            similarity_threshold: 유사도 임계값
+            
+        Returns:
+            관련 문서 목록 (SearchResult)
+        """
+        try:
+            if not self.indexed:
+                logger.warning("인덱스가 구축되지 않았습니다.")
+                return []
+            
+            # 기준 문서 찾기
+            base_document = None
+            for doc in self.documents:
+                if doc.path == document_path or doc.title == document_path:
+                    base_document = doc
+                    break
+            
+            if base_document is None:
+                logger.warning(f"문서를 찾을 수 없습니다: {document_path}")
+                return []
+            
+            # 기준 문서의 임베딩 가져오기
+            base_cached = self.cache.get_embedding(base_document.path)
+            if base_cached is None:
+                logger.warning(f"문서에 임베딩이 없습니다: {document_path}")
+                return []
+            base_embedding = base_cached.embedding
+            
+            # 지식 그래프 기반 관련성 점수 계산 (옵션)
+            centrality_scores = {}
+            if include_centrality_boost:
+                centrality_scores = self._get_centrality_scores()
+            
+            # 유사도 기반 관련 문서 찾기
+            related_results = []
+            base_embedding = base_embedding.reshape(1, -1)
+            
+            for doc in self.documents:
+                # 자기 자신 제외
+                if doc.path == base_document.path:
+                    continue
+                    
+                # 문서의 임베딩 가져오기
+                doc_cached = self.cache.get_embedding(doc.path)
+                if doc_cached is None:
+                    continue
+                doc_embedding = doc_cached.embedding
+                
+                # 의미적 유사도 계산
+                doc_embedding = doc_embedding.reshape(1, -1)
+                if SKLEARN_AVAILABLE:
+                    similarity = cosine_similarity(base_embedding, doc_embedding)[0][0]
+                else:
+                    # NumPy로 코사인 유사도 계산
+                    similarity = np.dot(base_embedding[0], doc_embedding[0]) / (
+                        np.linalg.norm(base_embedding[0]) * np.linalg.norm(doc_embedding[0])
+                    )
+                
+                if similarity < similarity_threshold:
+                    continue
+                
+                # 태그 기반 가중치 추가
+                tag_boost = self._calculate_tag_similarity(base_document, doc)
+                
+                # 중심성 점수 가중치 (옵션)
+                centrality_boost = 0.0
+                if include_centrality_boost and doc.path in centrality_scores:
+                    centrality_boost = centrality_scores[doc.path] * 0.2  # 20% 가중치
+                
+                # 최종 점수 계산
+                final_score = similarity + tag_boost + centrality_boost
+                
+                # SearchResult 생성
+                result = SearchResult(
+                    document=doc,
+                    similarity_score=final_score,
+                    match_type="related_semantic",
+                    matched_keywords=[],
+                    snippet=doc.content[:150] + "..." if len(doc.content) > 150 else doc.content
+                )
+                
+                related_results.append(result)
+            
+            # 점수별 정렬 및 상위 K개 선택
+            related_results.sort(key=lambda x: x.similarity_score, reverse=True)
+            final_results = related_results[:top_k]
+            
+            # 순위 할당
+            for rank, result in enumerate(final_results):
+                result.rank = rank + 1
+            
+            logger.info(f"관련 문서 추천 완료: {base_document.title}에 대한 {len(final_results)}개 문서")
+            return final_results
+            
+        except Exception as e:
+            logger.error(f"관련 문서 추천 실패: {e}")
+            return []
+    
+    def search_with_related(
+        self,
+        query: str,
+        search_method: str = "hybrid", 
+        top_k: int = 10,
+        include_related: int = 3,
+        **search_kwargs
+    ) -> Tuple[List[SearchResult], List[SearchResult]]:
+        """
+        검색 결과와 함께 관련 문서들을 추천합니다.
+        
+        Args:
+            query: 검색 쿼리
+            search_method: 검색 방법
+            top_k: 주요 검색 결과 수
+            include_related: 각 결과별 관련 문서 수
+            **search_kwargs: 추가 검색 매개변수
+            
+        Returns:
+            (주요 검색 결과, 관련 문서 목록) 튜플
+        """
+        try:
+            # 기본 검색 수행
+            if search_method == "semantic":
+                main_results = self.semantic_search(query, top_k, **search_kwargs)
+            elif search_method == "keyword":
+                main_results = self.keyword_search(query, top_k, **search_kwargs)
+            elif search_method == "hybrid":
+                main_results = self.hybrid_search(query, top_k, **search_kwargs)
+            elif search_method == "colbert":
+                main_results = self.colbert_search(query, top_k, **search_kwargs)
+            else:
+                raise ValueError(f"지원하지 않는 검색 방법: {search_method}")
+            
+            if not main_results:
+                return [], []
+            
+            # 상위 결과들에 대한 관련 문서 수집
+            all_related = []
+            seen_docs = {result.document.path for result in main_results}  # 중복 방지
+            
+            for main_result in main_results[:3]:  # 상위 3개 결과만 사용
+                related_docs = self.get_related_documents(
+                    main_result.document.path, 
+                    top_k=include_related + 2,  # 여유분 추가
+                    similarity_threshold=0.2  # 낮은 임계값으로 더 많은 문서 포함
+                )
+                
+                # 중복 제거하며 추가
+                for related in related_docs:
+                    if related.document.path not in seen_docs:
+                        # 관련 문서임을 표시
+                        related.match_type = f"related_to_{main_result.document.title[:20]}"
+                        all_related.append(related)
+                        seen_docs.add(related.document.path)
+                        
+                        if len(all_related) >= include_related * 3:  # 적절한 수준에서 중단
+                            break
+                
+                if len(all_related) >= include_related * 3:
+                    break
+            
+            # 관련 문서들을 점수별로 재정렬
+            all_related.sort(key=lambda x: x.similarity_score, reverse=True)
+            final_related = all_related[:include_related * 2]  # 최종 관련 문서 수
+            
+            # 순위 재할당
+            for rank, result in enumerate(final_related):
+                result.rank = rank + 1
+            
+            logger.info(f"검색+관련문서 완료: 주요 {len(main_results)}개, 관련 {len(final_related)}개")
+            return main_results, final_related
+            
+        except Exception as e:
+            logger.error(f"검색+관련문서 실패: {e}")
+            return [], []
+    
+    def _get_centrality_scores(self) -> Dict[str, float]:
+        """지식 그래프에서 중심성 점수를 가져옵니다."""
+        try:
+            from .knowledge_graph import KnowledgeGraphBuilder
+            
+            # 지식 그래프 구축 (낮은 임계값 사용)
+            graph_config = self.config.get('graph', {})
+            if 'min_word_count' not in graph_config:
+                graph_config['min_word_count'] = 5  # 낮은 임계값 설정
+            graph_builder = KnowledgeGraphBuilder(self, graph_config)
+            knowledge_graph = graph_builder.build_graph()
+            
+            if knowledge_graph.centrality_scores:
+                # 노드 ID를 문서 경로로 매핑
+                path_scores = {}
+                for node in knowledge_graph.nodes:
+                    if node.node_type == "document":
+                        node_id = node.id
+                        centrality = knowledge_graph.centrality_scores.get(node_id, 0.0)
+                        path_scores[node.path] = centrality
+                
+                return path_scores
+            
+            return {}
+            
+        except Exception as e:
+            logger.debug(f"중심성 점수 계산 실패: {e}")
+            return {}
+    
+    def _calculate_tag_similarity(self, doc1: Document, doc2: Document) -> float:
+        """두 문서 간의 태그 유사도를 계산합니다."""
+        if not doc1.tags or not doc2.tags:
+            return 0.0
+        
+        tags1 = set(doc1.tags)
+        tags2 = set(doc2.tags)
+        
+        # Jaccard 유사도
+        intersection = len(tags1 & tags2)
+        union = len(tags1 | tags2)
+        
+        if union == 0:
+            return 0.0
+        
+        # 태그 유사도에 가중치 적용 (최대 0.2)
+        tag_similarity = (intersection / union) * 0.2
+        
+        return tag_similarity
+    
+    def search_with_centrality_boost(
+        self,
+        query: str,
+        search_method: str = "hybrid",
+        top_k: int = 10,
+        centrality_weight: float = 0.2,
+        **search_kwargs
+    ) -> List[SearchResult]:
+        """
+        중심성 점수를 반영한 검색
+        
+        Args:
+            query: 검색 쿼리
+            search_method: 검색 방법 ("semantic", "keyword", "hybrid", "colbert")
+            top_k: 반환할 상위 결과 수
+            centrality_weight: 중심성 점수 가중치 (0.0 - 1.0)
+            **search_kwargs: 추가 검색 매개변수
+            
+        Returns:
+            중심성 점수가 반영된 검색 결과
+        """
+        try:
+            # 기본 검색 수행
+            if search_method == "semantic":
+                results = self.semantic_search(query, top_k * 2, **search_kwargs)
+            elif search_method == "keyword":
+                results = self.keyword_search(query, top_k * 2, **search_kwargs)
+            elif search_method == "hybrid":
+                results = self.hybrid_search(query, top_k * 2, **search_kwargs)
+            elif search_method == "colbert":
+                results = self.colbert_search(query, top_k * 2, **search_kwargs)
+            else:
+                raise ValueError(f"지원하지 않는 검색 방법: {search_method}")
+            
+            if not results:
+                return []
+            
+            # 중심성 점수 가져오기
+            centrality_scores = self._get_centrality_scores()
+            
+            if not centrality_scores:
+                logger.info("중심성 점수가 없어 일반 검색 결과를 반환합니다.")
+                return results[:top_k]
+            
+            # 결과에 중심성 점수 적용
+            boosted_results = []
+            for result in results:
+                doc_path = result.document.path
+                centrality_boost = centrality_scores.get(doc_path, 0.0) * centrality_weight
+                
+                # 새로운 점수 = 원래 점수 + 중심성 부스트
+                new_score = result.similarity_score + centrality_boost
+                
+                # 새로운 SearchResult 생성
+                boosted_result = SearchResult(
+                    document=result.document,
+                    similarity_score=new_score,
+                    match_type=f"{result.match_type}_centrality_boosted",
+                    matched_keywords=result.matched_keywords,
+                    snippet=result.snippet,
+                    rank=0  # 재정렬 후 할당
+                )
+                
+                boosted_results.append(boosted_result)
+            
+            # 새로운 점수로 재정렬
+            boosted_results.sort(key=lambda x: x.similarity_score, reverse=True)
+            final_results = boosted_results[:top_k]
+            
+            # 순위 재할당
+            for rank, result in enumerate(final_results):
+                result.rank = rank + 1
+            
+            # 순위 변화 로깅
+            original_order = [r.document.title for r in results[:top_k]]
+            new_order = [r.document.title for r in final_results]
+            
+            if original_order != new_order:
+                logger.info(f"중심성 부스팅으로 순위 변경됨:")
+                for i, (orig, new) in enumerate(zip(original_order, new_order)):
+                    if orig != new:
+                        logger.info(f"  순위 {i+1}: {orig} → {new}")
+            
+            logger.info(f"중심성 부스팅 검색 완료: {len(final_results)}개 결과")
+            return final_results
+            
+        except Exception as e:
+            logger.error(f"중심성 부스팅 검색 실패: {e}")
+            # 폴백: 일반 검색 결과 반환
+            if search_method == "semantic":
+                return self.semantic_search(query, top_k, **search_kwargs)
+            elif search_method == "keyword":
+                return self.keyword_search(query, top_k, **search_kwargs)
+            elif search_method == "hybrid":
+                return self.hybrid_search(query, top_k, **search_kwargs)
+            elif search_method == "colbert":
+                return self.colbert_search(query, top_k, **search_kwargs)
+            else:
+                return []
+    
+    def analyze_knowledge_gaps(
+        self,
+        similarity_threshold: float = 0.3,
+        min_connections: int = 2
+    ) -> Dict[str, any]:
+        """
+        지식 공백을 분석합니다.
+        
+        Args:
+            similarity_threshold: 연결 판정 유사도 임계값
+            min_connections: 최소 연결 수 (이보다 적으면 고립으로 판정)
+            
+        Returns:
+            지식 공백 분석 결과
+        """
+        try:
+            if not self.indexed:
+                logger.warning("인덱스가 구축되지 않았습니다.")
+                return {}
+            
+            # 지식 그래프 구축
+            centrality_scores = self._get_centrality_scores()
+            
+            # 문서 간 유사도 매트릭스 계산
+            doc_similarities = {}
+            isolated_docs = []
+            weakly_connected_docs = []
+            
+            for i, doc1 in enumerate(self.documents):
+                if doc1.embedding is None:
+                    continue
+                
+                connections = 0
+                related_docs = []
+                
+                for j, doc2 in enumerate(self.documents):
+                    if i == j or doc2.embedding is None:
+                        continue
+                    
+                    # 유사도 계산
+                    if SKLEARN_AVAILABLE:
+                        similarity = cosine_similarity(
+                            doc1.embedding.reshape(1, -1),
+                            doc2.embedding.reshape(1, -1)
+                        )[0][0]
+                    else:
+                        similarity = np.dot(doc1.embedding, doc2.embedding) / (
+                            np.linalg.norm(doc1.embedding) * np.linalg.norm(doc2.embedding)
+                        )
+                    
+                    if similarity >= similarity_threshold:
+                        connections += 1
+                        related_docs.append({
+                            'title': doc2.title,
+                            'similarity': float(similarity)
+                        })
+                
+                doc_similarities[doc1.title] = {
+                    'connections': connections,
+                    'related_docs': related_docs,
+                    'centrality': centrality_scores.get(doc1.path, 0.0)
+                }
+                
+                # 고립/약한 연결 문서 분류
+                if connections == 0:
+                    isolated_docs.append({
+                        'title': doc1.title,
+                        'path': doc1.path,
+                        'word_count': doc1.word_count,
+                        'tags': doc1.tags or []
+                    })
+                elif connections < min_connections:
+                    weakly_connected_docs.append({
+                        'title': doc1.title,
+                        'path': doc1.path,
+                        'connections': connections,
+                        'word_count': doc1.word_count,
+                        'tags': doc1.tags or []
+                    })
+            
+            # 태그별 문서 분포 분석
+            tag_distribution = {}
+            for doc in self.documents:
+                if doc.tags:
+                    for tag in doc.tags:
+                        if tag not in tag_distribution:
+                            tag_distribution[tag] = []
+                        tag_distribution[tag].append(doc.title)
+            
+            # 고립된 태그 찾기
+            isolated_tags = {
+                tag: docs for tag, docs in tag_distribution.items()
+                if len(docs) == 1
+            }
+            
+            # 분석 결과 구성
+            analysis_result = {
+                'total_documents': len(self.documents),
+                'isolated_documents': isolated_docs,
+                'weakly_connected_documents': weakly_connected_docs,
+                'isolated_tags': isolated_tags,
+                'tag_distribution': tag_distribution,
+                'document_similarities': doc_similarities,
+                'summary': {
+                    'isolated_count': len(isolated_docs),
+                    'weakly_connected_count': len(weakly_connected_docs),
+                    'isolated_tag_count': len(isolated_tags),
+                    'total_tags': len(tag_distribution),
+                    'isolation_rate': len(isolated_docs) / len(self.documents) if self.documents else 0
+                }
+            }
+            
+            logger.info(f"지식 공백 분석 완료:")
+            logger.info(f"  - 고립 문서: {len(isolated_docs)}개")
+            logger.info(f"  - 약한 연결 문서: {len(weakly_connected_docs)}개")
+            logger.info(f"  - 고립 태그: {len(isolated_tags)}개")
+            
+            return analysis_result
+            
+        except Exception as e:
+            logger.error(f"지식 공백 분석 실패: {e}")
+            return {}
 
 
 def test_search_engine():

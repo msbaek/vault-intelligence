@@ -200,15 +200,24 @@ class KnowledgeGraphBuilder:
         filtered = []
         
         for doc in documents:
+            logger.info(f"문서 체크: {doc.title} - 단어수: {doc.word_count}, 임베딩: {doc.embedding is not None}")
+            
             # 최소 단어 수 확인
             if doc.word_count < self.min_word_count:
+                logger.info(f"  -> 단어수 부족 (최소: {self.min_word_count})")
                 continue
             
             # 임베딩 존재 확인
-            if doc.embedding is None or np.allclose(doc.embedding, 0):
+            if doc.embedding is None:
+                logger.info(f"  -> 임베딩 없음")
+                continue
+            
+            if np.allclose(doc.embedding, 0):
+                logger.info(f"  -> 임베딩이 모두 0")
                 continue
             
             filtered.append(doc)
+            logger.info(f"  -> 필터링 통과")
         
         logger.info(f"필터링된 문서: {len(filtered)}개 (원본: {len(documents)}개)")
         return filtered
@@ -792,13 +801,13 @@ tags:
         
         # 검색 엔진 초기화 및 인덱싱
         config = {
-            "model": {"name": "paraphrase-multilingual-mpnet-base-v2"},
+            "model": {"name": "BAAI/bge-m3"},
             "vault": {"excluded_dirs": [], "file_extensions": [".md"]},
             "graph": {
                 "similarity_threshold": 0.3,
                 "max_edges_per_node": 5,
                 "include_tag_nodes": True,
-                "min_word_count": 20
+                "min_word_count": 10  # 테스트용으로 낮춤
             }
         }
         

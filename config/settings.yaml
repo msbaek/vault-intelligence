@@ -130,3 +130,26 @@ performance:
   num_workers: 8 # 워커 수 증가
   chunk_size: 200 # 청크 크기 감소로 더 세밀한 처리
   progress_bar: true
+
+# 지식 그래프 설정 (Phase 6)
+knowledge_graph:
+  similarity_threshold: 0.4      # 문서 간 연결 임계값
+  min_word_count: 50            # 분석 대상 최소 단어 수
+  centrality_weight: 0.2        # 중심성 점수 가중치
+  max_connections_per_doc: 50   # 문서당 최대 연결 수
+  enable_tag_nodes: true        # 태그 노드 포함 여부
+  community_algorithm: "louvain" # 커뮤니티 감지 알고리즘
+
+# 관련 문서 추천 설정
+related_docs:
+  similarity_threshold: 0.3     # 관련성 최소 임계값
+  tag_similarity_weight: 0.3    # 태그 유사도 가중치
+  semantic_similarity_weight: 0.5 # 의미적 유사도 가중치
+  centrality_boost_weight: 0.2  # 중심성 가중치
+  max_candidates: 100           # 최대 후보 문서 수
+
+# 지식 공백 분석 설정
+gap_analysis:
+  min_connections: 3            # 고립 판정 최소 연결 수
+  centrality_threshold: 0.1     # 중심성 최소 임계값
+  isolation_threshold: 0.2      # 고립도 임계값

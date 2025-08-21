@@ -18,6 +18,37 @@ python -m src init --vault-path /path/to/your/vault
 python -m src test
 ```
 
+#### 테스트 결과 해석
+```
+🧪 시스템 테스트 실행 중...
+
+1️⃣ Sentence Transformer 엔진 테스트
+✅ BGE-M3 모델 로딩 성공
+✅ 임베딩 생성 테스트 (1024차원)
+✅ 유사도 계산 검증
+
+2️⃣ 임베딩 캐시 테스트
+✅ SQLite 데이터베이스 연결
+✅ 캐시 저장/로드 테스트
+✅ 중복 캐시 방지 검증
+
+3️⃣ Vault 프로세서 테스트
+✅ 마크다운 파일 파싱
+✅ 메타데이터 추출 (태그, 제목)
+✅ 파일 필터링 검증
+
+📊 테스트 결과: 3/3 통과
+```
+
+#### 개별 모듈 테스트
+```bash
+# Phase 5/6 고급 기능 개별 테스트
+python -c "from src.features.reranker import test_reranker; test_reranker()"
+python -c "from src.features.colbert_search import test_colbert_search; test_colbert_search()"
+python -c "from src.features.query_expansion import test_query_expansion; test_query_expansion()"
+python -c "from src.features.knowledge_graph import test_knowledge_graph; test_knowledge_graph()"
+```
+
 ### 3. 첫 검색 (자동 인덱싱)
 ```bash
 python -m src search --query "TDD"
@@ -129,6 +160,140 @@ python -m src search \
   - `*_synonym`**: 동의어 확장 결과  
   - `*_hyde`**: HyDE 가상 문서 결과
 
+## 🕸️ 지식 그래프 기능 (Phase 6)
+
+### 관련 문서 추천
+
+특정 문서와 관련된 문서들을 스마트하게 추천받을 수 있습니다.
+
+```bash
+# 기본 관련 문서 추천
+python -m src related --file "클린 애자일(Back to Basics)" --top-k 5
+
+# 전체 경로로 지정
+python -m src related --file "/full/path/to/document.md" --top-k 10
+
+# 더 많은 추천 결과
+python -m src related --file "TDD 가이드" --top-k 20
+
+# 관련성 임계값 조정
+python -m src related --file "클린코드" --similarity-threshold 0.5 --top-k 15
+
+# 낮은 임계값으로 포괄적 추천
+python -m src related --file "리팩토링" --similarity-threshold 0.2 --top-k 30
+
+# 상세 로그와 함께
+python -m src related --file "DDD" --verbose --top-k 10
+```
+
+#### 관련성 임계값 가이드
+| 임계값 | 추천 특성 | 사용 상황 |
+|--------|-----------|----------|
+| 0.1 ~ 0.2 | 매우 포괄적, 약간의 연관성도 포함 | 브레인스토밍, 아이디어 발굴 |
+| 0.3 ~ 0.4 | 균형잡힌 추천 (기본값) | 일반적인 관련 문서 찾기 |
+| 0.5 ~ 0.7 | 높은 관련성, 엄선된 결과 | 정확한 참조 문서 필요 |
+| 0.7+ | 매우 유사한 문서만 | 중복 문서나 동일 주제 변형 찾기 |
+
+#### 결과 해석
+```
+📄 관련 문서 (5개):
+--------------------------------------------------------------------------------
+1. 소프트웨어장인
+   경로: /Users/msbaek/DocumentsLocal/msbaek_vault/997-BOOKS/소프트웨어장인.md
+   관련도: 0.9041                    # 높을수록 관련성 높음
+   타입: related_semantic            # 관련성 타입
+   태그: source/book, topic/career/software-artisan, topic/professional-development
+   내용: 소프트웨어장인이란 개발에 대한 프로다운 자세와...
+```
+
+#### 관련성 계산 방식
+- **의미적 유사도** (50%): BGE-M3 임베딩 기반 문서 내용 유사성
+- **태그 유사도** (30%): 공통 태그 기반 주제 연관성  
+- **중심성 점수** (20%): 지식 그래프에서의 문서 중요도
+
+### 중심성 기반 검색 랭킹
+
+문서의 중요도(중심성)를 검색 결과에 반영하여 핵심 문서를 우선 노출합니다.
+
+```bash
+# 중심성 점수 반영 검색
+python -m src search --query "TDD" --with-centrality --top-k 10
+
+# 일반 검색과 비교
+python -m src search --query "TDD" --top-k 10
+```
+
+#### 중심성 점수란?
+- **PageRank**: 다른 문서들과 얼마나 많이 연결되어 있는가
+- **근접 중심성**: 전체 지식 네트워크에서 얼마나 중심에 위치하는가  
+- **매개 중심성**: 다른 문서들 사이의 연결 다리 역할을 하는가
+
+### 지식 공백 분석
+
+vault 내에서 고립되거나 연결이 약한 문서들을 찾아 지식 체계를 개선할 수 있습니다.
+
+```bash
+# 기본 지식 공백 분석
+python -m src analyze-gaps --top-k 10
+
+# 더 상세한 분석
+python -m src analyze-gaps --top-k 20
+
+# 연결 기준 조정 (더 엄격한 고립 판정)
+python -m src analyze-gaps --min-connections 5 --top-k 15
+
+# 유사도 임계값 조정
+python -m src analyze-gaps --similarity-threshold 0.4 --min-connections 3
+
+# 결과를 파일로 저장
+python -m src analyze-gaps --output knowledge_gaps.json --top-k 50
+
+# 상세 분석 로그
+python -m src analyze-gaps --verbose --top-k 30
+```
+
+#### 분석 매개변수 가이드
+
+**최소 연결 수 (`--min-connections`)**
+- `1-2`: 관대한 기준, 더 많은 약한 연결 문서 감지
+- `3-4`: 기본 기준, 균형잡힌 분석
+- `5+`: 엄격한 기준, 진짜 고립된 문서만 감지
+
+**유사도 임계값 (`--similarity-threshold`)**
+- `0.2-0.3`: 약한 연관성도 연결로 인정
+- `0.3-0.4`: 기본 기준, 의미있는 연관성만 인정
+- `0.4+`: 강한 연관성만 연결로 인정
+
+#### 분석 결과 해석
+```
+📊 지식 공백 분석 결과:
+--------------------------------------------------
+전체 문서: 2291개
+고립 문서: 45개                    # 다른 문서와 연결이 약한 문서
+약한 연결 문서: 128개               # 연결은 있지만 충분하지 않은 문서
+고립 태그: 892개                   # 사용 빈도가 낮은 태그
+고립률: 7.5%                      # 전체 대비 고립 문서 비율
+
+🏷️ 고립된 태그들 (상위 10개):
+  - philosophy/kent-beck: useful.questions
+  - principles/abstraction: useful.questions  
+  - project/ai-assisted-research: useful.questions
+
+📈 주요 태그 분포:
+  - topic/code-review: 184개 문서
+  - status/active: 171개 문서
+  - technology/java: 169개 문서
+```
+
+#### 개선 방안
+- **고립 문서**: 관련 태그 추가, 다른 문서와 연결점 생성
+- **고립 태그**: 태그 체계 정리, 유사 태그 통합
+- **약한 연결**: 문서 간 참조 링크 추가, 내용 보강
+
+### 지식 그래프 시각화 (향후 기능)
+
+현재는 CLI 기반 분석을 제공하며, 향후 웹 인터페이스에서 시각적 그래프를 제공할 예정입니다.
+
 ## 🔎 중복 문서 감지
 
 ### 기본 중복 감지
@@ -230,7 +395,57 @@ python -m src reindex
 
 # 강제 전체 재인덱싱 (모든 캐시 무시)
 python -m src reindex --force
+
+# 샘플링 재인덱싱 (대규모 vault 성능 최적화)
+python -m src reindex --sample-size 1000
+
+# 폴더별 점진적 재인덱싱
+python -m src reindex --include-folders "003-RESOURCES" "997-BOOKS"
+python -m src reindex --exclude-folders "ATTACHMENTS" "temp"
+
+# 상세 진행률 표시
+python -m src reindex --force --verbose
 ```
+
+### 폴더별 점진적 색인
+
+대규모 vault의 경우 특정 폴더만 선별적으로 인덱싱할 수 있습니다.
+
+#### 특정 폴더만 포함
+```bash
+# 중요한 폴더들만 먼저 인덱싱
+python -m src reindex --include-folders "003-RESOURCES" "000-SLIPBOX" "997-BOOKS"
+
+# 개발 관련 문서만 인덱싱
+python -m src reindex --include-folders "programming" "projects"
+```
+
+#### 특정 폴더 제외
+```bash
+# 임시 파일과 첨부 파일 제외
+python -m src reindex --exclude-folders "ATTACHMENTS" "temp" "WIP"
+
+# 아카이브 폴더 제외
+python -m src reindex --exclude-folders "archive" "old"
+```
+
+#### 샘플링 기반 처리
+
+매우 큰 vault의 경우 성능 최적화를 위해 샘플링을 사용할 수 있습니다.
+
+```bash
+# 1000개 문서만 샘플링하여 빠른 테스트
+python -m src reindex --sample-size 1000
+
+# 검색도 샘플링 모드로
+python -m src search --query "TDD" --sample-size 500
+```
+
+**샘플링 모드 특징:**
+- 전체 vault에서 균등하게 문서를 선택
+- 폴더별 비율을 유지하여 편향 최소화
+- 샘플링 메타데이터는 캐시에 저장되어 재사용
+- 빠른 프로토타이핑과 시스템 테스트에 유용
 
 ### 언제 재인덱싱이 필요한가?
 
@@ -275,6 +490,27 @@ query_expansion:
   use_hyde: true
   hyde_templates: 3
   max_expanded_queries: 6
+
+# Phase 6: 지식 그래프 및 관련성 분석 설정
+knowledge_graph:
+  similarity_threshold: 0.4      # 문서 간 연결 임계값
+  min_word_count: 50            # 분석 대상 최소 단어 수
+  centrality_weight: 0.2        # 중심성 점수 가중치
+  max_connections_per_doc: 50   # 문서당 최대 연결 수
+  enable_tag_nodes: true        # 태그 노드 포함 여부
+  community_algorithm: "louvain" # 커뮤니티 감지 알고리즘
+
+related_docs:
+  similarity_threshold: 0.3     # 관련성 최소 임계값
+  tag_similarity_weight: 0.3    # 태그 유사도 가중치
+  semantic_similarity_weight: 0.5 # 의미적 유사도 가중치
+  centrality_boost_weight: 0.2  # 중심성 가중치
+  max_candidates: 100           # 최대 후보 문서 수
+
+gap_analysis:
+  min_connections: 3            # 고립 판정 최소 연결 수
+  centrality_threshold: 0.1     # 중심성 최소 임계값
+  isolation_threshold: 0.2      # 고립도 임계값
 
 # 검색 설정
 search:
@@ -393,6 +629,42 @@ print(f"수집된 문서: {collection.metadata.total_documents}개")
 print(f"총 단어수: {collection.metadata.total_word_count:,}개")
 ```
 
+#### 지식 그래프 직접 사용 (Phase 6)
+```python
+# 1. 관련 문서 추천
+related_docs = search_engine.get_related_documents(
+    document_path="클린 애자일(Back to Basics)",
+    top_k=5,
+    include_centrality_boost=True,
+    similarity_threshold=0.3
+)
+
+print(f"관련 문서 {len(related_docs)}개 발견:")
+for i, doc in enumerate(related_docs, 1):
+    print(f"{i}. {doc.document.title} (관련도: {doc.similarity_score:.3f})")
+
+# 2. 중심성 기반 검색
+centrality_results = search_engine.search_with_centrality_boost(
+    query="TDD",
+    top_k=10,
+    centrality_weight=0.2
+)
+
+print(f"중심성 반영 검색 결과 {len(centrality_results)}개:")
+for result in centrality_results:
+    print(f"- {result.document.title} (점수: {result.similarity_score:.3f})")
+
+# 3. 지식 공백 분석
+gaps = search_engine.analyze_knowledge_gaps(
+    min_connections=3,
+    centrality_threshold=0.1
+)
+
+print(f"고립 문서: {gaps['isolated_documents']}개")
+print(f"고립 태그: {gaps['isolated_tags']}개")
+print(f"전체 고립률: {gaps['isolation_ratio']:.1%}")
+```
+
 ### 2. 배치 처리 스크립트
 
 #### 여러 주제 일괄 수집
@@ -458,14 +730,45 @@ rm -rf cache/
 python -m src reindex --force
 ```
 
-### 로그 확인
+### 로그 확인 및 Verbose 모드
+
+#### 모든 명령어에서 Verbose 옵션 사용
 ```bash
-# 상세 로그로 실행
+# 검색 시 상세 로그
 python -m src search --query "TDD" --verbose
 
-# 로그 파일로 저장
-python -m src reindex --verbose 2>&1 | tee reindex.log
+# 재인덱싱 시 진행률 상세 표시
+python -m src reindex --force --verbose
+
+# 중복 감지 시 상세 분석 과정
+python -m src duplicates --verbose
+
+# 관련 문서 찾기 시 계산 과정 표시
+python -m src related --file "문서명" --verbose
+
+# 지식 공백 분석 시 상세 통계
+python -m src analyze-gaps --verbose
 ```
+
+#### 로그 파일 저장
+```bash
+# 로그를 파일로 저장 (Linux/Mac)
+python -m src reindex --verbose 2>&1 | tee reindex.log
+
+# 검색 로그 저장
+python -m src search --query "TDD" --rerank --expand --verbose > search.log 2>&1
+
+# 시스템 테스트 로그 저장
+python -m src test --verbose > test_results.log 2>&1
+```
+
+#### Verbose 모드에서 확인할 수 있는 정보
+- **모델 로딩 시간**: BGE-M3, Reranker 모델 초기화 소요 시간
+- **임베딩 생성 진행률**: 문서별 처리 상황 및 배치 단위 진행률
+- **검색 단계별 시간**: 초기 검색 → 재순위화 → 결과 통합 시간
+- **캐시 활용률**: 기존 캐시 사용 vs 새로 생성한 임베딩 비율
+- **메모리 사용량**: 피크 메모리 사용량 및 모델별 메모리 점유율
+- **지식 그래프 구축**: 노드/엣지 생성, 중심성 계산 진행률
 
 ## 📊 성능 최적화
 
@@ -520,6 +823,47 @@ colbert:
 | `colbert` | ⚡ | ⭐⭐⭐⭐ | 💾💾💾 | 토큰 수준 매칭 |
 | `--rerank --expand` | ⚡ | ⭐⭐⭐⭐⭐ | 💾💾💾 | 최고 품질 |
 
+### Phase 6 성능 가이드
+
+#### 지식 그래프 기능별 성능 특성
+
+| 기능 | 속도 | 메모리 사용 | 정확도 | 권장 사용처 |
+|------|------|-------------|--------|-------------|
+| `related` | ⚡⚡ | 💾💾 | ⭐⭐⭐⭐⭐ | 관련 문서 탐색 |
+| `--with-centrality` | ⚡⚡ | 💾💾 | ⭐⭐⭐⭐ | 중요도 기반 검색 |
+| `analyze-gaps` | ⚡ | 💾💾💾 | ⭐⭐⭐⭐⭐ | vault 구조 분석 |
+
+#### Phase 6 기능 성능 최적화 팁
+
+**관련 문서 추천 (`related`)**
+```bash
+# 빠른 추천 (기본 설정)
+python -m src related --file "문서명" --top-k 5
+
+# 정확한 추천 (높은 임계값)
+python -m src related --file "문서명" --similarity-threshold 0.5 --top-k 10
+
+# 포괄적 추천 (낮은 임계값)
+python -m src related --file "문서명" --similarity-threshold 0.2 --top-k 20
+```
+
+**지식 공백 분석 (`analyze-gaps`)**
+```bash
+# 빠른 분석 (기본 설정)
+python -m src analyze-gaps
+
+# 정밀 분석 (더 엄격한 기준)
+python -m src analyze-gaps --min-connections 5 --similarity-threshold 0.4
+
+# 관대한 분석 (더 많은 연결 허용)
+python -m src analyze-gaps --min-connections 1 --similarity-threshold 0.2
+```
+
+**중심성 기반 검색**
+- 지식 그래프 구축: 처음 1회만 수행 (약 30초-2분)
+- 이후 검색: 일반 검색과 동일한 속도
+- 중심성 가중치 조정으로 성능/품질 균형 조절
+
 #### 성능 최적화 팁
 ```bash
 # 빠른 탐색용
@@ -533,6 +877,40 @@ python -m src search --query "TDD" --expand --no-hyde
 
 # 최고 품질 (시간 소요)
 python -m src search --query "TDD" --rerank --expand
+```
+
+### 🖥️ 시스템 정보 및 모니터링
+
+#### 시스템 정보 확인
+```bash
+# 시스템 전체 정보 확인
+python -m src info
+```
+
+#### 시스템 정보 결과 해석
+```
+ℹ️ Vault Intelligence System V2
+==================================================
+프로젝트 경로: /Users/msbaek/git/vault-intelligence
+Python 버전: 3.11.7 (main, Dec  4 2023, 18:10:11) [Clang 15.0.0 (clang-1500.1.0.2.5)]
+PyTorch 장치: MPS                    # M1/M2 Mac의 Metal Performance Shaders
+GPU 메모리: 24.0GB                   # 통합 메모리
+
+📋 완료된 기능 (Phase 6):
+- BGE-M3 기반 1024차원 임베딩
+- 다층 하이브리드 검색 (Dense + Sparse + ColBERT + Reranking)
+- 지식 그래프 분석 (관련성, 중심성, 공백 분석)
+- 쿼리 확장 (동의어 + HyDE)
+- SQLite 기반 영구 캐싱
+
+📚 문서:
+- 사용자 가이드: docs/USER_GUIDE.md
+- 실전 예제: docs/EXAMPLES.md
+
+⚡ 빠른 시작:
+  python -m src search --query 'TDD'
+  python -m src related --file '클린 애자일'
+  python -m src analyze-gaps
 ```
 
 ### 성능 모니터링
@@ -569,11 +947,17 @@ python -m src analyze
 # 1. 전체 주제 분석으로 구조 파악
 python -m src analyze
 
-# 2. 주제별 상세 수집
+# 2. 지식 공백 분석으로 개선점 발견 (Phase 6)
+python -m src analyze-gaps --top-k 20
+
+# 3. 주제별 상세 수집
 python -m src collect --topic "아키텍처" --threshold 0.5
 
-# 3. 중복 파일 정리
+# 4. 중복 파일 정리
 python -m src duplicates
+
+# 5. 핵심 문서 중심성 분석 (Phase 6)
+python -m src search --query "중요한 개념" --with-centrality --top-k 15
 ```
 
 ### 3. 연구 자료 관리
@@ -581,11 +965,17 @@ python -m src duplicates
 # 1. 키워드별 관련 자료 검색
 python -m src search --query "마이크로서비스" --top-k 20
 
-# 2. 시계열 분석을 위한 날짜 필터링 (프로그래밍 방식)
+# 2. 특정 문서 기반 관련 자료 발굴 (Phase 6)
+python -m src related --file "마이크로서비스 아키텍처 패턴" --top-k 15
+
+# 3. 시계열 분석을 위한 날짜 필터링 (프로그래밍 방식)
 # SearchQuery로 date_from, date_to 설정
 
-# 3. 주제별 자료집 생성
+# 4. 주제별 자료집 생성
 python -m src collect --topic "클라우드 아키텍처" --output research/cloud.md
+
+# 5. 연구 공백 분석으로 누락 영역 발견 (Phase 6)
+python -m src analyze-gaps --top-k 10
 ```
 
 ## 📝 팁과 요령
@@ -645,9 +1035,16 @@ python -m src search --query "개발"  # 대신 "소프트웨어 개발" 권장
 ---
 
 **최종 업데이트**: 2025-08-21  
-**버전**: V2.5 (Phase 5 완료 - 고급 검색 품질 향상)
+**버전**: V2.6 (Phase 6 완료 - 지식 그래프 시스템)
 
-### 주요 업데이트 (V2.5)
+### 주요 업데이트 (V2.6)
+- 🕸️ **Knowledge Graph**: NetworkX 기반 문서 관계 분석 및 중심성 점수 계산
+- 🔗 **Related Documents**: 의미적 + 태그 + 중심성 기반 관련 문서 추천
+- 📊 **Centrality Ranking**: PageRank 등 중심성 점수를 활용한 검색 랭킹 향상
+- 🔍 **Knowledge Gap Analysis**: 고립된 문서 및 지식 공백 분석
+- ⚙️ **CLI Extensions**: `related`, `analyze-gaps`, `--with-centrality` 명령어 추가
+
+### 이전 업데이트 (V2.5)
 - 🎯 **Cross-encoder Reranking**: BGE Reranker V2-M3 기반 정밀 재순위화
 - 🔍 **ColBERT Search**: 토큰 수준 late interaction 검색
 - 🔄 **Query Expansion**: 한영 동의어 확장 + HyDE 가상 문서 생성

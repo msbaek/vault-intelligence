@@ -88,6 +88,18 @@ python -m src collect --topic "클린코드" --top-k 20
 python -m src analyze
 ```
 
+### 지식 그래프 기능 (Phase 6)
+```bash
+# 관련 문서 추천
+python -m src related --file "클린 애자일(Back to Basics)" --top-k 5
+
+# 중심성 점수 기반 검색 랭킹 향상
+python -m src search --query "TDD" --with-centrality --top-k 10
+
+# 지식 공백 분석
+python -m src analyze-gaps --top-k 10
+```
+
 ### 전체 재인덱싱
 ```bash
 # 일반 재인덱싱
@@ -197,6 +209,29 @@ collection = collector.collect_topic("TDD", top_k=20)
 collector.save_collection(collection, "tdd_collection.md")
 ```
 
+### 지식 그래프 및 관련 문서 추천 (Phase 6)
+```python
+# 관련 문서 추천
+related_docs = engine.get_related_documents(
+    document_path="클린 애자일(Back to Basics)",
+    top_k=5,
+    include_centrality_boost=True
+)
+
+# 중심성 점수 기반 검색 랭킹 향상
+results = engine.search_with_centrality_boost(
+    query="TDD",
+    top_k=10,
+    centrality_weight=0.2
+)
+
+# 지식 공백 분석
+gaps = engine.analyze_knowledge_gaps(
+    min_connections=3,
+    centrality_threshold=0.1
+)
+```
+
 ## 설정 관리
 
 ### 주요 설정 (`config/settings.yaml`)
@@ -290,7 +325,7 @@ python -m src test
 
 ## 현재 구현 상태
 
-### ✅ 완료된 작업 (Phase 1-5) 🎉
+### ✅ 완료된 작업 (Phase 1-6) 🎉
 - **BGE-M3 기반 고품질 임베딩 시스템** 구현 완료
 - **Dense Embeddings** (1024차원) 의미적 검색
 - **Sparse Embeddings** (BM25) 키워드 검색  
@@ -309,11 +344,18 @@ python -m src test
 - **다중 검색 모드**: semantic, keyword, hybrid, colbert, rerank, expand
 - **MPS 가속 최적화**: M1 Pro Metal Performance Shaders 완전 활용
 
-### 🎯 향후 개선 사항 (Phase 6+)
-- Obsidian 특화 기능 (링크 그래프, 메타데이터 활용)
+#### 🆕 Phase 6: 지식 그래프 및 관련성 분석 시스템 (2025-08-21 완료)
+- **지식 그래프 구축**: NetworkX 기반 문서 관계 분석 및 중심성 점수 계산
+- **관련 문서 추천**: 의미적 유사도 + 태그 유사도 + 중심성 점수 기반 추천
+- **중심성 기반 검색 랭킹**: PageRank, 근접 중심성, 매개 중심성을 활용한 검색 결과 향상
+- **지식 공백 분석**: 고립된 문서 및 약한 연결 문서 식별을 통한 지식 체계 개선
+- **새로운 CLI 명령어**: `related`, `analyze-gaps`, `--with-centrality` 옵션 추가
+
+### 🎯 향후 개선 사항 (Phase 7+)
 - 웹 인터페이스 (FastAPI + React)
-- 실시간 모니터링 대시보드
+- 실시간 모니터링 대시보드  
 - 자동 태깅 및 문서 분류
+- Obsidian 링크 그래프 시각화
 
 ## 문제 해결
 

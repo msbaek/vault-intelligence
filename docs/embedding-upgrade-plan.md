@@ -1,17 +1,33 @@
 # 고품질 임베딩 시스템 구현 계획
 
-**업데이트**: 2025-08-21 11:00 - Phase 1-3 완료 및 향후 개선 사항 정의
+**업데이트**: 2025-08-21 - Phase 1-6 완료, 지식 그래프 시스템 구현 완료
 
 ## 🎯 목표
 TF-IDF를 최신 임베딩 기술로 완전 대체하여 검색 품질 극대화
 
-## ✅ 구현 완료 상태 (Phase 1-3)
+## ✅ 구현 완료 상태 (Phase 1-6)
+
+### Phase 1-3: 기반 시스템
 - **BGE-M3 기반 임베딩 시스템**: 100% 완료 ✅
 - **Hybrid Search (Dense + Sparse + RRF)**: 100% 완료 ✅  
 - **M1 Pro 성능 최적화**: 100% 완료 ✅
 - **샘플링 기반 부분 인덱싱**: 100% 완료 ✅
 - **점진적 인덱스 로딩**: 100% 완료 ✅
 - **캐시 활용 검색**: 100% 완료 ✅
+
+### Phase 5: 검색 품질 향상
+- **Cross-encoder Reranking**: 100% 완료 ✅
+- **ColBERT 토큰 수준 검색**: 100% 완료 ✅
+- **쿼리 확장 시스템 (동의어 + HyDE)**: 100% 완료 ✅
+- **다중 검색 모드 통합**: 100% 완료 ✅
+- **MPS 가속 최적화**: 100% 완료 ✅
+
+### Phase 6: 지식 그래프 시스템 🆕
+- **NetworkX 기반 지식 그래프 구축**: 100% 완료 ✅
+- **관련 문서 추천 시스템**: 100% 완료 ✅
+- **중심성 점수 기반 검색 랭킹**: 100% 완료 ✅
+- **지식 공백 분석 기능**: 100% 완료 ✅
+- **CLI 명령어 확장**: 100% 완료 ✅
 
 ## 📊 추천 아키텍처
 
@@ -360,6 +376,76 @@ colbert:
   model_name: "BAAI/bge-m3"
   device: "mps"
   max_documents: 20
+
+# 쿼리 확장 설정 (Phase 5.3)
+query_expansion:
+  model_name: "BAAI/bge-m3"
+  device: "mps"
+  enable_hyde: true
+  max_synonyms: 3
+  synonym_weight: 0.8
+  hyde_weight: 0.6
+```
+
+## 🎉 Phase 6 완료: 지식 그래프 및 관련성 분석 시스템 (2025-08-21)
+
+### ✅ Phase 6.1: 지식 그래프 기본 구조 완성
+- **NetworkX 기반 지식 그래프 구축**: 문서 간 유사도 및 태그 기반 관계 분석
+- **중심성 점수 계산**: PageRank, 근접 중심성, 매개 중심성 알고리즘 적용
+- **커뮤니티 감지**: Louvain 알고리즘으로 문서 클러스터 식별
+- **그래프 메트릭**: 연결성, 밀도, 경로 길이 등 분석 지표
+
+### ✅ Phase 6.2: 관련 문서 추천 시스템
+- **다차원 유사도 계산**: 의미적 유사도 + 태그 유사도 + 중심성 점수 융합
+- **`get_related_documents()` 메서드**: 특정 문서와 관련된 문서들을 스마트하게 추천
+- **임베딩 캐시 연동**: SQLite 캐시에서 효율적인 임베딩 조회
+- **가중치 조정**: 각 유사도 타입별 가중치 설정 가능
+
+### ✅ Phase 6.3: 중심성 기반 검색 랭킹
+- **검색 결과 향상**: 중심성 점수를 검색 랭킹에 반영하여 중요한 문서 우선 노출
+- **`search_with_centrality_boost()` 메서드**: 기존 검색에 중심성 가중치 적용
+- **동적 가중치**: 중심성 영향도를 쿼리별로 조정 가능
+- **성능 최적화**: 중심성 점수 사전 계산 및 캐싱
+
+### ✅ Phase 6.4: 지식 공백 분석
+- **고립 문서 감지**: 연결이 약하거나 없는 문서 식별
+- **태그 분포 분석**: 사용되지 않는 태그 및 고립 태그 발견
+- **연결성 개선 제안**: 문서 간 연결을 강화할 수 있는 방안 제시
+- **`analyze_knowledge_gaps()` 메서드**: 체계적인 지식 공백 분석
+
+### ✅ Phase 6.5: CLI 명령어 확장
+- **`related` 명령어**: `python -m src related --file "파일명" --top-k N`
+- **`analyze-gaps` 명령어**: `python -m src analyze-gaps --top-k N`
+- **`--with-centrality` 옵션**: 기존 search 명령어에 중심성 랭킹 추가
+- **통합 인터페이스**: 모든 지식 그래프 기능을 CLI에서 직접 사용 가능
+
+### 📊 Phase 6 설정 추가 사항
+
+**config/settings.yaml**에 지식 그래프 관련 설정이 추가되었습니다:
+
+```yaml
+# 지식 그래프 설정 (Phase 6)
+knowledge_graph:
+  similarity_threshold: 0.4      # 문서 간 연결 임계값
+  min_word_count: 50            # 분석 대상 최소 단어 수
+  centrality_weight: 0.2        # 중심성 점수 가중치
+  max_connections_per_doc: 50   # 문서당 최대 연결 수
+  enable_tag_nodes: true        # 태그 노드 포함 여부
+  community_algorithm: "louvain" # 커뮤니티 감지 알고리즘
+
+# 관련 문서 추천 설정
+related_docs:
+  similarity_threshold: 0.3     # 관련성 최소 임계값
+  tag_similarity_weight: 0.3    # 태그 유사도 가중치
+  semantic_similarity_weight: 0.5 # 의미적 유사도 가중치
+  centrality_boost_weight: 0.2  # 중심성 가중치
+  max_candidates: 100           # 최대 후보 문서 수
+
+# 지식 공백 분석 설정
+gap_analysis:
+  min_connections: 3            # 고립 판정 최소 연결 수
+  centrality_threshold: 0.1     # 중심성 최소 임계값
+  isolation_threshold: 0.2      # 고립도 임계값
 
 # 쿼리 확장 설정 (Phase 5.3)
 query_expansion:

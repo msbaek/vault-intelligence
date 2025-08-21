@@ -233,7 +233,7 @@ def show_system_info():
     print("  python -m src duplicates")
 
 
-def run_search(vault_path: str, query: str, top_k: int, threshold: float, config: dict, sample_size: Optional[int] = None, use_reranker: bool = False, search_method: str = "hybrid", use_expansion: bool = False, include_synonyms: bool = True, include_hyde: bool = True):
+def run_search(vault_path: str, query: str, top_k: int, threshold: float, config: dict, sample_size: Optional[int] = None, use_reranker: bool = False, search_method: str = "hybrid", use_expansion: bool = False, include_synonyms: bool = True, include_hyde: bool = True, use_centrality: bool = False, centrality_weight: float = 0.2):
     """검색 실행"""
     try:
         print(f"🔍 검색 시작: '{query}'")
@@ -249,6 +249,8 @@ def run_search(vault_path: str, query: str, top_k: int, threshold: float, config
             if include_hyde:
                 expand_features.append("HyDE")
             print(f"   확장 기능: {', '.join(expand_features)}")
+        if use_centrality:
+            print(f"🎯 중심성 부스팅 활성화 (가중치: {centrality_weight})")
         
         # 검색 엔진 초기화
         cache_dir = str(project_root / "cache")
@@ -260,8 +262,17 @@ def run_search(vault_path: str, query: str, top_k: int, threshold: float, config
                 print("❌ 인덱스 구축 실패")
                 return False
         
-        # 검색 수행 (확장, 재순위화 옵션 포함)
-        if use_expansion:
+        # 검색 수행 (확장, 재순위화, 중심성 부스팅 옵션 포함)
+        if use_centrality:
+            # 중심성 부스팅 검색
+            results = search_engine.search_with_centrality_boost(
+                query=query,
+                search_method=search_method,
+                top_k=top_k,
+                centrality_weight=centrality_weight,
+                threshold=threshold
+            )
+        elif use_expansion:
             # 쿼리 확장을 포함한 검색
             results = search_engine.expanded_search(
                 query=query,
@@ -479,6 +490,141 @@ def run_topic_analysis(vault_path: str, output_file: str, config: dict):
         return False
 
 
+def run_related_documents(vault_path: str, file_path: str, top_k: int, config: dict, 
+                         include_centrality: bool = True, similarity_threshold: float = 0.3):
+    """관련 문서 추천 실행"""
+    try:
+        print(f"🔗 '{file_path}' 관련 문서 찾기...")
+        
+        # 검색 엔진 초기화
+        cache_dir = str(project_root / "cache")
+        search_engine = AdvancedSearchEngine(vault_path, cache_dir, config)
+        
+        if not search_engine.indexed:
+            print("📚 인덱스 구축 중...")
+            if not search_engine.build_index():
+                print("❌ 인덱스 구축 실패")
+                return False
+        
+        # 관련 문서 찾기
+        related_results = search_engine.get_related_documents(
+            document_path=file_path,
+            top_k=top_k,
+            include_centrality_boost=include_centrality,
+            similarity_threshold=similarity_threshold
+        )
+        
+        if not related_results:
+            print("❌ 관련 문서를 찾을 수 없습니다.")
+            return False
+        
+        print(f"\n📄 관련 문서 ({len(related_results)}개):")
+        print("-" * 80)
+        
+        for result in related_results:
+            print(f"{result.rank}. {result.document.title}")
+            print(f"   경로: {result.document.path}")
+            print(f"   관련도: {result.similarity_score:.4f}")
+            print(f"   타입: {result.match_type}")
+            if result.document.tags:
+                print(f"   태그: {', '.join(result.document.tags)}")
+            if result.snippet:
+                print(f"   내용: {result.snippet[:100]}...")
+            print()
+        
+        return True
+        
+    except Exception as e:
+        print(f"❌ 관련 문서 찾기 실패: {e}")
+        return False
+
+
+def run_knowledge_gap_analysis(vault_path: str, config: dict, output_file: str = None,
+                              similarity_threshold: float = 0.3, min_connections: int = 2):
+    """지식 공백 분석 실행"""
+    try:
+        print("🔍 지식 공백 분석 시작...")
+        
+        # 검색 엔진 초기화
+        cache_dir = str(project_root / "cache")
+        search_engine = AdvancedSearchEngine(vault_path, cache_dir, config)
+        
+        if not search_engine.indexed:
+            print("📚 인덱스 구축 중...")
+            if not search_engine.build_index():
+                print("❌ 인덱스 구축 실패")
+                return False
+        
+        # 지식 공백 분석 수행
+        analysis = search_engine.analyze_knowledge_gaps(
+            similarity_threshold=similarity_threshold,
+            min_connections=min_connections
+        )
+        
+        if not analysis:
+            print("❌ 분석 결과가 없습니다.")
+            return False
+        
+        summary = analysis.get('summary', {})
+        
+        print(f"\n📊 지식 공백 분석 결과:")
+        print("-" * 50)
+        print(f"전체 문서: {summary.get('total_documents', 0)}개")
+        print(f"고립 문서: {summary.get('isolated_count', 0)}개")
+        print(f"약한 연결 문서: {summary.get('weakly_connected_count', 0)}개")
+        print(f"고립 태그: {summary.get('isolated_tag_count', 0)}개")
+        print(f"고립률: {summary.get('isolation_rate', 0):.1%}")
+        
+        # 고립된 문서들 상세 정보
+        isolated_docs = analysis.get('isolated_documents', [])
+        if isolated_docs:
+            print(f"\n🏝️ 고립된 문서들:")
+            for doc in isolated_docs[:10]:  # 상위 10개만 표시
+                print(f"  - {doc['title']} ({doc['word_count']}단어)")
+                if doc['tags']:
+                    print(f"    태그: {', '.join(doc['tags'])}")
+        
+        # 약한 연결 문서들
+        weak_docs = analysis.get('weakly_connected_documents', [])
+        if weak_docs:
+            print(f"\n🔗 약한 연결 문서들:")
+            for doc in weak_docs[:10]:  # 상위 10개만 표시
+                print(f"  - {doc['title']} ({doc['connections']}개 연결, {doc['word_count']}단어)")
+                if doc['tags']:
+                    print(f"    태그: {', '.join(doc['tags'])}")
+        
+        # 고립된 태그들
+        isolated_tags = analysis.get('isolated_tags', {})
+        if isolated_tags:
+            print(f"\n🏷️ 고립된 태그들 (상위 10개):")
+            for tag, docs in list(isolated_tags.items())[:10]:
+                print(f"  - {tag}: {', '.join(docs)}")
+        
+        # 태그 분포 (상위 태그들)
+        tag_dist = analysis.get('tag_distribution', {})
+        if tag_dist:
+            print(f"\n📈 주요 태그 분포:")
+            sorted_tags = sorted(tag_dist.items(), key=lambda x: len(x[1]), reverse=True)
+            for tag, docs in sorted_tags[:10]:
+                print(f"  - {tag}: {len(docs)}개 문서")
+        
+        # 결과를 파일로 저장 (옵션)
+        if output_file:
+            try:
+                import json
+                with open(output_file, 'w', encoding='utf-8') as f:
+                    json.dump(analysis, f, indent=2, ensure_ascii=False, default=str)
+                print(f"\n💾 분석 결과가 {output_file}에 저장되었습니다.")
+            except Exception as e:
+                print(f"\n❌ 파일 저장 실패: {e}")
+        
+        return True
+        
+    except Exception as e:
+        print(f"❌ 지식 공백 분석 실패: {e}")
+        return False
+
+
 def run_reindex(vault_path: str, force: bool, config: dict, sample_size: Optional[int] = None, 
                 include_folders: Optional[list] = None, exclude_folders: Optional[list] = None):
     """전체 재인덱싱 실행"""
@@ -546,7 +692,7 @@ def main():
     
     parser.add_argument(
         "command",
-        choices=["init", "test", "info", "search", "duplicates", "collect", "analyze", "reindex"],
+        choices=["init", "test", "info", "search", "duplicates", "collect", "analyze", "reindex", "related", "analyze-gaps"],
         help="실행할 명령어"
     )
     
@@ -652,6 +798,38 @@ def main():
         help="제외할 폴더 목록"
     )
     
+    parser.add_argument(
+        "--file",
+        help="관련 문서를 찾을 기준 파일 (related 명령어용)"
+    )
+    
+    parser.add_argument(
+        "--with-centrality",
+        action="store_true",
+        help="중심성 점수를 검색 랭킹에 반영"
+    )
+    
+    parser.add_argument(
+        "--centrality-weight",
+        type=float,
+        default=0.2,
+        help="중심성 점수 가중치 (0.0-1.0, 기본값: 0.2)"
+    )
+    
+    parser.add_argument(
+        "--similarity-threshold",
+        type=float,
+        default=0.3,
+        help="관련성 판정 유사도 임계값 (기본값: 0.3)"
+    )
+    
+    parser.add_argument(
+        "--min-connections",
+        type=int,
+        default=2,
+        help="최소 연결 수 (이보다 적으면 약한 연결로 판정, 기본값: 2)"
+    )
+    
     args = parser.parse_args()
     
     if args.verbose:
@@ -709,7 +887,9 @@ def main():
             search_method=args.search_method,
             use_expansion=args.expand,
             include_synonyms=not args.no_synonyms,
-            include_hyde=not args.no_hyde
+            include_hyde=not args.no_hyde,
+            use_centrality=args.with_centrality,
+            centrality_weight=args.centrality_weight
         ):
             print("✅ 검색 완료!")
         else:
@@ -761,6 +941,43 @@ def main():
             print("✅ 재인덱싱 완료!")
         else:
             print("❌ 재인덱싱 실패!")
+            sys.exit(1)
+    
+    elif args.command == "related":
+        if not check_dependencies():
+            sys.exit(1)
+        
+        if not args.file:
+            print("❌ 기준 파일이 필요합니다. --file 옵션을 사용하세요.")
+            sys.exit(1)
+        
+        if run_related_documents(
+            args.vault_path,
+            args.file,
+            args.top_k,
+            config,
+            include_centrality=True,  # 항상 중심성 점수 포함
+            similarity_threshold=args.similarity_threshold
+        ):
+            print("✅ 관련 문서 찾기 완료!")
+        else:
+            print("❌ 관련 문서 찾기 실패!")
+            sys.exit(1)
+    
+    elif args.command == "analyze-gaps":
+        if not check_dependencies():
+            sys.exit(1)
+        
+        if run_knowledge_gap_analysis(
+            args.vault_path,
+            config,
+            output_file=args.output,
+            similarity_threshold=args.similarity_threshold,
+            min_connections=args.min_connections
+        ):
+            print("✅ 지식 공백 분석 완료!")
+        else:
+            print("❌ 지식 공백 분석 실패!")
             sys.exit(1)
 
 
