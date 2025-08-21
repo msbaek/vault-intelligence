@@ -4,10 +4,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## 프로젝트 개요
 
-Vault Intelligence System V2는 BGE-M3 기반 Obsidian vault 지능형 검색 시스템입니다. Smart Connections 플러그인에서 완전히 독립하여 더 높은 차원의 임베딩(1024차원)과 다층 검색 시스템을 제공합니다. Phase 5 완료로 최고 품질의 검색 경험을 제공하는 완성된 시스템입니다.
+Vault Intelligence System V2는 BGE-M3 기반 Obsidian vault 지능형 검색 및 태깅 시스템입니다. Smart Connections 플러그인에서 완전히 독립하여 더 높은 차원의 임베딩(1024차원)과 다층 검색 시스템을 제공합니다. Phase 7 완료로 자동 태깅까지 지원하는 완전한 vault 관리 시스템입니다.
 
 **주요 특징**:
 - 🔍 **다층 검색 시스템**: Dense + Sparse + ColBERT + Reranking
+- 🏷️ **자동 태깅**: BGE-M3 기반 의미 분석으로 계층적 태그 자동 생성
 - 🇰🇷 **한국어 최적화**: 동의어 확장 및 HyDE 기술
 - ⚡ **M1 Pro 최적화**: Metal Performance Shaders 가속
 - 🎯 **최고 품질**: Cross-encoder 재순위화로 정밀도 극대화
@@ -67,6 +68,38 @@ python -m src search --query "TDD" --expand --no-synonyms
 
 # 모든 기능 결합 (최고 성능)
 python -m src search --query "TDD" --rerank --expand
+```
+
+### 자동 태깅 기능 (Phase 7)
+
+#### 단일 문서 태깅
+```bash
+# 절대 경로로 태깅
+python -m src tag "/full/path/to/document.md"
+
+# Vault 상대 경로로 태깅
+python -m src tag "997-BOOKS/clean-code.md"
+
+# 파일명만으로 태깅 (자동 검색)
+python -m src tag "clean-code.md"
+
+# Dry-run 모드 (실제 적용하지 않고 미리보기)
+python -m src tag "document.md" --dry-run
+```
+
+#### 폴더별 일괄 태깅
+```bash
+# 특정 폴더 일괄 태깅
+python -m src tag "997-BOOKS/"
+
+# 대용량 폴더 점진적 처리
+python -m src tag "large-folder/" --batch-size 50
+
+# 기존 태그 완전 교체
+python -m src tag "folder/" --replace-existing
+
+# 상세 진행률 표시
+python -m src tag "folder/" --verbose
 ```
 
 ### 중복 문서 감지

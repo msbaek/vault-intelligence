@@ -1,11 +1,11 @@
 # 고품질 임베딩 시스템 구현 계획
 
-**업데이트**: 2025-08-21 - Phase 1-6 완료, 지식 그래프 시스템 구현 완료
+**업데이트**: 2025-08-21 - Phase 1-7 완료, BGE-M3 기반 자동 태깅 시스템 구현 완료
 
 ## 🎯 목표
 TF-IDF를 최신 임베딩 기술로 완전 대체하여 검색 품질 극대화
 
-## ✅ 구현 완료 상태 (Phase 1-6)
+## ✅ 구현 완료 상태 (Phase 1-7)
 
 ### Phase 1-3: 기반 시스템
 - **BGE-M3 기반 임베딩 시스템**: 100% 완료 ✅
@@ -22,12 +22,19 @@ TF-IDF를 최신 임베딩 기술로 완전 대체하여 검색 품질 극대화
 - **다중 검색 모드 통합**: 100% 완료 ✅
 - **MPS 가속 최적화**: 100% 완료 ✅
 
-### Phase 6: 지식 그래프 시스템 🆕
+### Phase 6: 지식 그래프 시스템
 - **NetworkX 기반 지식 그래프 구축**: 100% 완료 ✅
 - **관련 문서 추천 시스템**: 100% 완료 ✅
 - **중심성 점수 기반 검색 랭킹**: 100% 완료 ✅
 - **지식 공백 분석 기능**: 100% 완료 ✅
 - **CLI 명령어 확장**: 100% 완료 ✅
+
+### Phase 7: 자동 태깅 시스템 🆕
+- **BGE-M3 기반 의미 분석**: 100% 완료 ✅
+- **기존 태그 패턴 학습**: 100% 완료 ✅
+- **계층적 태그 생성**: 100% 완료 ✅
+- **배치 처리 시스템**: 100% 완료 ✅
+- **CLI `tag` 명령어**: 100% 완료 ✅
 
 ## 📊 추천 아키텍처
 
@@ -455,7 +462,246 @@ query_expansion:
   hyde_weight: 0.6
 ```
 
+## 🏷️ Phase 7: BGE-M3 기반 자동 태깅 시스템 ✅ 완료
+
+### 목표
+Obsidian vault의 모든 문서에 대해 BGE-M3 의미적 분석을 통한 일관성 있는 계층적 태그 시스템 구축
+
+### 핵심 요구사항
+- **~/dotfiles/.claude/commands/obsidian/add-tag.md 규칙 준수**
+  - 계층 구분은 '/' 사용 (`architecture/modular-monolith/spring-implementation`)
+  - 태그명은 소문자 사용, 공백 대신 '-' 사용
+  - 태그 개수 8-12개로 확장 (기존 6개 → 확장)
+  - 디렉토리 기반 태그(resources/, slipbox/) 사용 금지
+  - development/ prefix 제거 (대부분 개발 관련이므로 불필요)
+
+- **BGE-M3 기반 의미적 태그 생성**
+  - 1024차원 임베딩을 활용한 문서 의미 분석
+  - 기존 vault 태그 학습으로 일관성 확보
+  - 중복/유사 태그 자동 통합
+
+- **기존 태그 무시 및 일관성 재생성**
+  - 현재 태그 완전 삭제 후 새로 생성
+  - 전체 vault 기준 일관된 태그 체계 적용
+  - 태그 충돌 및 불일치 해결
+
+- **폴더 구조 무시**
+  - 향후 폴더 재구성 계획으로 현재 위치 무시
+  - 순수한 내용 기반 태깅
+  - 문서 이동 시에도 유지되는 태그 설계
+
+### Phase 7.1: 핵심 기능 구현
+
+#### 7.1.1 SemanticTagger 클래스 (`src/features/semantic_tagger.py`)
+```python
+class SemanticTagger:
+    """BGE-M3 기반 의미적 태깅 시스템"""
+    
+    def __init__(self, vault_path: str, config: dict):
+        self.vault_path = vault_path
+        self.embedding_engine = SentenceTransformerEngine()
+        self.tag_rule_engine = TagRuleEngine()
+        self.existing_tags = self._learn_existing_tags()
+    
+    def _learn_existing_tags(self) -> Dict[str, List[str]]:
+        """vault 내 기존 태그 패턴 학습"""
+        
+    def analyze_document_semantics(self, document: Document) -> Dict[str, float]:
+        """문서 의미 분석 및 주제 추출"""
+        
+    def generate_semantic_tags(self, document: Document) -> List[str]:
+        """BGE-M3 기반 의미적 태그 생성"""
+        
+    def tag_document(self, file_path: str, dry_run: bool = False) -> TaggingResult:
+        """단일 문서 태깅"""
+        
+    def tag_folder(self, folder_path: str, recursive: bool = True, dry_run: bool = False) -> List[TaggingResult]:
+        """폴더별 배치 태깅"""
+```
+
+#### 7.1.2 TagRuleEngine 클래스 (`src/features/tag_rule_engine.py`)
+```python
+class TagRuleEngine:
+    """add-tag.md 규칙 엔진"""
+    
+    def __init__(self, rules_path: str = "~/dotfiles/.claude/commands/obsidian/add-tag.md"):
+        self.rules = self._load_tagging_rules(rules_path)
+        self.category_mapping = self._load_category_mapping()
+    
+    def validate_tag(self, tag: str) -> bool:
+        """태그 규칙 검증"""
+        
+    def normalize_tag(self, tag: str) -> str:
+        """태그 정규화 (소문자, 하이픈 등)"""
+        
+    def categorize_tags(self, tags: List[str]) -> Dict[str, List[str]]:
+        """5가지 카테고리별 태그 분류"""
+        # Topic, Document Type, Source, Patterns, Frameworks
+        
+    def apply_hierarchical_structure(self, semantic_concepts: List[str]) -> List[str]:
+        """의미적 개념을 계층적 태그로 변환"""
+        
+    def limit_tag_count(self, tags: List[str], max_count: int = 10) -> List[str]:
+        """태그 개수 제한 (중요도 기반 선별)"""
+```
+
+#### 7.1.3 CLI 명령어 통합 (`src/__main__.py`)
+```python
+# 새로운 'tag' 서브커맨드 추가
+def add_tag_parser(subparsers):
+    tag_parser = subparsers.add_parser('tag', help='문서 자동 태깅')
+    tag_parser.add_argument('target', help='대상 파일 또는 폴더 경로')
+    tag_parser.add_argument('--recursive', action='store_true', help='하위 폴더 포함')
+    tag_parser.add_argument('--dry-run', action='store_true', help='실제 변경 없이 미리보기')
+    tag_parser.add_argument('--force', action='store_true', help='기존 태그 무시하고 재생성')
+    tag_parser.add_argument('--batch-size', type=int, default=10, help='배치 처리 크기')
+    tag_parser.set_defaults(func=run_tagging)
+
+def run_tagging(args):
+    """태깅 명령어 실행"""
+    tagger = SemanticTagger(args.vault_path, config)
+    
+    if os.path.isfile(args.target):
+        # 단일 파일 태깅
+        result = tagger.tag_document(args.target, dry_run=args.dry_run)
+        display_tagging_result(result)
+    elif os.path.isdir(args.target):
+        # 폴더 배치 태깅
+        results = tagger.tag_folder(args.target, recursive=args.recursive, dry_run=args.dry_run)
+        display_batch_results(results)
+```
+
+### Phase 7.2: 설정 및 데이터 구조
+
+#### config/settings.yaml 추가 설정
+```yaml
+# 의미적 태깅 설정 (Phase 7)
+semantic_tagging:
+  model_name: "BAAI/bge-m3"
+  device: "mps"
+  batch_size: 4
+  max_length: 4096
+  
+  # 태그 생성 규칙
+  rules_file: "~/dotfiles/.claude/commands/obsidian/add-tag.md"
+  max_tags_per_document: 10
+  min_semantic_similarity: 0.3
+  
+  # 카테고리별 제한
+  max_topic_tags: 4
+  max_pattern_tags: 3
+  max_framework_tags: 2
+  max_source_tags: 1
+  
+  # 기존 태그 학습
+  learn_from_existing: true
+  similarity_threshold_for_learning: 0.7
+  
+  # 태그 정규화
+  force_lowercase: true
+  replace_spaces_with_hyphens: true
+  remove_development_prefix: true
+  exclude_directory_based_tags: true
+```
+
+#### TaggingResult 데이터 클래스
+```python
+@dataclass
+class TaggingResult:
+    """태깅 결과"""
+    file_path: str
+    original_tags: List[str]
+    generated_tags: List[str]
+    confidence_scores: Dict[str, float]
+    categorized_tags: Dict[str, List[str]]
+    processing_time: float
+    success: bool
+    error_message: Optional[str] = None
+```
+
+### Phase 7.3: 고급 기능
+
+#### 7.3.1 태그 일관성 분석
+- vault 전체 태그 분포 분석
+- 중복/유사 태그 자동 감지 및 통합 제안
+- 태그 계층 구조 최적화
+
+#### 7.3.2 배치 처리 최적화
+- 폴더별 점진적 처리
+- 대용량 vault 대응 메모리 관리
+- 진행률 표시 및 중단/재개 기능
+
+#### 7.3.3 품질 검증
+- 생성된 태그의 의미적 일관성 검증
+- 사용자 피드백 수집 메커니즘
+- A/B 테스트를 통한 태깅 품질 개선
+
+### 사용 예시
+
+#### 단일 파일 태깅
+```bash
+# 기본 태깅
+python -m src tag my-document.md
+
+# 드라이런 모드 (미리보기)
+python -m src tag my-document.md --dry-run
+
+# 강제 재태깅
+python -m src tag my-document.md --force
+```
+
+#### 폴더별 배치 태깅
+```bash
+# 특정 폴더 태깅
+python -m src tag 003-RESOURCES/ --recursive
+
+# 전체 vault 태깅
+python -m src tag /path/to/vault --recursive --batch-size 20
+
+# 드라이런으로 전체 계획 확인
+python -m src tag /path/to/vault --recursive --dry-run
+```
+
+#### 결과 출력 예시
+```
+📄 파일 분석: spring-boot-modular-monolith.md
+🏷️  기존 태그: #development, #spring-boot, #architecture
+✨ BGE-M3 의미 분석 결과:
+   주요 개념: modular-monolith(0.89), domain-driven-design(0.85), spring-framework(0.82)
+   
+🎯 생성된 태그 (10개):
+   Topic (4개):
+   - architecture/modular-monolith/spring-implementation
+   - ddd/tactical-patterns/aggregates
+   - ddd/strategic-patterns/bounded-contexts
+   - patterns/dependency-inversion/repository-pattern
+   
+   Document Type (2개):
+   - guide/implementation-guide
+   - examples/library-management
+   
+   Frameworks (3개):
+   - frameworks/spring-boot/modulith
+   - frameworks/spring-modulith/event-driven
+   - frameworks/spring-boot/security-oauth2
+   
+   Patterns (1개):
+   - patterns/event-sourcing/domain-events
+
+🔄 변경사항:
+   삭제: #development, #spring-boot, #architecture
+   추가: 10개 계층적 태그
+   
+✅ 태깅 완료 (처리시간: 1.2초)
+```
+
+### 기대 효과
+- **일관성**: 전체 vault에 걸친 통일된 태깅 체계
+- **정확성**: BGE-M3 의미 분석 기반 정밀한 태그 생성
+- **확장성**: 새로운 문서에 대한 자동 태깅 지원
+- **유지보수성**: 태그 규칙 변경 시 배치 재태깅 가능
+
 ---
 **생성일**: 2025-08-20  
 **최종 수정**: 2025-08-21  
-**상태**: Phase 1-5 완료 ✅ - 최고 품질 검색 시스템 구축 완료
+**상태**: Phase 1-7 완료 ✅, 자동 태깅 시스템 구현 완료 🎉

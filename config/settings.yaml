@@ -153,3 +153,51 @@ gap_analysis:
   min_connections: 3            # 고립 판정 최소 연결 수
   centrality_threshold: 0.1     # 중심성 최소 임계값
   isolation_threshold: 0.2      # 고립도 임계값
+
+# 의미적 태깅 설정 (Phase 7)
+semantic_tagging:
+  model_name: "BAAI/bge-m3"
+  device: "mps"                 # M1 Pro Metal Performance Shaders 가속
+  use_fp16: true
+  batch_size: 4                 # 태깅 배치 크기
+  max_length: 4096              # 최대 토큰 길이
+  
+  # 태그 생성 규칙
+  rules_file: "~/dotfiles/.claude/commands/obsidian/add-tag.md"
+  max_tags_per_document: 10     # 문서당 최대 태그 수 (기존 6개 → 확장)
+  min_semantic_similarity: 0.3  # 의미적 유사도 최소 임계값
+  
+  # 카테고리별 태그 제한
+  max_topic_tags: 4             # 주제 태그 최대 수
+  max_pattern_tags: 3           # 패턴 태그 최대 수  
+  max_framework_tags: 2         # 프레임워크 태그 최대 수
+  max_source_tags: 1            # 출처 태그 최대 수
+  max_doctype_tags: 1           # 문서 유형 태그 최대 수
+  
+  # 기존 태그 학습 설정
+  learn_from_existing: true     # 기존 vault 태그 패턴 학습 여부
+  similarity_threshold_for_learning: 0.7  # 태그 학습 유사도 임계값
+  ignore_existing_tags: true    # 기존 태그 무시하고 재생성
+  
+  # 태그 정규화 규칙
+  force_lowercase: true         # 소문자 강제 변환
+  replace_spaces_with_hyphens: true  # 공백을 하이픈으로 변환
+  remove_development_prefix: true    # development/ prefix 제거
+  exclude_directory_based_tags: true # 디렉토리 기반 태그 제외
+  use_hierarchical_separator: "/"   # 계층 구분자
+  
+  # 배치 처리 설정
+  enable_recursive: true        # 재귀 처리 기본값
+  default_batch_size: 10        # 기본 배치 크기
+  show_progress: true           # 진행률 표시
+  enable_dry_run: false         # 드라이런 모드 기본값
+  
+  # 품질 검증 설정
+  validate_tag_consistency: true    # 태그 일관성 검증
+  min_confidence_score: 0.5         # 최소 신뢰도 점수
+  enable_tag_deduplication: true    # 태그 중복 제거
+  
+  # 성능 최적화
+  cache_semantic_analysis: true     # 의미 분석 결과 캐싱
+  parallel_processing: true         # 병렬 처리 활성화
+  memory_limit_mb: 2048            # 메모리 제한 (MB)

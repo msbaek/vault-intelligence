@@ -24,6 +24,7 @@ try:
     from src.features.duplicate_detector import DuplicateDetector
     from src.features.topic_collector import TopicCollector
     from src.features.topic_analyzer import TopicAnalyzer
+    from src.features.semantic_tagger import SemanticTagger, TaggingResult
     import yaml
     DEPENDENCIES_AVAILABLE = True
 except ImportError as e:
@@ -684,6 +685,201 @@ def run_reindex(vault_path: str, force: bool, config: dict, sample_size: Optiona
         return False
 
 
+def run_tagging(vault_path: str, target: str, recursive: bool, dry_run: bool, 
+               force: bool, batch_size: int, config: dict):
+    """자동 태깅 실행"""
+    try:
+        print(f"🏷️ 자동 태깅 시작: {target}")
+        if dry_run:
+            print("🔍 드라이런 모드: 실제 변경 없이 미리보기만 수행합니다.")
+        if force:
+            print("⚠️ 강제 모드: 기존 태그를 무시하고 새로 생성합니다.")
+        if recursive:
+            print("📁 재귀 모드: 하위 폴더의 모든 파일을 포함합니다.")
+        
+        # 의미적 태깅 시스템 초기화
+        tagger = SemanticTagger(vault_path, config)
+        
+        # target 경로 처리 및 vault 내 검색
+        vault_base = Path(vault_path)
+        target_path = None
+        
+        # 1. 절대 경로인 경우
+        if Path(target).is_absolute():
+            target_path = Path(target)
+            if target_path.exists():
+                print(f"📄 절대 경로로 파일 확인: {target_path}")
+            else:
+                print(f"❌ 절대 경로 파일이 존재하지 않습니다: {target}")
+                return False
+        
+        # 2. 상대 경로인 경우 (vault 기준) - 먼저 확인
+        elif "/" in target:
+            candidate_path = vault_base / target
+            if candidate_path.exists():
+                target_path = candidate_path
+                print(f"📁 Vault 상대 경로로 확인: {target}")
+            else:
+                print(f"❌ Vault 내 상대 경로가 존재하지 않습니다: {target}")
+                return False
+        
+        # 3. 파일명만 제공된 경우 - vault 전체에서 검색
+        else:
+            print(f"🔍 '{target}' 파일을 vault에서 검색 중...")
+            found_files = []
+            
+            # .md 확장자가 없으면 추가해서도 검색
+            search_patterns = [target]
+            if not target.endswith('.md'):
+                search_patterns.append(f"{target}.md")
+            
+            for pattern in search_patterns:
+                # vault 전체에서 파일명 검색 (대소문자 구분 없음)
+                for md_file in vault_base.rglob("*.md"):
+                    if md_file.name.lower() == pattern.lower():
+                        found_files.append(md_file)
+                    elif pattern.lower() in md_file.name.lower():
+                        found_files.append(md_file)
+            
+            if not found_files:
+                print(f"❌ '{target}' 파일을 vault에서 찾을 수 없습니다.")
+                print(f"   검색 경로: {vault_base}")
+                return False
+            elif len(found_files) == 1:
+                target_path = found_files[0]
+                rel_path = target_path.relative_to(vault_base)
+                print(f"✅ 파일 발견: {rel_path}")
+            else:
+                print(f"📋 '{target}' 관련 파일이 {len(found_files)}개 발견되었습니다:")
+                for i, file_path in enumerate(found_files[:10], 1):  # 최대 10개만 표시
+                    rel_path = file_path.relative_to(vault_base)
+                    print(f"  {i}. {rel_path}")
+                
+                if len(found_files) <= 10:
+                    # 첫 번째 파일을 기본 선택
+                    target_path = found_files[0]
+                    rel_path = target_path.relative_to(vault_base)
+                    print(f"🎯 첫 번째 파일을 선택: {rel_path}")
+                else:
+                    print(f"   ... 및 {len(found_files) - 10}개 더")
+                    print("❌ 너무 많은 파일이 발견되었습니다. 더 구체적인 파일명을 제공해주세요.")
+                    return False
+        
+        # vault 내부 경로인지 확인
+        try:
+            if target_path:
+                relative_path = target_path.resolve().relative_to(vault_base.resolve())
+                print(f"📁 Vault 내부 경로 확인: {relative_path}")
+        except ValueError:
+            print(f"⚠️ 경고: Vault 외부 경로입니다: {target_path}")
+        
+        if not target_path or not target_path.exists():
+            print(f"❌ 최종 대상 경로가 존재하지 않습니다: {target_path}")
+            return False
+        
+        results = []
+        
+        # 단일 파일 태깅
+        if target_path.is_file():
+            if target.lower().endswith('.md'):
+                print(f"📄 단일 파일 태깅: {target_path.name}")
+                result = tagger.tag_document(str(target_path), dry_run=dry_run)
+                results.append(result)
+            else:
+                print("❌ 마크다운 파일(.md)만 태깅 가능합니다.")
+                return False
+        
+        # 폴더 배치 태깅
+        elif target_path.is_dir():
+            print(f"📁 폴더 배치 태깅: {target_path}")
+            results = tagger.tag_folder(
+                str(target_path), 
+                recursive=recursive, 
+                dry_run=dry_run
+            )
+        
+        else:
+            print("❌ 유효하지 않은 대상 경로입니다.")
+            return False
+        
+        # 결과 출력
+        if results:
+            successful = sum(1 for r in results if r.success)
+            total = len(results)
+            
+            print(f"\n📊 태깅 결과:")
+            print("-" * 50)
+            print(f"처리 파일: {total}개")
+            print(f"성공: {successful}개")
+            print(f"실패: {total - successful}개")
+            print(f"성공률: {successful/total*100:.1f}%")
+            
+            # 상세 결과 표시 (최대 10개)
+            print(f"\n📋 상세 결과 (상위 {min(10, len(results))}개):")
+            for i, result in enumerate(results[:10]):
+                print(f"\n{i+1}. {Path(result.file_path).name}")
+                if result.success:
+                    print(f"   ✅ 성공 (처리시간: {result.processing_time:.2f}초)")
+                    print(f"   기존 태그: {len(result.original_tags)}개")
+                    print(f"   생성 태그: {len(result.generated_tags)}개")
+                    
+                    if result.generated_tags:
+                        print(f"   새 태그:")
+                        for category, tags in result.categorized_tags.items():
+                            if tags:
+                                print(f"     {category}: {', '.join(tags)}")
+                    
+                    # 신뢰도 높은 태그들
+                    high_confidence_tags = [
+                        tag for tag, score in result.confidence_scores.items()
+                        if score > 0.7
+                    ]
+                    if high_confidence_tags:
+                        print(f"   고신뢰도 태그: {', '.join(high_confidence_tags)}")
+                else:
+                    print(f"   ❌ 실패: {result.error_message}")
+            
+            return successful == total
+        
+        else:
+            print("❌ 처리할 파일이 없습니다.")
+            return False
+        
+    except Exception as e:
+        print(f"❌ 자동 태깅 실패: {e}")
+        logger.exception("태깅 중 상세 오류:")
+        return False
+
+
+def display_tagging_result(result: TaggingResult):
+    """단일 태깅 결과 표시"""
+    print(f"\n📄 태깅 결과: {Path(result.file_path).name}")
+    print("-" * 50)
+    
+    if result.success:
+        print(f"✅ 성공 (처리시간: {result.processing_time:.2f}초)")
+        print(f"기존 태그: {result.original_tags if result.original_tags else '없음'}")
+        print(f"생성 태그: {len(result.generated_tags)}개")
+        
+        if result.categorized_tags:
+            print("\n🎯 카테고리별 태그:")
+            for category, tags in result.categorized_tags.items():
+                if tags:
+                    print(f"  {category}: {', '.join(tags)}")
+        
+        if result.confidence_scores:
+            print(f"\n📊 신뢰도 점수:")
+            sorted_scores = sorted(
+                result.confidence_scores.items(), 
+                key=lambda x: x[1], 
+                reverse=True
+            )
+            for tag, score in sorted_scores[:5]:  # 상위 5개
+                print(f"  {tag}: {score:.3f}")
+    else:
+        print(f"❌ 실패: {result.error_message}")
+
+
 def main():
     """메인 함수"""
     parser = argparse.ArgumentParser(
@@ -692,7 +888,7 @@ def main():
     
     parser.add_argument(
         "command",
-        choices=["init", "test", "info", "search", "duplicates", "collect", "analyze", "reindex", "related", "analyze-gaps"],
+        choices=["init", "test", "info", "search", "duplicates", "collect", "analyze", "reindex", "related", "analyze-gaps", "tag"],
         help="실행할 명령어"
     )
     
@@ -828,6 +1024,37 @@ def main():
         type=int,
         default=2,
         help="최소 연결 수 (이보다 적으면 약한 연결로 판정, 기본값: 2)"
+    )
+    
+    # 태깅 관련 인자들 (Phase 7)
+    parser.add_argument(
+        "--target",
+        help="태깅할 대상 파일 또는 폴더 경로"
+    )
+    
+    parser.add_argument(
+        "--recursive",
+        action="store_true", 
+        help="하위 폴더 포함 (폴더 태깅 시)"
+    )
+    
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="실제 변경 없이 미리보기"
+    )
+    
+    parser.add_argument(
+        "--tag-force",
+        action="store_true",
+        help="기존 태그 무시하고 재생성"
+    )
+    
+    parser.add_argument(
+        "--batch-size", 
+        type=int,
+        default=10,
+        help="배치 처리 크기 (기본값: 10)"
     )
     
     args = parser.parse_args()
@@ -978,6 +1205,47 @@ def main():
             print("✅ 지식 공백 분석 완료!")
         else:
             print("❌ 지식 공백 분석 실패!")
+            sys.exit(1)
+    
+    elif args.command == "tag":
+        if not check_dependencies():
+            sys.exit(1)
+        
+        # 태깅 대상 확인
+        if args.target:
+            target_path = args.target
+        elif args.query:  # 검색 쿼리가 있으면 현재 디렉토리에서 해당 파일 찾기
+            target_path = f"./*{args.query}*.md"
+        else:
+            print("❌ 태깅 대상이 필요합니다.")
+            print("사용법:")
+            print("  # 파일명으로 검색하여 태깅")
+            print("  python -m src tag --target spring-tdd")
+            print("  python -m src tag --target my-file.md")
+            print("")
+            print("  # vault 상대 경로로 태깅")
+            print("  python -m src tag --target 003-RESOURCES/books/clean-code.md")
+            print("  python -m src tag --target 003-RESOURCES/ --recursive")
+            print("")
+            print("  # 전체 vault 태깅 (주의!)")
+            print("  python -m src tag --target . --recursive --dry-run")
+            print("")
+            print("  # 강제 재태깅")
+            print("  python -m src tag --target my-file --tag-force")
+            sys.exit(1)
+        
+        if run_tagging(
+            vault_path=args.vault_path,
+            target=target_path,
+            recursive=args.recursive,
+            dry_run=args.dry_run,
+            force=args.tag_force,
+            batch_size=args.batch_size,
+            config=config
+        ):
+            print("✅ 자동 태깅 완료!")
+        else:
+            print("❌ 자동 태깅 실패!")
             sys.exit(1)
 
 

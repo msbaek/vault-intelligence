@@ -380,6 +380,264 @@ python -m src analyze
   주요 키워드: 리팩토링, 클린코드, SOLID, 디자인패턴
 ```
 
+## 🏷️ 자동 태깅 시스템 (Phase 7)
+
+### 개요
+
+Phase 7에서 새로 추가된 BGE-M3 기반 지능형 태깅 시스템입니다. 기존 vault의 태그 패턴을 학습하여 일관성 있는 태그를 자동으로 생성합니다.
+
+### 주요 특징
+- **BGE-M3 의미 분석**: 1024차원 임베딩으로 문서 내용 이해
+- **기존 태그 학습**: Vault의 기존 태그 패턴을 분석하여 일관된 태그 생성
+- **계층적 구조**: `/` 구분자를 사용한 체계적 태그 구조
+- **5대 카테고리**: Topic, Document Type, Source, Patterns, Frameworks
+- **폴더별 처리**: 대용량 vault의 점진적 태깅 지원
+
+### 기본 사용법
+
+#### 단일 문서 태깅
+```bash
+# 절대 경로로 태깅
+python -m src tag "/full/path/to/document.md"
+
+# Vault 상대 경로로 태깅
+python -m src tag "997-BOOKS/clean-code.md"
+
+# 파일명만으로 태깅 (자동 검색)
+python -m src tag "clean-code.md"
+
+# Dry-run 모드 (실제 적용하지 않고 미리보기)
+python -m src tag "document.md" --dry-run
+```
+
+#### 폴더별 일괄 태깅
+```bash
+# 특정 폴더 일괄 태깅
+python -m src tag "997-BOOKS/"
+
+# 여러 폴더 동시 태깅
+python -m src tag "997-BOOKS/" "003-RESOURCES/" "000-SLIPBOX/"
+
+# 대용량 폴더 점진적 처리 (배치 단위)
+python -m src tag "large-folder/" --batch-size 50
+```
+
+#### 고급 옵션
+```bash
+# 기존 태그 무시하고 완전히 새로 생성
+python -m src tag "document.md" --replace-existing
+
+# 상세 진행률 표시
+python -m src tag "folder/" --verbose
+
+# 특정 카테고리만 태깅
+python -m src tag "document.md" --categories "topic,source"
+
+# 태그 수 제한
+python -m src tag "document.md" --max-tags-per-category 3
+```
+
+### 태깅 규칙 체계
+
+시스템은 `~/dotfiles/.claude/commands/obsidian/add-tag.md`의 규칙을 따라 다음 5개 카테고리로 태그를 생성합니다:
+
+#### 1. **Topic** 카테고리
+```
+topic/programming/tdd
+topic/architecture/clean-architecture
+topic/career/software-craftsmanship
+```
+
+#### 2. **Document Type** 카테고리
+```
+type/book
+type/article
+type/note
+type/tutorial
+```
+
+#### 3. **Source** 카테고리
+```
+source/book
+source/blog
+source/course
+source/personal
+```
+
+#### 4. **Patterns** 카테고리
+```
+patterns/design-patterns
+patterns/refactoring-patterns
+patterns/architectural-patterns
+```
+
+#### 5. **Frameworks** 카테고리
+```
+frameworks/spring
+frameworks/react
+frameworks/testing-frameworks
+```
+
+### 태깅 결과 예시
+
+#### 입력 문서
+```markdown
+---
+title: Clean Code 책 정리
+---
+
+# Clean Code 정리
+
+로버트 마틴의 Clean Code 책을 읽고 정리한 내용입니다.
+SOLID 원칙과 리팩토링 기법에 대해 다룹니다.
+```
+
+#### 생성된 태그
+```yaml
+---
+title: Clean Code 책 정리
+tags:
+  - topic/programming/clean-code
+  - topic/principles/solid
+  - topic/code-quality/refactoring
+  - type/book-summary
+  - source/book
+  - patterns/refactoring-patterns
+---
+```
+
+### 설정 옵션 (config/settings.yaml)
+
+```yaml
+semantic_tagging:
+  # 모델 설정
+  model:
+    name: "BAAI/bge-m3"
+    dimension: 1024
+    batch_size: 4
+    max_length: 4096
+    use_fp16: true
+    device: null
+
+  # 기존 태그 학습 설정
+  existing_tags:
+    enable_learning: true
+    similarity_threshold: 0.7
+    min_tag_frequency: 2
+    max_suggestions_per_category: 5
+
+  # 태그 정규화 규칙
+  normalization:
+    convert_to_lowercase: true
+    replace_spaces_with_dashes: true
+    remove_special_chars: true
+    max_tag_length: 50
+
+  # 카테고리별 제한
+  categories:
+    topic:
+      max_tags: 5
+      min_confidence: 0.3
+    type:
+      max_tags: 2
+      min_confidence: 0.4
+    source:
+      max_tags: 1
+      min_confidence: 0.5
+    patterns:
+      max_tags: 3
+      min_confidence: 0.3
+    frameworks:
+      max_tags: 3
+      min_confidence: 0.3
+
+  # 처리 설정
+  processing:
+    batch_size: 50
+    progress_report_interval: 10
+    dry_run_by_default: false
+    replace_existing_tags: false
+    backup_original_frontmatter: true
+```
+
+### 성능 및 사용 팁
+
+#### 처음 사용 시 권장 순서
+1. **Dry-run 테스트**: 몇 개 문서로 결과 확인
+2. **소규모 폴더**: 중요하지 않은 폴더부터 시작
+3. **점진적 확장**: 만족스러우면 전체 vault로 확장
+
+#### 배치 크기 가이드
+- **소규모** (< 100 문서): `--batch-size 20`
+- **중규모** (100~1000 문서): `--batch-size 50` (기본값)
+- **대규모** (> 1000 문서): `--batch-size 100`
+
+#### 태그 품질 향상 팁
+```bash
+# 1. 기존 태그가 많은 문서들 먼저 처리 (학습 데이터 증가)
+python -m src tag "well-tagged-folder/" --verbose
+
+# 2. 유사한 문서들을 그룹으로 처리
+python -m src tag "997-BOOKS/" --batch-size 30
+
+# 3. 결과 확인 후 설정 조정
+python -m src tag "sample-doc.md" --dry-run --verbose
+```
+
+### 문제 해결
+
+#### 태그가 부정확할 때
+```bash
+# 기존 태그 학습 비율 높이기
+# config/settings.yaml에서 existing_tags.similarity_threshold 낮추기 (0.7 → 0.5)
+
+# 더 많은 기존 태그를 학습에 활용
+# config/settings.yaml에서 existing_tags.min_tag_frequency 낮추기 (2 → 1)
+```
+
+#### 태그가 너무 많을 때
+```bash
+# 카테고리별 태그 수 제한
+# config/settings.yaml에서 categories.*.max_tags 조정
+
+# 신뢰도 임계값 높이기
+# config/settings.yaml에서 categories.*.min_confidence 높이기
+```
+
+#### 처리 속도가 느릴 때
+```bash
+# 배치 크기 증가
+python -m src tag "folder/" --batch-size 100
+
+# FP16 비활성화로 속도 향상 (정확도 약간 감소)
+# config/settings.yaml에서 model.use_fp16: false
+```
+
+### 통계 및 분석
+
+태깅 완료 후 생성되는 통계 정보:
+
+```
+🏷️ 태깅 완료 통계:
+--------------------------------------------------
+처리된 문서: 847개
+성공: 823개 (97.2%)
+실패: 24개 (2.8%)
+평균 처리 시간: 1.2초/문서
+
+📊 생성된 태그 분포:
+- topic: 2,341개 (평균 2.8개/문서)
+- type: 823개 (평균 1.0개/문서)  
+- source: 756개 (평균 0.9개/문서)
+- patterns: 445개 (평균 0.5개/문서)
+- frameworks: 234개 (평균 0.3개/문서)
+
+🎯 신뢰도 분포:
+- 높음 (>0.7): 567개 문서 (68.9%)
+- 중간 (0.4-0.7): 201개 문서 (24.4%)
+- 낮음 (<0.4): 55개 문서 (6.7%)
+```
+
 ## 🔄 인덱싱 관리
 
 ### 자동 인덱싱 (추천)
@@ -1035,9 +1293,16 @@ python -m src search --query "개발"  # 대신 "소프트웨어 개발" 권장
 ---
 
 **최종 업데이트**: 2025-08-21  
-**버전**: V2.6 (Phase 6 완료 - 지식 그래프 시스템)
+**버전**: V2.7 (Phase 7 완료 - 자동 태깅 시스템)
 
-### 주요 업데이트 (V2.6)
+### 주요 업데이트 (V2.7)
+- 🏷️ **Semantic Tagging**: BGE-M3 기반 지능형 자동 태깅 시스템
+- 🧠 **Tag Learning**: 기존 vault 태그 패턴 학습 및 일관성 유지
+- 📁 **Batch Processing**: 폴더별 대용량 문서 일괄 태깅 지원
+- 🎯 **Rule-based Categorization**: 5대 카테고리 체계적 태그 분류
+- ⚙️ **CLI Integration**: `tag` 서브커맨드 및 다양한 옵션 지원
+
+### 이전 업데이트 (V2.6)
 - 🕸️ **Knowledge Graph**: NetworkX 기반 문서 관계 분석 및 중심성 점수 계산
 - 🔗 **Related Documents**: 의미적 + 태그 + 중심성 기반 관련 문서 추천
 - 📊 **Centrality Ranking**: PageRank 등 중심성 점수를 활용한 검색 랭킹 향상
