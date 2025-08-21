@@ -74,7 +74,10 @@ class TopicCollector:
         threshold: float = 0.3,
         min_word_count: Optional[int] = None,
         tags_filter: Optional[List[str]] = None,
-        output_file: Optional[str] = None
+        output_file: Optional[str] = None,
+        use_expansion: bool = False,
+        include_synonyms: bool = True,
+        include_hyde: bool = True
     ) -> DocumentCollection:
         """주제별 문서 수집"""
         try:
@@ -83,13 +86,30 @@ class TopicCollector:
                 return self._create_empty_collection(topic)
             
             logger.info(f"주제 '{topic}' 문서 수집 시작...")
+            if use_expansion:
+                expand_features = []
+                if include_synonyms:
+                    expand_features.append("동의어")
+                if include_hyde:
+                    expand_features.append("HyDE")
+                logger.info(f"📝 쿼리 확장 모드 활성화: {', '.join(expand_features)}")
             
-            # 하이브리드 검색 수행 (의미적 + 키워드)
-            search_results = self.search_engine.hybrid_search(
-                topic,
-                top_k=top_k,
-                threshold=threshold
-            )
+            # 확장된 하이브리드 검색 수행 (의미적 + 키워드 + 선택적 확장)
+            if use_expansion:
+                search_results = self.search_engine.expanded_search(
+                    query=topic,
+                    search_method="hybrid",
+                    top_k=top_k,
+                    threshold=threshold,
+                    include_synonyms=include_synonyms,
+                    include_hyde=include_hyde
+                )
+            else:
+                search_results = self.search_engine.hybrid_search(
+                    topic,
+                    top_k=top_k,
+                    threshold=threshold
+                )
             
             if not search_results:
                 logger.warning(f"주제 '{topic}'에 대한 문서를 찾을 수 없습니다.")

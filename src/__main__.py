@@ -374,10 +374,17 @@ def run_duplicate_detection(vault_path: str, config: dict):
         return False
 
 
-def run_topic_collection(vault_path: str, topic: str, top_k: int, threshold: float, output_file: str, config: dict):
+def run_topic_collection(vault_path: str, topic: str, top_k: int, threshold: float, output_file: str, config: dict, use_expansion: bool = False, include_synonyms: bool = True, include_hyde: bool = True):
     """주제별 문서 수집 실행"""
     try:
         print(f"📚 주제 '{topic}' 문서 수집 시작...")
+        if use_expansion:
+            expand_features = []
+            if include_synonyms:
+                expand_features.append("동의어")
+            if include_hyde:
+                expand_features.append("HyDE")
+            print(f"📝 쿼리 확장 모드 활성화: {', '.join(expand_features)}")
         
         # 검색 엔진 초기화
         cache_dir = str(project_root / "cache")
@@ -397,7 +404,10 @@ def run_topic_collection(vault_path: str, topic: str, top_k: int, threshold: flo
             topic=topic,
             top_k=top_k,
             threshold=threshold,
-            output_file=output_file
+            output_file=output_file,
+            use_expansion=use_expansion,
+            include_synonyms=include_synonyms,
+            include_hyde=include_hyde
         )
         
         print(f"\n📊 수집 결과:")
@@ -1141,7 +1151,17 @@ def main():
             print("❌ 수집할 주제가 필요합니다. --topic 옵션을 사용하세요.")
             sys.exit(1)
         
-        if run_topic_collection(args.vault_path, args.topic, args.top_k, args.threshold, args.output, config):
+        if run_topic_collection(
+            args.vault_path, 
+            args.topic, 
+            args.top_k, 
+            args.threshold, 
+            args.output, 
+            config,
+            use_expansion=args.expand,
+            include_synonyms=not args.no_synonyms,
+            include_hyde=not args.no_hyde
+        ):
             print("✅ 주제 수집 완료!")
         else:
             print("❌ 주제 수집 실패!")

@@ -115,34 +115,71 @@ python -m src reindex
 ```bash
 python -m src collect --topic "TDD" --output collections/tdd_materials.md
 ```
+
+### 예제 2: 쿼리 확장을 통한 포괄적 수집 🆕
+
+```bash
+# 기본 확장 수집 (동의어 + HyDE)
+python -m src collect --topic "TDD" --expand --output collections/tdd_expanded.md
+```
+
+**확장 검색 결과 비교:**
+
+| 수집 방법 | 문서 수 | 단어 수 | 주요 차이점 |
+|----------|---------|---------|------------|
+| 기본 수집 | 5개 | 22,032개 | clean-coders 시리즈 중심 |
+| 확장 수집 | 5개 | 24,042개 | 더 다양한 TDD 리소스 포함 (003-RESOURCES/TDD 폴더 등) |
+
+### 예제 3: 선택적 확장 기능
+
+```bash
+# 동의어만 확장 (정확도 우선)
+python -m src collect --topic "리팩토링" --expand --no-hyde --top-k 15
+
+# HyDE만 활용 (의미적 확장 우선)
+python -m src collect --topic "도메인 모델링" --expand --no-synonyms --threshold 0.2
+
+# 포괄적 수집 (낮은 임계값 + 확장)
+python -m src collect --topic "클린 아키텍처" --expand --threshold 0.1 --top-k 30
+```
+
 **생성된 파일 예시 (tdd_materials.md):**
 ```markdown
 # TDD 관련 문서 모음
 
-**수집 일시**: 2025-08-19 14:30:00
+**수집 일시**: 2025-08-21 14:30:00
 **검색 쿼리**: TDD
+**쿼리 확장**: 동의어 + HyDE 활성화
 **총 문서**: 15개
-**총 단어수**: 12,450개
+**총 단어수**: 24,042개
 
 ## 📊 수집 통계
 - **태그 분포**: testing/tdd (8개), development/methodology (5개)
 - **디렉토리**: 003-RESOURCES (10개), 997-BOOKS (3개), SLIPBOX (2개)
+
+## 🔍 확장 검색 정보
+- **동의어 확장**: 테스트 주도 개발, 단위 테스트, 테스트 드리븐
+- **HyDE 문서**: "TDD는 소프트웨어 개발 방법론 중 하나로..."
+- **검색 범위**: 원본 + 3개 동의어 + 1개 HyDE = 총 5개 쿼리
 
 ## 📄 수집된 문서
 
 ### 1. TDD 기본 개념 (유사도: 0.9234)
 **경로**: 003-RESOURCES/TDD/basic-concepts.md
 **단어수**: 234단어
+**매칭 쿼리**: 동의어("테스트 주도 개발")
 **태그**: #testing/tdd #methodology
 
 TDD는 테스트 주도 개발(Test-Driven Development)의 약자로...
 
-### 2. Red-Green-Refactor 사이클
+### 2. Red-Green-Refactor 사이클 (유사도: 0.8765)
 **경로**: 003-RESOURCES/TDD/red-green-refactor.md
+**매칭 쿼리**: HyDE 문서
+**단어수**: 187단어
 ...
 ```
 
-### 예제 2: 책 집필용 챕터별 자료 수집
+### 예제 4: 책 집필용 챕터별 자료 수집
 ```bash
 # 챕터 1: TDD 기초
 python -m src collect --topic "TDD 기본 개념" --threshold 0.6 --output book/chapter1.md
@@ -304,17 +341,46 @@ from src.features.topic_collector import TopicCollector
 
 collector = TopicCollector(engine, config)
 
-# 여러 주제 일괄 수집
+# 기본 수집
+basic_collection = collector.collect_topic("TDD", top_k=20)
+
+# 쿼리 확장 수집 🆕
+expanded_collection = collector.collect_topic(
+    topic="TDD",
+    top_k=20,
+    threshold=0.3,
+    use_expansion=True,
+    include_synonyms=True,
+    include_hyde=True,
+    output_file="collections/tdd_expanded.md"
+)
+
+# 선택적 확장 수집
+synonym_only_collection = collector.collect_topic(
+    topic="리팩토링",
+    top_k=15,
+    use_expansion=True,
+    include_synonyms=True,
+    include_hyde=False
+)
+
+# 수집 결과 비교
+print(f"기본 수집: {basic_collection.metadata.total_documents}개 문서")
+print(f"확장 수집: {expanded_collection.metadata.total_documents}개 문서")
+print(f"단어 수 차이: {expanded_collection.metadata.total_word_count - basic_collection.metadata.total_word_count:+,}개")
+
+# 여러 주제 일괄 수집 (확장 모드)
 topics = ["TDD", "리팩토링", "클린코드", "아키텍처"]
 results = {}
 
 for topic in topics:
-    print(f"🔍 '{topic}' 수집 중...")
+    print(f"🔍 '{topic}' 확장 수집 중...")
     collection = collector.collect_topic(
         topic=topic,
         top_k=20,
         threshold=0.4,
-        output_file=f"collections/{topic}.md"
+        use_expansion=True,
+        output_file=f"collections/{topic}_expanded.md"
     )
     results[topic] = collection.metadata.total_documents
     print(f"✅ {results[topic]}개 문서 수집")

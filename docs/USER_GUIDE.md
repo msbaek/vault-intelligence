@@ -334,6 +334,41 @@ python -m src collect --topic "TDD" --output tdd_collection.md
 python -m src collect --topic "클린 코드" --threshold 0.6 --top-k 20
 ```
 
+### 쿼리 확장 수집 🆕
+
+쿼리 확장을 통해 더 포괄적이고 정확한 문서 수집이 가능합니다.
+
+```bash
+# 기본 확장 수집 (동의어 + HyDE)
+python -m src collect --topic "TDD" --expand
+
+# 동의어만 확장 (HyDE 제외)
+python -m src collect --topic "리팩토링" --expand --no-hyde
+
+# HyDE만 활용 (동의어 제외)
+python -m src collect --topic "아키텍처" --expand --no-synonyms
+
+# 확장 + 낮은 임계값으로 포괄적 수집
+python -m src collect --topic "도메인 모델링" --expand --threshold 0.1 --top-k 30
+
+# 확장 + 결과 파일 저장
+python -m src collect --topic "클린 코드" --expand --output clean_code_expanded.md
+```
+
+#### 확장 검색 비교 예시
+
+**"TDD" 주제 수집 결과 비교:**
+
+| 방법 | 문서 수 | 단어 수 | 주요 특징 |
+|------|---------|---------|-----------|
+| 기본 수집 | 5개 | 22,032개 | clean-coders 시리즈 중심 |
+| 확장 수집 | 5개 | 24,042개 | 더 다양한 TDD 리소스 포함 |
+
+#### 확장 기능 설명
+- **동의어 확장**: 한국어 동의어 사전을 활용하여 관련 용어로 검색 범위 확대
+- **HyDE (Hypothetical Document Embeddings)**: AI가 가상 문서를 생성하여 의미적 검색 정확도 향상
+- **하이브리드 융합**: Dense + Sparse + 확장 쿼리를 RRF(Reciprocal Rank Fusion)로 최적 결합
+
 ### 수집 결과
 ```
 📊 수집 결과:

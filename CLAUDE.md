@@ -109,11 +109,23 @@ python -m src duplicates
 
 ### 주제별 문서 수집
 ```bash
-# 주제별 문서 수집
+# 기본 주제별 문서 수집
 python -m src collect --topic "TDD" --output results.md
 
 # 상위 K개 결과만 수집
 python -m src collect --topic "클린코드" --top-k 20
+
+# 쿼리 확장을 통한 포괄적 수집 (동의어 + HyDE)
+python -m src collect --topic "TDD" --expand
+
+# 동의어만 확장 (HyDE 제외)
+python -m src collect --topic "리팩토링" --expand --no-hyde
+
+# HyDE만 활용 (동의어 제외)
+python -m src collect --topic "TDD" --expand --no-synonyms
+
+# 임계값 조정과 함께 확장 검색
+python -m src collect --topic "아키텍처" --expand --threshold 0.1 --top-k 20
 ```
 
 ### 주제 분석 및 클러스터링
@@ -236,7 +248,27 @@ print(f"중복 비율: {analysis.get_duplicate_ratio():.1%}")
 from src.features.topic_collector import TopicCollector
 
 collector = TopicCollector(engine, config)
+
+# 기본 수집
 collection = collector.collect_topic("TDD", top_k=20)
+
+# 쿼리 확장을 통한 포괄적 수집
+expanded_collection = collector.collect_topic(
+    "TDD", 
+    top_k=20,
+    use_expansion=True,
+    include_synonyms=True,
+    include_hyde=True
+)
+
+# 동의어만 사용하는 확장 수집
+synonym_collection = collector.collect_topic(
+    "리팩토링",
+    top_k=15,
+    use_expansion=True,
+    include_synonyms=True,
+    include_hyde=False
+)
 
 # 결과를 마크다운으로 저장
 collector.save_collection(collection, "tdd_collection.md")
