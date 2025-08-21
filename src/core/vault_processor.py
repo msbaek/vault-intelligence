@@ -261,7 +261,7 @@ class VaultProcessor:
             search_content = f"{title}\n{' '.join(tags)}\n{clean_content}"
             
             return Document(
-                path=str(file_path.relative_to(self.vault_path)),
+                path=str(file_path),
                 title=title,
                 content=search_content,
                 tags=tags,

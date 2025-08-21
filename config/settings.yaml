@@ -4,12 +4,12 @@
 model:
   name: "BAAI/bge-m3"
   dimension: 1024
-  batch_size: 8 # 성능 최대화: 4→8로 증가
+  batch_size: 1 # 정확도 우선: 대용량 문서 안정 처리
   cache_folder: "models/"
   device: null # null=auto-detect, "cpu", "cuda"
   use_fp16: false # M1 Pro CPU에서는 FP16 비활성화
-  max_length: 8192 # 최대 토큰 길이로 복원
-  num_workers: 8 # M1 Pro 10코어의 80% 활용
+  max_length: 2048 # 속도/정확도 균형 (캐시 누락 문서 처리용)
+  num_workers: 2 # 정확도 우선: 안정적 메모리 관리
 
 # 캐시 설정
 cache:

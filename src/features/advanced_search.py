@@ -283,10 +283,70 @@ class AdvancedSearchEngine:
                     self.is_sampled = False
                     self.sample_size = None
             
-            # 현재는 복잡한 인덱스 로딩보다는 매번 재구축하는 것이 안전
-            # (BGE-M3 모델과 BM25 인덱스를 정확히 복원하는 것이 복잡)
-            logger.info("🔄 성능과 정확성을 위해 인덱스를 새로 구축합니다.")
-            return False
+            # 캐시된 임베딩 활용하여 인덱스 복원
+            logger.info("📂 캐시된 임베딩으로 인덱스 복원 시도...")
+            
+            # 문서 로드
+            self.documents = self.processor.process_all_files()
+            if not self.documents:
+                logger.warning("문서를 찾을 수 없습니다.")
+                return False
+            
+            # 캐시된 임베딩과 누락 문서 분리
+            cached_embeddings = []
+            missing_docs = []
+            cached_docs = []
+            
+            for doc in self.documents:
+                cached = self.cache.get_embedding(doc.path)
+                if cached is None:
+                    missing_docs.append(doc)
+                else:
+                    cached_docs.append(doc)
+                    cached_embeddings.append(cached.embedding)
+            
+            logger.info(f"📊 캐시 상태: {len(cached_docs)}개 있음, {len(missing_docs)}개 누락")
+            
+            # 누락 문서가 너무 많으면 전체 재구축
+            if len(missing_docs) > len(self.documents) * 0.1:  # 10% 이상 누락
+                logger.warning(f"⚠️  누락 문서가 많아 전체 재구축 필요: {len(missing_docs)}개")
+                return False
+            
+            # 누락 문서만 임베딩 생성
+            if missing_docs:
+                logger.info(f"🔄 누락된 {len(missing_docs)}개 문서만 임베딩 생성...")
+                missing_texts = [doc.content for doc in missing_docs]
+                missing_embeddings = self.engine.encode_texts(missing_texts)
+                
+                # 캐시에 저장
+                for doc, embedding in zip(missing_docs, missing_embeddings):
+                    # cache.store_embedding을 직접 호출
+                    self.cache.store_embedding(
+                        file_path=doc.path,
+                        embedding=embedding,
+                        model_name=self.engine.model_name,
+                        word_count=doc.word_count
+                    )
+                
+                # 모든 임베딩 통합
+                all_embeddings = cached_embeddings + missing_embeddings.tolist()
+                all_documents = cached_docs + missing_docs
+            else:
+                all_embeddings = cached_embeddings
+                all_documents = cached_docs
+            
+            # 임베딩 배열 구성
+            self.embeddings = np.array(all_embeddings)
+            self.documents = all_documents
+            
+            # BM25 인덱스 재구축 (빠름)
+            from rank_bm25 import BM25Okapi
+            tokenized_docs = [doc.content.split() for doc in self.documents]
+            self.bm25 = BM25Okapi(tokenized_docs)
+            
+            self.indexed = True
+            logger.info(f"✅ 점진적 인덱스 복원 완료: {len(self.documents)}개 문서 ({len(missing_docs)}개 새로 추가)")
+            return True
         except Exception as e:
             logger.error(f"인덱스 로딩 실패: {e}")
             return False
