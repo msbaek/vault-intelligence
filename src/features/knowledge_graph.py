@@ -560,6 +560,22 @@ class KnowledgeGraphBuilder:
                 logger.warning("시각화할 노드가 없습니다.")
                 return False
             
+            # 한글 폰트 설정
+            import matplotlib.font_manager as fm
+            import platform
+            
+            if platform.system() == 'Darwin':  # macOS
+                font_path = '/System/Library/Fonts/Supplemental/AppleGothic.ttf'
+                if os.path.exists(font_path):
+                    font_prop = fm.FontProperties(fname=font_path)
+                    plt.rcParams['font.family'] = font_prop.get_name()
+                    plt.rcParams['axes.unicode_minus'] = False
+            elif platform.system() == 'Windows':
+                plt.rcParams['font.family'] = 'Malgun Gothic'
+                plt.rcParams['axes.unicode_minus'] = False
+            else:  # Linux
+                plt.rcParams['font.family'] = 'DejaVu Sans'
+            
             # NetworkX 그래프 생성
             G = nx.Graph()
             
@@ -646,7 +662,12 @@ class KnowledgeGraphBuilder:
                         title = title[:17] + "..."
                     labels[node_id] = title
                 
-                nx.draw_networkx_labels(G, pos, labels, font_size=8, font_weight='bold')
+                # 한글 폰트 적용을 위한 설정
+                if platform.system() == 'Darwin' and os.path.exists('/System/Library/Fonts/Supplemental/AppleGothic.ttf'):
+                    nx.draw_networkx_labels(G, pos, labels, font_size=8, font_weight='bold', 
+                                          font_family='AppleGothic')
+                else:
+                    nx.draw_networkx_labels(G, pos, labels, font_size=8, font_weight='bold')
             
             # 범례
             legend_elements = [

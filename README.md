@@ -167,7 +167,7 @@ python -m src info
 - **[📖 사용자 가이드](docs/USER_GUIDE.md)** - 완전한 사용법과 설정 가이드
 - **[🎯 실전 예제 모음](docs/EXAMPLES.md)** - 다양한 상황별 구체적 예제들
 - **[⚙️ API 문서](docs/API.md)** - 프로그래밍 방식 사용법 (작성 예정)
-- **[🔧 문제 해결](docs/TROUBLESHOOTING.md)** - 자주 발생하는 문제와 해결책 (작성 예정)
+- **[🔧 문제 해결](docs/TROUBLESHOOTING.md)** - 한글 폰트, 성능 최적화 등 문제 해결 가이드
 
 ## ⚡ 빠른 시작
 
@@ -186,6 +186,9 @@ python -m src search --query "TDD" --rerank --expand             # 모든 기능
 python -m src related --file "클린 애자일(Back to Basics)" --top-k 5  # 관련 문서 추천
 python -m src search --query "TDD" --with-centrality --top-k 10       # 중심성 기반 랭킹
 python -m src analyze-gaps --top-k 10                                  # 지식 공백 분석
+
+# 📊 지식 그래프 시각화
+python visualize_knowledge_graph.py                                    # 전체 vault 시각화 (캐시 활용)
 
 # 🛠️ 시스템 기능
 python -m src duplicates                                         # 중복 문서 감지
@@ -297,6 +300,32 @@ Phase 2에서 다음 기능들이 성공적으로 구현되었습니다:
 - **5,000차원 TF-IDF** 벡터 공간 구축
 - **SQLite 캐싱** 시스템으로 성능 최적화
 - **하이브리드 검색** 알고리즘으로 정확도 향상
+
+## 📊 지식 그래프 시각화
+
+### 빠른 시각화
+색인을 다시 구축할 필요 없이 캐시된 임베딩을 활용하여 빠르게 시각화:
+
+```bash
+python visualize_knowledge_graph.py
+```
+
+**생성 파일**:
+- `knowledge_graph_korean.png` - 한글 폰트 적용된 그래프 시각화
+- `knowledge_graph.json` - 그래프 데이터 (노드, 엣지, 중심성 점수)
+
+### 시각화 특징
+- **한글 지원**: AppleGothic 폰트 자동 적용 (macOS)
+- **다양한 관계**: 유사도, 태그, 참조 기반 엣지
+- **중심성 분석**: PageRank, 근접/매개 중심성 계산
+- **커뮤니티 탐지**: 관련 문서 그룹 자동 식별
+- **샘플링 지원**: 대규모 vault도 빠른 시각화 가능
+
+### 시각화 요소
+- **노드 색상**: 파란색(문서), 초록색(태그)
+- **노드 크기**: 문서 단어 수 비례
+- **엣지 타입**: 회색(유사도), 초록(태그), 빨강(참조)
+- **라벨**: 문서 제목 (20자 제한)
 
 ### 🚀 다음 단계 (Phase 3)
 - Sentence Transformers 완전 통합

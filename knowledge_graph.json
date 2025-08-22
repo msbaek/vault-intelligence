@@ -1,0 +1,1993 @@
+{
+  "graph_info": {
+    "node_count": 15,
+    "edge_count": 150,
+    "density": 1.4285714285714286,
+    "created_at": "2025-08-22T10:32:22.804089",
+    "metrics": {
+      "node_count": 15,
+      "edge_count": 92,
+      "density": 0.8761904761904762,
+      "is_connected": true,
+      "number_of_components": 1,
+      "average_clustering": 0.886885706885707,
+      "transitivity": 0.8820171265461465,
+      "diameter": 2,
+      "average_shortest_path_length": 1.1238095238095238
+    }
+  },
+  "nodes": [
+    {
+      "id": "doc_0",
+      "title": "Kent Beck 인터뷰: AI 시대의 TDD와 소프트웨어 개발",
+      "path": "/Users/msbaek/DocumentsLocal/msbaek_vault/TDD-AI agents and coding with Kent Beck.md",
+      "tags": [],
+      "word_count": 2007,
+      "centrality_score": null,
+      "cluster_id": null,
+      "node_type": "document"
+    },
+    {
+      "id": "doc_1",
+      "title": "Episode 24. Transformation Priority Premise Part 2",
+      "path": "/Users/msbaek/DocumentsLocal/msbaek_vault/997-BOOKS/clean-coders-codecasts/24.Transformation Priority Premise Part 2.md",
+      "tags": [
+        "source/book",
+        "topic/clean-coders/codecasts",
+        "topic/software-development/education",
+        "topic/uncle-bob/video-series",
+        "type/book-notes"
+      ],
+      "word_count": 991,
+      "centrality_score": null,
+      "cluster_id": null,
+      "node_type": "document"
+    },
+    {
+      "id": "doc_2",
+      "title": "2024-W27",
+      "path": "/Users/msbaek/DocumentsLocal/msbaek_vault/work-log/2024-W27.md",
+      "tags": [
+        "development/refactoring/test-driven",
+        "integration/api/third-party",
+        "productivity/weekly-review",
+        "project-management/scheduling",
+        "software-engineering/pair-programming",
+        "status/2024"
+      ],
+      "word_count": 371,
+      "centrality_score": null,
+      "cluster_id": null,
+      "node_type": "document"
+    },
+    {
+      "id": "doc_3",
+      "title": "운영팁",
+      "path": "/Users/msbaek/DocumentsLocal/msbaek_vault/work-log/2022/운영팁.md",
+      "tags": [
+        "database/mysql",
+        "document-type/guide",
+        "operations/tips",
+        "status/complete",
+        "web/authentication",
+        "web/cookies",
+        "팁"
+      ],
+      "word_count": 196,
+      "centrality_score": null,
+      "cluster_id": null,
+      "node_type": "document"
+    },
+    {
+      "id": "doc_4",
+      "title": "7월 7, 2025",
+      "path": "/Users/msbaek/DocumentsLocal/msbaek_vault/notes/dailies/2025-07-07.md",
+      "tags": [
+        "daily-notes",
+        "type/note"
+      ],
+      "word_count": 96,
+      "centrality_score": null,
+      "cluster_id": null,
+      "node_type": "document"
+    },
+    {
+      "id": "doc_5",
+      "title": "Integration Testing Application Modules :: Spring Modulith",
+      "path": "/Users/msbaek/DocumentsLocal/msbaek_vault/001-INBOX/Omnivore/2024-08-14/Integration Testing Application Modules-Spring Modulith.md",
+      "tags": [
+        "0654efb0-0074-4cb1-81d3-faacc4bf1450",
+        "0b532d20-48e3-4931-8ebd-83df6af1e72c",
+        "12ad45d4-119d-4066-abfb-364a0322ff36",
+        "29c20947-75a9-48ac-b329-0874acec197d",
+        "2d870b7c-37d2-4bf3-b492-e6dc4c3e4bf2",
+        "4aa481fc-e34f-46cf-930c-f8e74fce49ed",
+        "4e2b1811-e0f1-4f04-9141-360c7e582102",
+        "53167be4-9129-4aac-8828-52777931f70a",
+        "5455e18d-3d70-4f1c-9f4a-b360c308d491",
+        "5948f4bd-0a8c-48e0-bff8-a11f084e7459",
+        "62e754ae-ba50-487e-9d9c-c9854989cbd9",
+        "63ccc50b-196f-4e4b-9d53-405a50b3f912",
+        "664d3884-499c-4496-b78c-ee7cc8f70bc0",
+        "685984ec-a57a-4647-bc05-f4f573fdc706",
+        "74ea38d8-d00f-4f3a-833d-e2ab7ce2e91d",
+        "750a76ce-c7f4-4864-a6b2-469b12b694ac",
+        "86a23a08-414b-4473-82a5-45cabb4e3cb0",
+        "93add618-3ace-4a1f-8b5f-0b79e4876b44",
+        "9704062f-1ad8-47cb-bd7e-3f4e709ffe0d",
+        "9863274c-dbe2-4427-a896-f833063bc07c",
+        "aae2cbc9-0dc0-4977-803e-1b3a36d400f8",
+        "ab8b9b47-dab0-492a-a0c1-4337dba8078d",
+        "aml",
+        "architecture/modular-monolith",
+        "architecture/modularmonolith",
+        "b494687f-9643-4d07-9804-22b85bb143dc",
+        "bc111756-3efb-4fb7-97bf-cd23e25ade95",
+        "be0d4b26-e264-4a21-b502-d3df37b76f51",
+        "c07f4c28-d65a-4d05-987e-de068b7e147b",
+        "c5d807b0-6515-47b6-8189-9a10409db398",
+        "c617cdfb-9cff-477d-8987-eb160a8df388",
+        "d44172be-1afe-4ca2-87ac-9c166d5deeb7",
+        "d4c25c3c-6cb7-4947-8267-d43ec2702ff4",
+        "e75d891c-88af-491f-a030-b11316815100",
+        "e7c43c42-d916-4b2c-b72b-6acebb89556f",
+        "e85848aa-6183-4f5f-b3e2-92226957539b",
+        "f477ee2e-05d9-41e1-abf8-1f7b2a4c114b",
+        "f7ec4a92-9b75-46b7-b28d-af895b5dc837",
+        "fec3001f-a899-4b62-be25-81bb9bde8f71",
+        "omnivore",
+        "reference/spring",
+        "spring/modulith",
+        "spring/testing",
+        "testing/integration"
+      ],
+      "word_count": 223,
+      "centrality_score": null,
+      "cluster_id": null,
+      "node_type": "document"
+    },
+    {
+      "id": "doc_6",
+      "title": "AWK",
+      "path": "/Users/msbaek/DocumentsLocal/msbaek_vault/003-RESOURCES/TOOLS/AWK.md",
+      "tags": [
+        "cli/text-processing",
+        "devops/commands",
+        "linux/utilities",
+        "reference/cheatsheet",
+        "scripting/awk",
+        "tools/awk"
+      ],
+      "word_count": 291,
+      "centrality_score": null,
+      "cluster_id": null,
+      "node_type": "document"
+    },
+    {
+      "id": "doc_7",
+      "title": "[Introduction to Workspaces in IntelliJ IDEA](https://www.youtube.com/live/ewe8AgP7oUE)",
+      "path": "/Users/msbaek/DocumentsLocal/msbaek_vault/003-RESOURCES/DEVELOPMENT/Introduction to Workspaces in IntelliJ IDEA.md",
+      "tags": [
+        "status/active",
+        "topic/code-review",
+        "topic/productivity"
+      ],
+      "word_count": 69,
+      "centrality_score": null,
+      "cluster_id": null,
+      "node_type": "document"
+    },
+    {
+      "id": "doc_8",
+      "title": "Design for Testability",
+      "path": "/Users/msbaek/DocumentsLocal/msbaek_vault/003-RESOURCES/CLEAN_CODE/Design for Testability.md",
+      "tags": [
+        "charge를",
+        "development/tdd",
+        "init을",
+        "notifygardenersickshrubbery",
+        "start",
+        "technology/database",
+        "technology/java",
+        "topic/code-review",
+        "topic/testing",
+        "type/case-study"
+      ],
+      "word_count": 1394,
+      "centrality_score": null,
+      "cluster_id": null,
+      "node_type": "document"
+    },
+    {
+      "id": "doc_9",
+      "title": "Claude Code 6가지 프로 팁: 생성형 AI 시대의 비대칭 엔지니어링",
+      "path": "/Users/msbaek/DocumentsLocal/msbaek_vault/003-RESOURCES/AI/My TOP 6 Claude Code PRO tips for AI Coding.md",
+      "tags": [
+        "ai/agents/coding",
+        "ai/claude/code",
+        "ai/mcp/usage",
+        "development/tips",
+        "workflow/automation"
+      ],
+      "word_count": 2568,
+      "centrality_score": null,
+      "cluster_id": null,
+      "node_type": "document"
+    },
+    {
+      "id": "doc_10",
+      "title": "이 Claude 코드 워크플로는 모든 것을 바꿔놓습니다",
+      "path": "/Users/msbaek/DocumentsLocal/msbaek_vault/003-RESOURCES/AI/tools/이 Claude 코드 워크플로는 모든 것을 바꿔놓습니다.md",
+      "tags": [
+        "ai/collaboration",
+        "ai/tools/claude-code",
+        "ai/workflow",
+        "source/youtube",
+        "type/tutorial"
+      ],
+      "word_count": 110,
+      "centrality_score": null,
+      "cluster_id": null,
+      "node_type": "document"
+    },
+    {
+      "id": "doc_11",
+      "title": "27년차 실리콘밸리 개발자의 인생 이야기 [한기용] 1부",
+      "path": "/Users/msbaek/DocumentsLocal/msbaek_vault/003-RESOURCES/HR/27년차 실리콘밸리 개발자의 인생 이야기 [한기용] 1부.md",
+      "tags": [
+        "career",
+        "code-review",
+        "hr/hr",
+        "javascript"
+      ],
+      "word_count": 312,
+      "centrality_score": null,
+      "cluster_id": null,
+      "node_type": "document"
+    },
+    {
+      "id": "doc_12",
+      "title": "최초 코드",
+      "path": "/Users/msbaek/DocumentsLocal/msbaek_vault/003-RESOURCES/REFACTORING/Cases/2019-03-18-feature envy service - 서비스에 있는 코드를 도메인 객체로 이동시키기).md",
+      "tags": [
+        "code-smell/feature-envy",
+        "is11paypointavailable는",
+        "is11paypointavailable를",
+        "isglobalprivatesellerinkorea를",
+        "isprivatebuyerofkoreansite",
+        "isprivateseller",
+        "page-metadata-end",
+        "page-metadata-start",
+        "refactoring/case-studies",
+        "refactoring/extract-method-object",
+        "refactoring/introduce-parameter",
+        "refactoring/move-inner-to-upper-level",
+        "src/main/java/vine"
+      ],
+      "word_count": 883,
+      "centrality_score": null,
+      "cluster_id": null,
+      "node_type": "document"
+    },
+    {
+      "id": "doc_13",
+      "title": "테스트 주도적 사고로 두뇌 재배선하기 - C++ TDD 완전 가이드",
+      "path": "/Users/msbaek/DocumentsLocal/msbaek_vault/003-RESOURCES/TDD/Re-wiring Your Brain - with Test Driven Thinking (Phil Nash) - Tech Excellence.md",
+      "tags": [
+        "source/youtube",
+        "tdd",
+        "type/reference"
+      ],
+      "word_count": 1498,
+      "centrality_score": null,
+      "cluster_id": null,
+      "node_type": "document"
+    },
+    {
+      "id": "doc_14",
+      "title": "코딩 연습 간단 기능 설계, 코딩 연습 (승급기능) - 1",
+      "path": "/Users/msbaek/DocumentsLocal/msbaek_vault/003-RESOURCES/TDD/EXAMPLES/ignored/코딩 연습 간단 기능 설계, 코딩 연습 (승급기능) - 1.md",
+      "tags": [
+        "architecture/design/behavior-modeling",
+        "architecture/patterns/service-layer",
+        "business-logic/grade-management",
+        "clean-code/design/service-interfaces",
+        "design/state-diagrams"
+      ],
+      "word_count": 142,
+      "centrality_score": null,
+      "cluster_id": null,
+      "node_type": "document"
+    }
+  ],
+  "edges": [
+    {
+      "source": "doc_0",
+      "target": "doc_13",
+      "weight": 0.7340665459632874,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "Kent Beck 인터뷰: AI 시대의 TDD와 소프트웨어 개발",
+        "target_title": "테스트 주도적 사고로 두뇌 재배선하기 - C++ TDD 완전 가이드",
+        "similarity_score": 0.7340665459632874
+      }
+    },
+    {
+      "source": "doc_0",
+      "target": "doc_9",
+      "weight": 0.6897594332695007,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "Kent Beck 인터뷰: AI 시대의 TDD와 소프트웨어 개발",
+        "target_title": "Claude Code 6가지 프로 팁: 생성형 AI 시대의 비대칭 엔지니어링",
+        "similarity_score": 0.6897594332695007
+      }
+    },
+    {
+      "source": "doc_0",
+      "target": "doc_8",
+      "weight": 0.63579922914505,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "Kent Beck 인터뷰: AI 시대의 TDD와 소프트웨어 개발",
+        "target_title": "Design for Testability",
+        "similarity_score": 0.63579922914505
+      }
+    },
+    {
+      "source": "doc_0",
+      "target": "doc_11",
+      "weight": 0.6237741112709045,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "Kent Beck 인터뷰: AI 시대의 TDD와 소프트웨어 개발",
+        "target_title": "27년차 실리콘밸리 개발자의 인생 이야기 [한기용] 1부",
+        "similarity_score": 0.6237741112709045
+      }
+    },
+    {
+      "source": "doc_0",
+      "target": "doc_12",
+      "weight": 0.604471743106842,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "Kent Beck 인터뷰: AI 시대의 TDD와 소프트웨어 개발",
+        "target_title": "최초 코드",
+        "similarity_score": 0.604471743106842
+      }
+    },
+    {
+      "source": "doc_0",
+      "target": "doc_1",
+      "weight": 0.5630388259887695,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "Kent Beck 인터뷰: AI 시대의 TDD와 소프트웨어 개발",
+        "target_title": "Episode 24. Transformation Priority Premise Part 2",
+        "similarity_score": 0.5630388259887695
+      }
+    },
+    {
+      "source": "doc_0",
+      "target": "doc_2",
+      "weight": 0.5604547262191772,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "Kent Beck 인터뷰: AI 시대의 TDD와 소프트웨어 개발",
+        "target_title": "2024-W27",
+        "similarity_score": 0.5604547262191772
+      }
+    },
+    {
+      "source": "doc_0",
+      "target": "doc_5",
+      "weight": 0.5373737215995789,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "Kent Beck 인터뷰: AI 시대의 TDD와 소프트웨어 개발",
+        "target_title": "Integration Testing Application Modules :: Spring Modulith",
+        "similarity_score": 0.5373737215995789
+      }
+    },
+    {
+      "source": "doc_0",
+      "target": "doc_10",
+      "weight": 0.5201424360275269,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "Kent Beck 인터뷰: AI 시대의 TDD와 소프트웨어 개발",
+        "target_title": "이 Claude 코드 워크플로는 모든 것을 바꿔놓습니다",
+        "similarity_score": 0.5201424360275269
+      }
+    },
+    {
+      "source": "doc_0",
+      "target": "doc_14",
+      "weight": 0.47633248567581177,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "Kent Beck 인터뷰: AI 시대의 TDD와 소프트웨어 개발",
+        "target_title": "코딩 연습 간단 기능 설계, 코딩 연습 (승급기능) - 1",
+        "similarity_score": 0.47633248567581177
+      }
+    },
+    {
+      "source": "doc_1",
+      "target": "doc_13",
+      "weight": 0.6079787611961365,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "Episode 24. Transformation Priority Premise Part 2",
+        "target_title": "테스트 주도적 사고로 두뇌 재배선하기 - C++ TDD 완전 가이드",
+        "similarity_score": 0.6079787611961365
+      }
+    },
+    {
+      "source": "doc_1",
+      "target": "doc_12",
+      "weight": 0.6004803776741028,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "Episode 24. Transformation Priority Premise Part 2",
+        "target_title": "최초 코드",
+        "similarity_score": 0.6004803776741028
+      }
+    },
+    {
+      "source": "doc_1",
+      "target": "doc_8",
+      "weight": 0.5940075516700745,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "Episode 24. Transformation Priority Premise Part 2",
+        "target_title": "Design for Testability",
+        "similarity_score": 0.5940075516700745
+      }
+    },
+    {
+      "source": "doc_1",
+      "target": "doc_14",
+      "weight": 0.5801299810409546,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "Episode 24. Transformation Priority Premise Part 2",
+        "target_title": "코딩 연습 간단 기능 설계, 코딩 연습 (승급기능) - 1",
+        "similarity_score": 0.5801299810409546
+      }
+    },
+    {
+      "source": "doc_1",
+      "target": "doc_0",
+      "weight": 0.5630388259887695,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "Episode 24. Transformation Priority Premise Part 2",
+        "target_title": "Kent Beck 인터뷰: AI 시대의 TDD와 소프트웨어 개발",
+        "similarity_score": 0.5630388259887695
+      }
+    },
+    {
+      "source": "doc_1",
+      "target": "doc_5",
+      "weight": 0.5560412406921387,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "Episode 24. Transformation Priority Premise Part 2",
+        "target_title": "Integration Testing Application Modules :: Spring Modulith",
+        "similarity_score": 0.5560412406921387
+      }
+    },
+    {
+      "source": "doc_1",
+      "target": "doc_9",
+      "weight": 0.5410577654838562,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "Episode 24. Transformation Priority Premise Part 2",
+        "target_title": "Claude Code 6가지 프로 팁: 생성형 AI 시대의 비대칭 엔지니어링",
+        "similarity_score": 0.5410577654838562
+      }
+    },
+    {
+      "source": "doc_1",
+      "target": "doc_2",
+      "weight": 0.5031187534332275,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "Episode 24. Transformation Priority Premise Part 2",
+        "target_title": "2024-W27",
+        "similarity_score": 0.5031187534332275
+      }
+    },
+    {
+      "source": "doc_1",
+      "target": "doc_11",
+      "weight": 0.48522868752479553,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "Episode 24. Transformation Priority Premise Part 2",
+        "target_title": "27년차 실리콘밸리 개발자의 인생 이야기 [한기용] 1부",
+        "similarity_score": 0.48522868752479553
+      }
+    },
+    {
+      "source": "doc_1",
+      "target": "doc_6",
+      "weight": 0.4837133288383484,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "Episode 24. Transformation Priority Premise Part 2",
+        "target_title": "AWK",
+        "similarity_score": 0.4837133288383484
+      }
+    },
+    {
+      "source": "doc_2",
+      "target": "doc_12",
+      "weight": 0.5693610310554504,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "2024-W27",
+        "target_title": "최초 코드",
+        "similarity_score": 0.5693610310554504
+      }
+    },
+    {
+      "source": "doc_2",
+      "target": "doc_0",
+      "weight": 0.5604547262191772,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "2024-W27",
+        "target_title": "Kent Beck 인터뷰: AI 시대의 TDD와 소프트웨어 개발",
+        "similarity_score": 0.5604547262191772
+      }
+    },
+    {
+      "source": "doc_2",
+      "target": "doc_8",
+      "weight": 0.55351722240448,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "2024-W27",
+        "target_title": "Design for Testability",
+        "similarity_score": 0.55351722240448
+      }
+    },
+    {
+      "source": "doc_2",
+      "target": "doc_13",
+      "weight": 0.5431368350982666,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "2024-W27",
+        "target_title": "테스트 주도적 사고로 두뇌 재배선하기 - C++ TDD 완전 가이드",
+        "similarity_score": 0.5431368350982666
+      }
+    },
+    {
+      "source": "doc_2",
+      "target": "doc_14",
+      "weight": 0.540738582611084,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "2024-W27",
+        "target_title": "코딩 연습 간단 기능 설계, 코딩 연습 (승급기능) - 1",
+        "similarity_score": 0.540738582611084
+      }
+    },
+    {
+      "source": "doc_2",
+      "target": "doc_5",
+      "weight": 0.5307360887527466,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "2024-W27",
+        "target_title": "Integration Testing Application Modules :: Spring Modulith",
+        "similarity_score": 0.5307360887527466
+      }
+    },
+    {
+      "source": "doc_2",
+      "target": "doc_9",
+      "weight": 0.5227594375610352,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "2024-W27",
+        "target_title": "Claude Code 6가지 프로 팁: 생성형 AI 시대의 비대칭 엔지니어링",
+        "similarity_score": 0.5227594375610352
+      }
+    },
+    {
+      "source": "doc_2",
+      "target": "doc_11",
+      "weight": 0.5188394784927368,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "2024-W27",
+        "target_title": "27년차 실리콘밸리 개발자의 인생 이야기 [한기용] 1부",
+        "similarity_score": 0.5188394784927368
+      }
+    },
+    {
+      "source": "doc_2",
+      "target": "doc_3",
+      "weight": 0.5145056247711182,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "2024-W27",
+        "target_title": "운영팁",
+        "similarity_score": 0.5145056247711182
+      }
+    },
+    {
+      "source": "doc_2",
+      "target": "doc_1",
+      "weight": 0.5031187534332275,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "2024-W27",
+        "target_title": "Episode 24. Transformation Priority Premise Part 2",
+        "similarity_score": 0.5031187534332275
+      }
+    },
+    {
+      "source": "doc_3",
+      "target": "doc_6",
+      "weight": 0.5431088805198669,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "운영팁",
+        "target_title": "AWK",
+        "similarity_score": 0.5431088805198669
+      }
+    },
+    {
+      "source": "doc_3",
+      "target": "doc_13",
+      "weight": 0.5235006809234619,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "운영팁",
+        "target_title": "테스트 주도적 사고로 두뇌 재배선하기 - C++ TDD 완전 가이드",
+        "similarity_score": 0.5235006809234619
+      }
+    },
+    {
+      "source": "doc_3",
+      "target": "doc_2",
+      "weight": 0.5145056247711182,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "운영팁",
+        "target_title": "2024-W27",
+        "similarity_score": 0.5145056247711182
+      }
+    },
+    {
+      "source": "doc_3",
+      "target": "doc_12",
+      "weight": 0.5127463340759277,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "운영팁",
+        "target_title": "최초 코드",
+        "similarity_score": 0.5127463340759277
+      }
+    },
+    {
+      "source": "doc_3",
+      "target": "doc_9",
+      "weight": 0.5039321184158325,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "운영팁",
+        "target_title": "Claude Code 6가지 프로 팁: 생성형 AI 시대의 비대칭 엔지니어링",
+        "similarity_score": 0.5039321184158325
+      }
+    },
+    {
+      "source": "doc_3",
+      "target": "doc_8",
+      "weight": 0.4970942437648773,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "운영팁",
+        "target_title": "Design for Testability",
+        "similarity_score": 0.4970942437648773
+      }
+    },
+    {
+      "source": "doc_3",
+      "target": "doc_5",
+      "weight": 0.49667036533355713,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "운영팁",
+        "target_title": "Integration Testing Application Modules :: Spring Modulith",
+        "similarity_score": 0.49667036533355713
+      }
+    },
+    {
+      "source": "doc_3",
+      "target": "doc_10",
+      "weight": 0.4647621214389801,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "운영팁",
+        "target_title": "이 Claude 코드 워크플로는 모든 것을 바꿔놓습니다",
+        "similarity_score": 0.4647621214389801
+      }
+    },
+    {
+      "source": "doc_3",
+      "target": "doc_0",
+      "weight": 0.4543556571006775,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "운영팁",
+        "target_title": "Kent Beck 인터뷰: AI 시대의 TDD와 소프트웨어 개발",
+        "similarity_score": 0.4543556571006775
+      }
+    },
+    {
+      "source": "doc_3",
+      "target": "doc_14",
+      "weight": 0.4443054497241974,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "운영팁",
+        "target_title": "코딩 연습 간단 기능 설계, 코딩 연습 (승급기능) - 1",
+        "similarity_score": 0.4443054497241974
+      }
+    },
+    {
+      "source": "doc_4",
+      "target": "doc_2",
+      "weight": 0.47921234369277954,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "7월 7, 2025",
+        "target_title": "2024-W27",
+        "similarity_score": 0.47921234369277954
+      }
+    },
+    {
+      "source": "doc_4",
+      "target": "doc_9",
+      "weight": 0.4676046669483185,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "7월 7, 2025",
+        "target_title": "Claude Code 6가지 프로 팁: 생성형 AI 시대의 비대칭 엔지니어링",
+        "similarity_score": 0.4676046669483185
+      }
+    },
+    {
+      "source": "doc_4",
+      "target": "doc_8",
+      "weight": 0.4600397050380707,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "7월 7, 2025",
+        "target_title": "Design for Testability",
+        "similarity_score": 0.4600397050380707
+      }
+    },
+    {
+      "source": "doc_4",
+      "target": "doc_14",
+      "weight": 0.44953224062919617,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "7월 7, 2025",
+        "target_title": "코딩 연습 간단 기능 설계, 코딩 연습 (승급기능) - 1",
+        "similarity_score": 0.44953224062919617
+      }
+    },
+    {
+      "source": "doc_4",
+      "target": "doc_12",
+      "weight": 0.4328194260597229,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "7월 7, 2025",
+        "target_title": "최초 코드",
+        "similarity_score": 0.4328194260597229
+      }
+    },
+    {
+      "source": "doc_4",
+      "target": "doc_5",
+      "weight": 0.4235749840736389,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "7월 7, 2025",
+        "target_title": "Integration Testing Application Modules :: Spring Modulith",
+        "similarity_score": 0.4235749840736389
+      }
+    },
+    {
+      "source": "doc_4",
+      "target": "doc_3",
+      "weight": 0.4195040762424469,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "7월 7, 2025",
+        "target_title": "운영팁",
+        "similarity_score": 0.4195040762424469
+      }
+    },
+    {
+      "source": "doc_4",
+      "target": "doc_11",
+      "weight": 0.41716378927230835,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "7월 7, 2025",
+        "target_title": "27년차 실리콘밸리 개발자의 인생 이야기 [한기용] 1부",
+        "similarity_score": 0.41716378927230835
+      }
+    },
+    {
+      "source": "doc_4",
+      "target": "doc_10",
+      "weight": 0.41416671872138977,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "7월 7, 2025",
+        "target_title": "이 Claude 코드 워크플로는 모든 것을 바꿔놓습니다",
+        "similarity_score": 0.41416671872138977
+      }
+    },
+    {
+      "source": "doc_4",
+      "target": "doc_1",
+      "weight": 0.4088851511478424,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "7월 7, 2025",
+        "target_title": "Episode 24. Transformation Priority Premise Part 2",
+        "similarity_score": 0.4088851511478424
+      }
+    },
+    {
+      "source": "doc_5",
+      "target": "doc_8",
+      "weight": 0.6002427935600281,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "Integration Testing Application Modules :: Spring Modulith",
+        "target_title": "Design for Testability",
+        "similarity_score": 0.6002427935600281
+      }
+    },
+    {
+      "source": "doc_5",
+      "target": "doc_13",
+      "weight": 0.5618755221366882,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "Integration Testing Application Modules :: Spring Modulith",
+        "target_title": "테스트 주도적 사고로 두뇌 재배선하기 - C++ TDD 완전 가이드",
+        "similarity_score": 0.5618755221366882
+      }
+    },
+    {
+      "source": "doc_5",
+      "target": "doc_1",
+      "weight": 0.5560412406921387,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "Integration Testing Application Modules :: Spring Modulith",
+        "target_title": "Episode 24. Transformation Priority Premise Part 2",
+        "similarity_score": 0.5560412406921387
+      }
+    },
+    {
+      "source": "doc_5",
+      "target": "doc_0",
+      "weight": 0.5373737215995789,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "Integration Testing Application Modules :: Spring Modulith",
+        "target_title": "Kent Beck 인터뷰: AI 시대의 TDD와 소프트웨어 개발",
+        "similarity_score": 0.5373737215995789
+      }
+    },
+    {
+      "source": "doc_5",
+      "target": "doc_9",
+      "weight": 0.5330377817153931,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "Integration Testing Application Modules :: Spring Modulith",
+        "target_title": "Claude Code 6가지 프로 팁: 생성형 AI 시대의 비대칭 엔지니어링",
+        "similarity_score": 0.5330377817153931
+      }
+    },
+    {
+      "source": "doc_5",
+      "target": "doc_2",
+      "weight": 0.5307360887527466,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "Integration Testing Application Modules :: Spring Modulith",
+        "target_title": "2024-W27",
+        "similarity_score": 0.5307360887527466
+      }
+    },
+    {
+      "source": "doc_5",
+      "target": "doc_12",
+      "weight": 0.5281426906585693,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "Integration Testing Application Modules :: Spring Modulith",
+        "target_title": "최초 코드",
+        "similarity_score": 0.5281426906585693
+      }
+    },
+    {
+      "source": "doc_5",
+      "target": "doc_14",
+      "weight": 0.5258569717407227,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "Integration Testing Application Modules :: Spring Modulith",
+        "target_title": "코딩 연습 간단 기능 설계, 코딩 연습 (승급기능) - 1",
+        "similarity_score": 0.5258569717407227
+      }
+    },
+    {
+      "source": "doc_5",
+      "target": "doc_7",
+      "weight": 0.5248720049858093,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "Integration Testing Application Modules :: Spring Modulith",
+        "target_title": "[Introduction to Workspaces in IntelliJ IDEA](https://www.youtube.com/live/ewe8AgP7oUE)",
+        "similarity_score": 0.5248720049858093
+      }
+    },
+    {
+      "source": "doc_5",
+      "target": "doc_3",
+      "weight": 0.49667036533355713,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "Integration Testing Application Modules :: Spring Modulith",
+        "target_title": "운영팁",
+        "similarity_score": 0.49667036533355713
+      }
+    },
+    {
+      "source": "doc_6",
+      "target": "doc_3",
+      "weight": 0.5431088805198669,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "AWK",
+        "target_title": "운영팁",
+        "similarity_score": 0.5431088805198669
+      }
+    },
+    {
+      "source": "doc_6",
+      "target": "doc_9",
+      "weight": 0.5297399759292603,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "AWK",
+        "target_title": "Claude Code 6가지 프로 팁: 생성형 AI 시대의 비대칭 엔지니어링",
+        "similarity_score": 0.5297399759292603
+      }
+    },
+    {
+      "source": "doc_6",
+      "target": "doc_12",
+      "weight": 0.5088182091712952,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "AWK",
+        "target_title": "최초 코드",
+        "similarity_score": 0.5088182091712952
+      }
+    },
+    {
+      "source": "doc_6",
+      "target": "doc_1",
+      "weight": 0.4837133288383484,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "AWK",
+        "target_title": "Episode 24. Transformation Priority Premise Part 2",
+        "similarity_score": 0.4837133288383484
+      }
+    },
+    {
+      "source": "doc_6",
+      "target": "doc_8",
+      "weight": 0.46992242336273193,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "AWK",
+        "target_title": "Design for Testability",
+        "similarity_score": 0.46992242336273193
+      }
+    },
+    {
+      "source": "doc_6",
+      "target": "doc_13",
+      "weight": 0.46643292903900146,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "AWK",
+        "target_title": "테스트 주도적 사고로 두뇌 재배선하기 - C++ TDD 완전 가이드",
+        "similarity_score": 0.46643292903900146
+      }
+    },
+    {
+      "source": "doc_6",
+      "target": "doc_2",
+      "weight": 0.46333232522010803,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "AWK",
+        "target_title": "2024-W27",
+        "similarity_score": 0.46333232522010803
+      }
+    },
+    {
+      "source": "doc_6",
+      "target": "doc_14",
+      "weight": 0.4564969539642334,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "AWK",
+        "target_title": "코딩 연습 간단 기능 설계, 코딩 연습 (승급기능) - 1",
+        "similarity_score": 0.4564969539642334
+      }
+    },
+    {
+      "source": "doc_6",
+      "target": "doc_7",
+      "weight": 0.45187991857528687,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "AWK",
+        "target_title": "[Introduction to Workspaces in IntelliJ IDEA](https://www.youtube.com/live/ewe8AgP7oUE)",
+        "similarity_score": 0.45187991857528687
+      }
+    },
+    {
+      "source": "doc_6",
+      "target": "doc_0",
+      "weight": 0.45075130462646484,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "AWK",
+        "target_title": "Kent Beck 인터뷰: AI 시대의 TDD와 소프트웨어 개발",
+        "similarity_score": 0.45075130462646484
+      }
+    },
+    {
+      "source": "doc_7",
+      "target": "doc_10",
+      "weight": 0.5736650228500366,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "[Introduction to Workspaces in IntelliJ IDEA](https://www.youtube.com/live/ewe8AgP7oUE)",
+        "target_title": "이 Claude 코드 워크플로는 모든 것을 바꿔놓습니다",
+        "similarity_score": 0.5736650228500366
+      }
+    },
+    {
+      "source": "doc_7",
+      "target": "doc_14",
+      "weight": 0.5381067991256714,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "[Introduction to Workspaces in IntelliJ IDEA](https://www.youtube.com/live/ewe8AgP7oUE)",
+        "target_title": "코딩 연습 간단 기능 설계, 코딩 연습 (승급기능) - 1",
+        "similarity_score": 0.5381067991256714
+      }
+    },
+    {
+      "source": "doc_7",
+      "target": "doc_5",
+      "weight": 0.5248720049858093,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "[Introduction to Workspaces in IntelliJ IDEA](https://www.youtube.com/live/ewe8AgP7oUE)",
+        "target_title": "Integration Testing Application Modules :: Spring Modulith",
+        "similarity_score": 0.5248720049858093
+      }
+    },
+    {
+      "source": "doc_7",
+      "target": "doc_8",
+      "weight": 0.5190773010253906,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "[Introduction to Workspaces in IntelliJ IDEA](https://www.youtube.com/live/ewe8AgP7oUE)",
+        "target_title": "Design for Testability",
+        "similarity_score": 0.5190773010253906
+      }
+    },
+    {
+      "source": "doc_7",
+      "target": "doc_13",
+      "weight": 0.5034951567649841,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "[Introduction to Workspaces in IntelliJ IDEA](https://www.youtube.com/live/ewe8AgP7oUE)",
+        "target_title": "테스트 주도적 사고로 두뇌 재배선하기 - C++ TDD 완전 가이드",
+        "similarity_score": 0.5034951567649841
+      }
+    },
+    {
+      "source": "doc_7",
+      "target": "doc_9",
+      "weight": 0.4992040693759918,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "[Introduction to Workspaces in IntelliJ IDEA](https://www.youtube.com/live/ewe8AgP7oUE)",
+        "target_title": "Claude Code 6가지 프로 팁: 생성형 AI 시대의 비대칭 엔지니어링",
+        "similarity_score": 0.4992040693759918
+      }
+    },
+    {
+      "source": "doc_7",
+      "target": "doc_1",
+      "weight": 0.47763901948928833,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "[Introduction to Workspaces in IntelliJ IDEA](https://www.youtube.com/live/ewe8AgP7oUE)",
+        "target_title": "Episode 24. Transformation Priority Premise Part 2",
+        "similarity_score": 0.47763901948928833
+      }
+    },
+    {
+      "source": "doc_7",
+      "target": "doc_2",
+      "weight": 0.4709163308143616,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "[Introduction to Workspaces in IntelliJ IDEA](https://www.youtube.com/live/ewe8AgP7oUE)",
+        "target_title": "2024-W27",
+        "similarity_score": 0.4709163308143616
+      }
+    },
+    {
+      "source": "doc_7",
+      "target": "doc_0",
+      "weight": 0.4686087667942047,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "[Introduction to Workspaces in IntelliJ IDEA](https://www.youtube.com/live/ewe8AgP7oUE)",
+        "target_title": "Kent Beck 인터뷰: AI 시대의 TDD와 소프트웨어 개발",
+        "similarity_score": 0.4686087667942047
+      }
+    },
+    {
+      "source": "doc_7",
+      "target": "doc_11",
+      "weight": 0.46235886216163635,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "[Introduction to Workspaces in IntelliJ IDEA](https://www.youtube.com/live/ewe8AgP7oUE)",
+        "target_title": "27년차 실리콘밸리 개발자의 인생 이야기 [한기용] 1부",
+        "similarity_score": 0.46235886216163635
+      }
+    },
+    {
+      "source": "doc_8",
+      "target": "doc_13",
+      "weight": 0.6534678339958191,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "Design for Testability",
+        "target_title": "테스트 주도적 사고로 두뇌 재배선하기 - C++ TDD 완전 가이드",
+        "similarity_score": 0.6534678339958191
+      }
+    },
+    {
+      "source": "doc_8",
+      "target": "doc_0",
+      "weight": 0.63579922914505,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "Design for Testability",
+        "target_title": "Kent Beck 인터뷰: AI 시대의 TDD와 소프트웨어 개발",
+        "similarity_score": 0.63579922914505
+      }
+    },
+    {
+      "source": "doc_8",
+      "target": "doc_9",
+      "weight": 0.6309935450553894,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "Design for Testability",
+        "target_title": "Claude Code 6가지 프로 팁: 생성형 AI 시대의 비대칭 엔지니어링",
+        "similarity_score": 0.6309935450553894
+      }
+    },
+    {
+      "source": "doc_8",
+      "target": "doc_12",
+      "weight": 0.6168468594551086,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "Design for Testability",
+        "target_title": "최초 코드",
+        "similarity_score": 0.6168468594551086
+      }
+    },
+    {
+      "source": "doc_8",
+      "target": "doc_14",
+      "weight": 0.6074640154838562,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "Design for Testability",
+        "target_title": "코딩 연습 간단 기능 설계, 코딩 연습 (승급기능) - 1",
+        "similarity_score": 0.6074640154838562
+      }
+    },
+    {
+      "source": "doc_8",
+      "target": "doc_5",
+      "weight": 0.6002427935600281,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "Design for Testability",
+        "target_title": "Integration Testing Application Modules :: Spring Modulith",
+        "similarity_score": 0.6002427935600281
+      }
+    },
+    {
+      "source": "doc_8",
+      "target": "doc_1",
+      "weight": 0.5940075516700745,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "Design for Testability",
+        "target_title": "Episode 24. Transformation Priority Premise Part 2",
+        "similarity_score": 0.5940075516700745
+      }
+    },
+    {
+      "source": "doc_8",
+      "target": "doc_2",
+      "weight": 0.55351722240448,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "Design for Testability",
+        "target_title": "2024-W27",
+        "similarity_score": 0.55351722240448
+      }
+    },
+    {
+      "source": "doc_8",
+      "target": "doc_7",
+      "weight": 0.5190773010253906,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "Design for Testability",
+        "target_title": "[Introduction to Workspaces in IntelliJ IDEA](https://www.youtube.com/live/ewe8AgP7oUE)",
+        "similarity_score": 0.5190773010253906
+      }
+    },
+    {
+      "source": "doc_8",
+      "target": "doc_10",
+      "weight": 0.5039902329444885,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "Design for Testability",
+        "target_title": "이 Claude 코드 워크플로는 모든 것을 바꿔놓습니다",
+        "similarity_score": 0.5039902329444885
+      }
+    },
+    {
+      "source": "doc_9",
+      "target": "doc_0",
+      "weight": 0.6897594332695007,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "Claude Code 6가지 프로 팁: 생성형 AI 시대의 비대칭 엔지니어링",
+        "target_title": "Kent Beck 인터뷰: AI 시대의 TDD와 소프트웨어 개발",
+        "similarity_score": 0.6897594332695007
+      }
+    },
+    {
+      "source": "doc_9",
+      "target": "doc_13",
+      "weight": 0.6594206094741821,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "Claude Code 6가지 프로 팁: 생성형 AI 시대의 비대칭 엔지니어링",
+        "target_title": "테스트 주도적 사고로 두뇌 재배선하기 - C++ TDD 완전 가이드",
+        "similarity_score": 0.6594206094741821
+      }
+    },
+    {
+      "source": "doc_9",
+      "target": "doc_10",
+      "weight": 0.6569072008132935,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "Claude Code 6가지 프로 팁: 생성형 AI 시대의 비대칭 엔지니어링",
+        "target_title": "이 Claude 코드 워크플로는 모든 것을 바꿔놓습니다",
+        "similarity_score": 0.6569072008132935
+      }
+    },
+    {
+      "source": "doc_9",
+      "target": "doc_12",
+      "weight": 0.6311428546905518,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "Claude Code 6가지 프로 팁: 생성형 AI 시대의 비대칭 엔지니어링",
+        "target_title": "최초 코드",
+        "similarity_score": 0.6311428546905518
+      }
+    },
+    {
+      "source": "doc_9",
+      "target": "doc_8",
+      "weight": 0.6309935450553894,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "Claude Code 6가지 프로 팁: 생성형 AI 시대의 비대칭 엔지니어링",
+        "target_title": "Design for Testability",
+        "similarity_score": 0.6309935450553894
+      }
+    },
+    {
+      "source": "doc_9",
+      "target": "doc_1",
+      "weight": 0.5410577654838562,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "Claude Code 6가지 프로 팁: 생성형 AI 시대의 비대칭 엔지니어링",
+        "target_title": "Episode 24. Transformation Priority Premise Part 2",
+        "similarity_score": 0.5410577654838562
+      }
+    },
+    {
+      "source": "doc_9",
+      "target": "doc_5",
+      "weight": 0.5330377817153931,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "Claude Code 6가지 프로 팁: 생성형 AI 시대의 비대칭 엔지니어링",
+        "target_title": "Integration Testing Application Modules :: Spring Modulith",
+        "similarity_score": 0.5330377817153931
+      }
+    },
+    {
+      "source": "doc_9",
+      "target": "doc_14",
+      "weight": 0.5319802761077881,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "Claude Code 6가지 프로 팁: 생성형 AI 시대의 비대칭 엔지니어링",
+        "target_title": "코딩 연습 간단 기능 설계, 코딩 연습 (승급기능) - 1",
+        "similarity_score": 0.5319802761077881
+      }
+    },
+    {
+      "source": "doc_9",
+      "target": "doc_6",
+      "weight": 0.5297399759292603,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "Claude Code 6가지 프로 팁: 생성형 AI 시대의 비대칭 엔지니어링",
+        "target_title": "AWK",
+        "similarity_score": 0.5297399759292603
+      }
+    },
+    {
+      "source": "doc_9",
+      "target": "doc_2",
+      "weight": 0.5227594375610352,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "Claude Code 6가지 프로 팁: 생성형 AI 시대의 비대칭 엔지니어링",
+        "target_title": "2024-W27",
+        "similarity_score": 0.5227594375610352
+      }
+    },
+    {
+      "source": "doc_10",
+      "target": "doc_9",
+      "weight": 0.6569072008132935,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "이 Claude 코드 워크플로는 모든 것을 바꿔놓습니다",
+        "target_title": "Claude Code 6가지 프로 팁: 생성형 AI 시대의 비대칭 엔지니어링",
+        "similarity_score": 0.6569072008132935
+      }
+    },
+    {
+      "source": "doc_10",
+      "target": "doc_7",
+      "weight": 0.5736650228500366,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "이 Claude 코드 워크플로는 모든 것을 바꿔놓습니다",
+        "target_title": "[Introduction to Workspaces in IntelliJ IDEA](https://www.youtube.com/live/ewe8AgP7oUE)",
+        "similarity_score": 0.5736650228500366
+      }
+    },
+    {
+      "source": "doc_10",
+      "target": "doc_14",
+      "weight": 0.534756064414978,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "이 Claude 코드 워크플로는 모든 것을 바꿔놓습니다",
+        "target_title": "코딩 연습 간단 기능 설계, 코딩 연습 (승급기능) - 1",
+        "similarity_score": 0.534756064414978
+      }
+    },
+    {
+      "source": "doc_10",
+      "target": "doc_0",
+      "weight": 0.5201424360275269,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "이 Claude 코드 워크플로는 모든 것을 바꿔놓습니다",
+        "target_title": "Kent Beck 인터뷰: AI 시대의 TDD와 소프트웨어 개발",
+        "similarity_score": 0.5201424360275269
+      }
+    },
+    {
+      "source": "doc_10",
+      "target": "doc_12",
+      "weight": 0.5062925219535828,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "이 Claude 코드 워크플로는 모든 것을 바꿔놓습니다",
+        "target_title": "최초 코드",
+        "similarity_score": 0.5062925219535828
+      }
+    },
+    {
+      "source": "doc_10",
+      "target": "doc_8",
+      "weight": 0.5039902329444885,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "이 Claude 코드 워크플로는 모든 것을 바꿔놓습니다",
+        "target_title": "Design for Testability",
+        "similarity_score": 0.5039902329444885
+      }
+    },
+    {
+      "source": "doc_10",
+      "target": "doc_13",
+      "weight": 0.48893287777900696,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "이 Claude 코드 워크플로는 모든 것을 바꿔놓습니다",
+        "target_title": "테스트 주도적 사고로 두뇌 재배선하기 - C++ TDD 완전 가이드",
+        "similarity_score": 0.48893287777900696
+      }
+    },
+    {
+      "source": "doc_10",
+      "target": "doc_5",
+      "weight": 0.4878363311290741,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "이 Claude 코드 워크플로는 모든 것을 바꿔놓습니다",
+        "target_title": "Integration Testing Application Modules :: Spring Modulith",
+        "similarity_score": 0.4878363311290741
+      }
+    },
+    {
+      "source": "doc_10",
+      "target": "doc_1",
+      "weight": 0.4671775996685028,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "이 Claude 코드 워크플로는 모든 것을 바꿔놓습니다",
+        "target_title": "Episode 24. Transformation Priority Premise Part 2",
+        "similarity_score": 0.4671775996685028
+      }
+    },
+    {
+      "source": "doc_10",
+      "target": "doc_3",
+      "weight": 0.4647621214389801,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "이 Claude 코드 워크플로는 모든 것을 바꿔놓습니다",
+        "target_title": "운영팁",
+        "similarity_score": 0.4647621214389801
+      }
+    },
+    {
+      "source": "doc_11",
+      "target": "doc_0",
+      "weight": 0.6237741112709045,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "27년차 실리콘밸리 개발자의 인생 이야기 [한기용] 1부",
+        "target_title": "Kent Beck 인터뷰: AI 시대의 TDD와 소프트웨어 개발",
+        "similarity_score": 0.6237741112709045
+      }
+    },
+    {
+      "source": "doc_11",
+      "target": "doc_13",
+      "weight": 0.5400686264038086,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "27년차 실리콘밸리 개발자의 인생 이야기 [한기용] 1부",
+        "target_title": "테스트 주도적 사고로 두뇌 재배선하기 - C++ TDD 완전 가이드",
+        "similarity_score": 0.5400686264038086
+      }
+    },
+    {
+      "source": "doc_11",
+      "target": "doc_12",
+      "weight": 0.5206816792488098,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "27년차 실리콘밸리 개발자의 인생 이야기 [한기용] 1부",
+        "target_title": "최초 코드",
+        "similarity_score": 0.5206816792488098
+      }
+    },
+    {
+      "source": "doc_11",
+      "target": "doc_2",
+      "weight": 0.5188394784927368,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "27년차 실리콘밸리 개발자의 인생 이야기 [한기용] 1부",
+        "target_title": "2024-W27",
+        "similarity_score": 0.5188394784927368
+      }
+    },
+    {
+      "source": "doc_11",
+      "target": "doc_9",
+      "weight": 0.5121355652809143,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "27년차 실리콘밸리 개발자의 인생 이야기 [한기용] 1부",
+        "target_title": "Claude Code 6가지 프로 팁: 생성형 AI 시대의 비대칭 엔지니어링",
+        "similarity_score": 0.5121355652809143
+      }
+    },
+    {
+      "source": "doc_11",
+      "target": "doc_8",
+      "weight": 0.49706587195396423,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "27년차 실리콘밸리 개발자의 인생 이야기 [한기용] 1부",
+        "target_title": "Design for Testability",
+        "similarity_score": 0.49706587195396423
+      }
+    },
+    {
+      "source": "doc_11",
+      "target": "doc_14",
+      "weight": 0.49588465690612793,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "27년차 실리콘밸리 개발자의 인생 이야기 [한기용] 1부",
+        "target_title": "코딩 연습 간단 기능 설계, 코딩 연습 (승급기능) - 1",
+        "similarity_score": 0.49588465690612793
+      }
+    },
+    {
+      "source": "doc_11",
+      "target": "doc_1",
+      "weight": 0.48522868752479553,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "27년차 실리콘밸리 개발자의 인생 이야기 [한기용] 1부",
+        "target_title": "Episode 24. Transformation Priority Premise Part 2",
+        "similarity_score": 0.48522868752479553
+      }
+    },
+    {
+      "source": "doc_11",
+      "target": "doc_5",
+      "weight": 0.4691295325756073,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "27년차 실리콘밸리 개발자의 인생 이야기 [한기용] 1부",
+        "target_title": "Integration Testing Application Modules :: Spring Modulith",
+        "similarity_score": 0.4691295325756073
+      }
+    },
+    {
+      "source": "doc_11",
+      "target": "doc_7",
+      "weight": 0.46235886216163635,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "27년차 실리콘밸리 개발자의 인생 이야기 [한기용] 1부",
+        "target_title": "[Introduction to Workspaces in IntelliJ IDEA](https://www.youtube.com/live/ewe8AgP7oUE)",
+        "similarity_score": 0.46235886216163635
+      }
+    },
+    {
+      "source": "doc_12",
+      "target": "doc_9",
+      "weight": 0.6311428546905518,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "최초 코드",
+        "target_title": "Claude Code 6가지 프로 팁: 생성형 AI 시대의 비대칭 엔지니어링",
+        "similarity_score": 0.6311428546905518
+      }
+    },
+    {
+      "source": "doc_12",
+      "target": "doc_14",
+      "weight": 0.6188957691192627,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "최초 코드",
+        "target_title": "코딩 연습 간단 기능 설계, 코딩 연습 (승급기능) - 1",
+        "similarity_score": 0.6188957691192627
+      }
+    },
+    {
+      "source": "doc_12",
+      "target": "doc_8",
+      "weight": 0.6168468594551086,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "최초 코드",
+        "target_title": "Design for Testability",
+        "similarity_score": 0.6168468594551086
+      }
+    },
+    {
+      "source": "doc_12",
+      "target": "doc_0",
+      "weight": 0.604471743106842,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "최초 코드",
+        "target_title": "Kent Beck 인터뷰: AI 시대의 TDD와 소프트웨어 개발",
+        "similarity_score": 0.604471743106842
+      }
+    },
+    {
+      "source": "doc_12",
+      "target": "doc_1",
+      "weight": 0.6004803776741028,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "최초 코드",
+        "target_title": "Episode 24. Transformation Priority Premise Part 2",
+        "similarity_score": 0.6004803776741028
+      }
+    },
+    {
+      "source": "doc_12",
+      "target": "doc_13",
+      "weight": 0.578594446182251,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "최초 코드",
+        "target_title": "테스트 주도적 사고로 두뇌 재배선하기 - C++ TDD 완전 가이드",
+        "similarity_score": 0.578594446182251
+      }
+    },
+    {
+      "source": "doc_12",
+      "target": "doc_2",
+      "weight": 0.5693610310554504,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "최초 코드",
+        "target_title": "2024-W27",
+        "similarity_score": 0.5693610310554504
+      }
+    },
+    {
+      "source": "doc_12",
+      "target": "doc_5",
+      "weight": 0.5281426906585693,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "최초 코드",
+        "target_title": "Integration Testing Application Modules :: Spring Modulith",
+        "similarity_score": 0.5281426906585693
+      }
+    },
+    {
+      "source": "doc_12",
+      "target": "doc_11",
+      "weight": 0.5206816792488098,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "최초 코드",
+        "target_title": "27년차 실리콘밸리 개발자의 인생 이야기 [한기용] 1부",
+        "similarity_score": 0.5206816792488098
+      }
+    },
+    {
+      "source": "doc_12",
+      "target": "doc_3",
+      "weight": 0.5127463340759277,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "최초 코드",
+        "target_title": "운영팁",
+        "similarity_score": 0.5127463340759277
+      }
+    },
+    {
+      "source": "doc_13",
+      "target": "doc_0",
+      "weight": 0.7340665459632874,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "테스트 주도적 사고로 두뇌 재배선하기 - C++ TDD 완전 가이드",
+        "target_title": "Kent Beck 인터뷰: AI 시대의 TDD와 소프트웨어 개발",
+        "similarity_score": 0.7340665459632874
+      }
+    },
+    {
+      "source": "doc_13",
+      "target": "doc_9",
+      "weight": 0.6594206094741821,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "테스트 주도적 사고로 두뇌 재배선하기 - C++ TDD 완전 가이드",
+        "target_title": "Claude Code 6가지 프로 팁: 생성형 AI 시대의 비대칭 엔지니어링",
+        "similarity_score": 0.6594206094741821
+      }
+    },
+    {
+      "source": "doc_13",
+      "target": "doc_8",
+      "weight": 0.6534678339958191,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "테스트 주도적 사고로 두뇌 재배선하기 - C++ TDD 완전 가이드",
+        "target_title": "Design for Testability",
+        "similarity_score": 0.6534678339958191
+      }
+    },
+    {
+      "source": "doc_13",
+      "target": "doc_1",
+      "weight": 0.6079787611961365,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "테스트 주도적 사고로 두뇌 재배선하기 - C++ TDD 완전 가이드",
+        "target_title": "Episode 24. Transformation Priority Premise Part 2",
+        "similarity_score": 0.6079787611961365
+      }
+    },
+    {
+      "source": "doc_13",
+      "target": "doc_12",
+      "weight": 0.578594446182251,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "테스트 주도적 사고로 두뇌 재배선하기 - C++ TDD 완전 가이드",
+        "target_title": "최초 코드",
+        "similarity_score": 0.578594446182251
+      }
+    },
+    {
+      "source": "doc_13",
+      "target": "doc_5",
+      "weight": 0.5618755221366882,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "테스트 주도적 사고로 두뇌 재배선하기 - C++ TDD 완전 가이드",
+        "target_title": "Integration Testing Application Modules :: Spring Modulith",
+        "similarity_score": 0.5618755221366882
+      }
+    },
+    {
+      "source": "doc_13",
+      "target": "doc_14",
+      "weight": 0.5489796996116638,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "테스트 주도적 사고로 두뇌 재배선하기 - C++ TDD 완전 가이드",
+        "target_title": "코딩 연습 간단 기능 설계, 코딩 연습 (승급기능) - 1",
+        "similarity_score": 0.5489796996116638
+      }
+    },
+    {
+      "source": "doc_13",
+      "target": "doc_2",
+      "weight": 0.5431368350982666,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "테스트 주도적 사고로 두뇌 재배선하기 - C++ TDD 완전 가이드",
+        "target_title": "2024-W27",
+        "similarity_score": 0.5431368350982666
+      }
+    },
+    {
+      "source": "doc_13",
+      "target": "doc_11",
+      "weight": 0.5400686264038086,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "테스트 주도적 사고로 두뇌 재배선하기 - C++ TDD 완전 가이드",
+        "target_title": "27년차 실리콘밸리 개발자의 인생 이야기 [한기용] 1부",
+        "similarity_score": 0.5400686264038086
+      }
+    },
+    {
+      "source": "doc_13",
+      "target": "doc_3",
+      "weight": 0.5235006809234619,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "테스트 주도적 사고로 두뇌 재배선하기 - C++ TDD 완전 가이드",
+        "target_title": "운영팁",
+        "similarity_score": 0.5235006809234619
+      }
+    },
+    {
+      "source": "doc_14",
+      "target": "doc_12",
+      "weight": 0.6188957691192627,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "코딩 연습 간단 기능 설계, 코딩 연습 (승급기능) - 1",
+        "target_title": "최초 코드",
+        "similarity_score": 0.6188957691192627
+      }
+    },
+    {
+      "source": "doc_14",
+      "target": "doc_8",
+      "weight": 0.6074640154838562,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "코딩 연습 간단 기능 설계, 코딩 연습 (승급기능) - 1",
+        "target_title": "Design for Testability",
+        "similarity_score": 0.6074640154838562
+      }
+    },
+    {
+      "source": "doc_14",
+      "target": "doc_1",
+      "weight": 0.5801299810409546,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "코딩 연습 간단 기능 설계, 코딩 연습 (승급기능) - 1",
+        "target_title": "Episode 24. Transformation Priority Premise Part 2",
+        "similarity_score": 0.5801299810409546
+      }
+    },
+    {
+      "source": "doc_14",
+      "target": "doc_13",
+      "weight": 0.5489796996116638,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "코딩 연습 간단 기능 설계, 코딩 연습 (승급기능) - 1",
+        "target_title": "테스트 주도적 사고로 두뇌 재배선하기 - C++ TDD 완전 가이드",
+        "similarity_score": 0.5489796996116638
+      }
+    },
+    {
+      "source": "doc_14",
+      "target": "doc_2",
+      "weight": 0.540738582611084,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "코딩 연습 간단 기능 설계, 코딩 연습 (승급기능) - 1",
+        "target_title": "2024-W27",
+        "similarity_score": 0.540738582611084
+      }
+    },
+    {
+      "source": "doc_14",
+      "target": "doc_7",
+      "weight": 0.5381067991256714,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "코딩 연습 간단 기능 설계, 코딩 연습 (승급기능) - 1",
+        "target_title": "[Introduction to Workspaces in IntelliJ IDEA](https://www.youtube.com/live/ewe8AgP7oUE)",
+        "similarity_score": 0.5381067991256714
+      }
+    },
+    {
+      "source": "doc_14",
+      "target": "doc_10",
+      "weight": 0.534756064414978,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "코딩 연습 간단 기능 설계, 코딩 연습 (승급기능) - 1",
+        "target_title": "이 Claude 코드 워크플로는 모든 것을 바꿔놓습니다",
+        "similarity_score": 0.534756064414978
+      }
+    },
+    {
+      "source": "doc_14",
+      "target": "doc_9",
+      "weight": 0.5319802761077881,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "코딩 연습 간단 기능 설계, 코딩 연습 (승급기능) - 1",
+        "target_title": "Claude Code 6가지 프로 팁: 생성형 AI 시대의 비대칭 엔지니어링",
+        "similarity_score": 0.5319802761077881
+      }
+    },
+    {
+      "source": "doc_14",
+      "target": "doc_5",
+      "weight": 0.5258569717407227,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "코딩 연습 간단 기능 설계, 코딩 연습 (승급기능) - 1",
+        "target_title": "Integration Testing Application Modules :: Spring Modulith",
+        "similarity_score": 0.5258569717407227
+      }
+    },
+    {
+      "source": "doc_14",
+      "target": "doc_11",
+      "weight": 0.49588465690612793,
+      "relationship_type": "similarity",
+      "metadata": {
+        "source_title": "코딩 연습 간단 기능 설계, 코딩 연습 (승급기능) - 1",
+        "target_title": "27년차 실리콘밸리 개발자의 인생 이야기 [한기용] 1부",
+        "similarity_score": 0.49588465690612793
+      }
+    }
+  ],
+  "communities": [
+    [
+      "doc_5",
+      "doc_9",
+      "doc_12",
+      "doc_10",
+      "doc_4",
+      "doc_14",
+      "doc_3",
+      "doc_8"
+    ],
+    [
+      "doc_7",
+      "doc_13",
+      "doc_2",
+      "doc_11",
+      "doc_0",
+      "doc_6",
+      "doc_1"
+    ]
+  ],
+  "centrality_scores": {
+    "doc_0": 0.48656503282643176,
+    "doc_1": 0.4860272532236587,
+    "doc_2": 0.48587036421128427,
+    "doc_3": 0.4183912276496935,
+    "doc_4": 0.38617143473395066,
+    "doc_5": 0.48540058050449825,
+    "doc_6": 0.38684389415054826,
+    "doc_7": 0.4182394049500505,
+    "doc_8": 0.5235955961875073,
+    "doc_9": 0.5237657978025111,
+    "doc_10": 0.41882392090064613,
+    "doc_11": 0.4180622905297865,
+    "doc_12": 0.48680079872965365,
+    "doc_13": 0.4867683373044134,
+    "doc_14": 0.5225209383775323
+  }
+}

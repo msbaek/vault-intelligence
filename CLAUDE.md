@@ -143,7 +143,22 @@ python -m src search --query "TDD" --with-centrality --top-k 10
 
 # 지식 공백 분석
 python -m src analyze-gaps --top-k 10
+
+# 지식 그래프 시각화 (색인 재구축 불필요)
+python visualize_knowledge_graph.py
 ```
+
+#### 지식 그래프 시각화 특징
+- **캐시 활용**: 기존 임베딩 캐시를 활용하여 빠른 시각화
+- **한글 지원**: AppleGothic 폰트 자동 적용 (macOS 환경)
+- **샘플링**: 대규모 vault도 샘플링으로 빠른 프로토타이핑
+- **다양한 관계**: 유사도, 태그, 참조(Obsidian 링크) 기반 엣지
+- **중심성 분석**: PageRank, 근접/매개 중심성 점수 계산
+- **커뮤니티 탐지**: 관련 문서 그룹 자동 식별
+
+**생성 파일**:
+- `knowledge_graph_korean.png` - 한글 폰트 적용된 시각화
+- `knowledge_graph.json` - 그래프 데이터 (노드, 엣지, 메트릭)
 
 ### 전체 재인덱싱
 ```bash
