@@ -87,8 +87,32 @@ class EmbeddingCache:
                     CREATE INDEX IF NOT EXISTS idx_model_name ON embeddings(model_name)
                 """)
                 
+                # ColBERT 임베딩 테이블 생성
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS colbert_embeddings (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        file_path TEXT NOT NULL UNIQUE,
+                        file_hash TEXT NOT NULL,
+                        colbert_embedding BLOB NOT NULL,
+                        token_embeddings BLOB,
+                        model_name TEXT NOT NULL,
+                        created_at TIMESTAMP NOT NULL,
+                        file_size INTEGER NOT NULL,
+                        num_tokens INTEGER,
+                        embedding_dimension INTEGER NOT NULL
+                    )
+                """)
+                
+                # ColBERT 인덱스 생성
+                cursor.execute("""
+                    CREATE INDEX IF NOT EXISTS idx_colbert_file_path ON colbert_embeddings(file_path)
+                """)
+                cursor.execute("""
+                    CREATE INDEX IF NOT EXISTS idx_colbert_file_hash ON colbert_embeddings(file_hash)
+                """)
+                
                 conn.commit()
-                logger.info("데이터베이스 초기화 완료")
+                logger.info("데이터베이스 초기화 완료 (ColBERT 테이블 포함)")
         
         except Exception as e:
             logger.error(f"데이터베이스 초기화 실패: {e}")
@@ -344,6 +368,162 @@ class EmbeddingCache:
         except Exception as e:
             logger.error(f"캐시 정보 내보내기 실패: {e}")
             return False
+    
+    # ===== ColBERT 임베딩 관련 메서드 =====
+    
+    def store_colbert_embedding(
+        self, 
+        file_path: str, 
+        colbert_embedding: np.ndarray,
+        token_embeddings: Optional[np.ndarray] = None,
+        model_name: str = "BAAI/bge-m3",
+        num_tokens: Optional[int] = None
+    ) -> bool:
+        """ColBERT 임베딩 저장"""
+        try:
+            # 파일 정보 추출
+            file_hash = self._compute_file_hash(file_path)
+            file_size = os.path.getsize(file_path)
+            
+            # 임베딩 직렬화
+            colbert_data = self._serialize_embedding(colbert_embedding)
+            token_data = self._serialize_embedding(token_embeddings) if token_embeddings is not None else None
+            
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                
+                # 기존 임베딩 교체
+                cursor.execute("""
+                    INSERT OR REPLACE INTO colbert_embeddings 
+                    (file_path, file_hash, colbert_embedding, token_embeddings, model_name, 
+                     created_at, file_size, num_tokens, embedding_dimension)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, (
+                    file_path, file_hash, colbert_data, token_data, model_name,
+                    datetime.now().isoformat(), file_size, num_tokens,
+                    colbert_embedding.shape[-1] if len(colbert_embedding.shape) > 1 else colbert_embedding.shape[0]
+                ))
+                
+                conn.commit()
+                logger.debug(f"ColBERT 임베딩 저장 완료: {file_path}")
+                return True
+        
+        except Exception as e:
+            logger.error(f"ColBERT 임베딩 저장 실패: {file_path}, {e}")
+            return False
+    
+    def get_colbert_embedding(self, file_path: str, current_hash: Optional[str] = None) -> Optional[Dict]:
+        """ColBERT 임베딩 조회"""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                cursor.execute("""
+                    SELECT file_hash, colbert_embedding, token_embeddings, model_name,
+                           created_at, file_size, num_tokens, embedding_dimension
+                    FROM colbert_embeddings 
+                    WHERE file_path = ?
+                """, (file_path,))
+                
+                row = cursor.fetchone()
+                if not row:
+                    return None
+                
+                file_hash, colbert_data, token_data, model_name, created_at, file_size, num_tokens, dimension = row
+                
+                # 파일 변경 확인
+                if current_hash and current_hash != file_hash:
+                    logger.debug(f"파일이 변경됨 (ColBERT): {file_path}")
+                    return None
+                
+                # 임베딩 복원
+                colbert_embedding = self._deserialize_embedding(colbert_data, dimension)
+                token_embeddings = self._deserialize_embedding(token_data, dimension) if token_data else None
+                
+                return {
+                    "file_path": file_path,
+                    "file_hash": file_hash,
+                    "colbert_embedding": colbert_embedding,
+                    "token_embeddings": token_embeddings,
+                    "model_name": model_name,
+                    "created_at": datetime.fromisoformat(created_at),
+                    "file_size": file_size,
+                    "num_tokens": num_tokens
+                }
+        
+        except Exception as e:
+            logger.error(f"ColBERT 임베딩 조회 실패: {file_path}, {e}")
+            return None
+    
+    def has_colbert_embedding(self, file_path: str, current_hash: Optional[str] = None) -> bool:
+        """ColBERT 캐시 존재 여부 확인"""
+        cached = self.get_colbert_embedding(file_path, current_hash)
+        return cached is not None
+    
+    def remove_colbert_embedding(self, file_path: str) -> bool:
+        """ColBERT 임베딩 삭제"""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                cursor.execute("DELETE FROM colbert_embeddings WHERE file_path = ?", (file_path,))
+                conn.commit()
+                
+                if cursor.rowcount > 0:
+                    logger.debug(f"ColBERT 임베딩 삭제 완료: {file_path}")
+                    return True
+                return False
+        
+        except Exception as e:
+            logger.error(f"ColBERT 임베딩 삭제 실패: {file_path}, {e}")
+            return False
+    
+    def clear_colbert_cache(self) -> int:
+        """모든 ColBERT 임베딩 삭제"""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                cursor.execute("SELECT COUNT(*) FROM colbert_embeddings")
+                count = cursor.fetchone()[0]
+                
+                cursor.execute("DELETE FROM colbert_embeddings")
+                conn.commit()
+                
+                logger.info(f"ColBERT 캐시 전체 삭제: {count}개")
+                return count
+        
+        except Exception as e:
+            logger.error(f"ColBERT 캐시 삭제 실패: {e}")
+            return 0
+    
+    def get_colbert_statistics(self) -> Dict:
+        """ColBERT 캐시 통계"""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                
+                # 총 ColBERT 임베딩 수
+                cursor.execute("SELECT COUNT(*) FROM colbert_embeddings")
+                total_count = cursor.fetchone()[0]
+                
+                # 토큰 통계
+                cursor.execute("SELECT AVG(num_tokens), MAX(num_tokens), MIN(num_tokens) FROM colbert_embeddings")
+                token_stats = cursor.fetchone()
+                
+                # 파일 크기 통계
+                cursor.execute("SELECT SUM(file_size), AVG(file_size) FROM colbert_embeddings")
+                size_stats = cursor.fetchone()
+                
+                return {
+                    "total_colbert_embeddings": total_count,
+                    "avg_tokens": int(token_stats[0] or 0),
+                    "max_tokens": int(token_stats[1] or 0),
+                    "min_tokens": int(token_stats[2] or 0),
+                    "total_file_size": size_stats[0] or 0,
+                    "avg_file_size": int(size_stats[1] or 0)
+                }
+        
+        except Exception as e:
+            logger.error(f"ColBERT 통계 생성 실패: {e}")
+            return {}
 
 
 def test_cache():

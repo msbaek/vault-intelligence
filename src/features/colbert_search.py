@@ -44,7 +44,9 @@ class ColBERTSearchEngine:
         device: Optional[str] = None,
         use_fp16: bool = True,
         cache_folder: Optional[str] = None,
-        max_length: int = 4096
+        max_length: int = 4096,
+        cache_dir: Optional[str] = None,
+        enable_cache: bool = True
     ):
         """
         Args:
@@ -53,6 +55,8 @@ class ColBERTSearchEngine:
             use_fp16: FP16 정밀도 사용
             cache_folder: 모델 캐시 폴더
             max_length: 최대 토큰 길이
+            cache_dir: 임베딩 캐시 디렉토리
+            enable_cache: 캐싱 활성화 여부
         """
         self.model_name = model_name
         self.device = device
@@ -61,12 +65,24 @@ class ColBERTSearchEngine:
         self.max_length = max_length
         self.model = None
         self.is_initialized = False
+        self.enable_cache = enable_cache
         
         # ColBERT 임베딩 저장소
         self.documents: List[Document] = []
         self.colbert_embeddings: List[np.ndarray] = []  # 문서별 ColBERT 임베딩
         self.document_tokens: List[List[str]] = []  # 문서별 토큰
         self.is_indexed = False
+        
+        # 캐시 시스템 초기화
+        self.cache = None
+        if cache_dir and enable_cache:
+            try:
+                from ..core.embedding_cache import EmbeddingCache
+                self.cache = EmbeddingCache(cache_dir)
+                logger.info("ColBERT 캐시 시스템 활성화")
+            except Exception as e:
+                logger.warning(f"캐시 시스템 초기화 실패: {e}")
+                self.cache = None
         
         # 사용 가능 여부 확인
         if not BGE_AVAILABLE:
@@ -116,13 +132,15 @@ class ColBERTSearchEngine:
         """ColBERT 엔진 사용 가능 여부"""
         return BGE_AVAILABLE and self.is_initialized
     
-    def build_index(self, documents: List[Document], batch_size: int = 4, max_documents: int = 100) -> bool:
+    def build_index(self, documents: List[Document], batch_size: int = 4, max_documents: Optional[int] = None, force_rebuild: bool = False) -> bool:
         """
-        ColBERT 인덱스 구축
+        ColBERT 인덱스 구축 (캐시 지원)
         
         Args:
             documents: 인덱싱할 문서 목록
             batch_size: 배치 크기
+            max_documents: 최대 문서 수 제한 (None이면 제한 없음)
+            force_rebuild: 강제 재구축 여부
             
         Returns:
             인덱싱 성공 여부
@@ -137,10 +155,9 @@ class ColBERTSearchEngine:
         
         logger.info(f"ColBERT 인덱스 구축 시작: {len(documents)}개 문서")
         
-        # 성능을 위해 문서 수 제한
-        if len(documents) > max_documents:
-            logger.warning(f"⚠️  ColBERT는 대규모 인덱싱에 시간이 오래 걸립니다.")
-            logger.warning(f"📊 성능을 위해 상위 {max_documents}개 문서만 처리합니다.")
+        # max_documents가 설정된 경우에만 제한
+        if max_documents and len(documents) > max_documents:
+            logger.warning(f"⚠️  문서 수 제한: {max_documents}개만 처리합니다.")
             documents = documents[:max_documents]
         
         try:
@@ -148,45 +165,89 @@ class ColBERTSearchEngine:
             self.colbert_embeddings = []
             self.document_tokens = []
             
-            # 문서 내용 추출
-            document_texts = [doc.content for doc in documents]
+            cached_count = 0
+            new_count = 0
             
-            # 배치 단위로 ColBERT 임베딩 생성
-            for i in range(0, len(document_texts), batch_size):
-                batch_texts = document_texts[i:i + batch_size]
+            # 배치 단위로 처리
+            for i in range(0, len(documents), batch_size):
+                batch_docs = documents[i:i + batch_size]
+                batch_to_process = []
+                batch_indices = []
                 
-                try:
-                    # BGE-M3로 ColBERT 임베딩 생성
-                    result = self.model.encode(
-                        batch_texts,
-                        batch_size=len(batch_texts),
-                        max_length=self.max_length,
-                        return_dense=False,
-                        return_sparse=False,
-                        return_colbert_vecs=True  # ColBERT 임베딩 활성화
-                    )
-                    
-                    # ColBERT 벡터와 토큰 정보 저장
-                    colbert_vecs = result['colbert_vecs']
-                    
-                    for j, (colbert_vec, text) in enumerate(zip(colbert_vecs, batch_texts)):
-                        self.colbert_embeddings.append(colbert_vec)
+                # 캐시 확인
+                for idx, doc in enumerate(batch_docs):
+                    if self.cache and not force_rebuild and hasattr(doc, 'path') and doc.path:
+                        # 파일 해시 계산
+                        file_hash = self.cache._compute_file_hash(doc.path)
+                        cached = self.cache.get_colbert_embedding(doc.path, file_hash)
                         
-                        # 토큰 정보는 대략적으로 추정 (실제로는 tokenizer 필요)
-                        tokens = self._approximate_tokens(text)
-                        self.document_tokens.append(tokens)
+                        if cached:
+                            # 캐시된 임베딩 사용
+                            self.colbert_embeddings.append(cached['colbert_embedding'])
+                            tokens = self._approximate_tokens(doc.content) if cached.get('token_embeddings') is None else cached.get('token_embeddings', ["[CACHED]"])
+                            self.document_tokens.append(tokens)
+                            cached_count += 1
+                            logger.debug(f"캐시 사용: {doc.path}")
+                        else:
+                            # 새로 처리 필요
+                            batch_to_process.append(doc)
+                            batch_indices.append(i + idx)
+                    else:
+                        # 캐시 비활성화 또는 강제 재구축
+                        batch_to_process.append(doc)
+                        batch_indices.append(i + idx)
+                
+                # 새로운 문서들만 처리
+                if batch_to_process:
+                    batch_texts = [doc.content for doc in batch_to_process]
                     
-                    logger.info(f"배치 {i//batch_size + 1} 완료: {len(batch_texts)}개 문서")
+                    logger.info(f"ColBERT 배치 {i//batch_size + 1} 처리 중... (캐시: {cached_count}, 신규: {new_count})")
                     
-                except Exception as e:
-                    logger.error(f"배치 {i//batch_size + 1} 처리 실패: {e}")
-                    # 폴백: 빈 임베딩
-                    for _ in range(len(batch_texts)):
-                        self.colbert_embeddings.append(np.zeros((10, 1024)))  # 임시 크기
-                        self.document_tokens.append(["[EMPTY]"])
+                    try:
+                        # BGE-M3로 ColBERT 임베딩 생성
+                        result = self.model.encode(
+                            batch_texts,
+                            batch_size=len(batch_texts),
+                            max_length=self.max_length,
+                            return_dense=False,
+                            return_sparse=False,
+                            return_colbert_vecs=True  # ColBERT 임베딩 활성화
+                        )
+                        
+                        # ColBERT 벡터와 토큰 정보 저장
+                        colbert_vecs = result['colbert_vecs']
+                        
+                        for j, (colbert_vec, doc) in enumerate(zip(colbert_vecs, batch_to_process)):
+                            self.colbert_embeddings.append(colbert_vec)
+                            
+                            # 토큰 정보 생성
+                            tokens = self._approximate_tokens(doc.content)
+                            self.document_tokens.append(tokens)
+                            new_count += 1
+                            
+                            # 캐시에 저장
+                            if self.cache and hasattr(doc, 'path') and doc.path:
+                                self.cache.store_colbert_embedding(
+                                    file_path=doc.path,
+                                    colbert_embedding=colbert_vec,
+                                    token_embeddings=None,  # 토큰 임베딩은 별도 저장하지 않음
+                                    model_name=self.model_name,
+                                    num_tokens=len(tokens)
+                                )
+                                logger.debug(f"캐시 저장: {doc.path}")
+                        
+                        logger.info(f"배치 {i//batch_size + 1} 완료: {len(batch_to_process)}개 문서 처리")
+                        
+                    except Exception as e:
+                        logger.error(f"배치 {i//batch_size + 1} 처리 실패: {e}")
+                        # 폴백: 빈 임베딩
+                        for doc in batch_to_process:
+                            self.colbert_embeddings.append(np.zeros((10, 1024)))  # 임시 크기
+                            self.document_tokens.append(["[EMPTY]"])
+                            new_count += 1
             
             self.is_indexed = True
-            logger.info(f"✅ ColBERT 인덱스 구축 완료: {len(self.colbert_embeddings)}개 문서")
+            logger.info(f"✅ ColBERT 인덱스 구축 완료: 총 {len(self.colbert_embeddings)}개 (캐시: {cached_count}, 신규: {new_count})")
             return True
             
         except Exception as e:

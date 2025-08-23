@@ -21,10 +21,10 @@ BGE-M3 기반 고품질 1024차원 임베딩을 활용한 Obsidian vault 지능�
 
 ### 🚀 핵심 기능
 
-#### 🔍 다층 검색 시스템 (Phase 5)
+#### 🔍 다층 검색 시스템 (Phase 5 + 캐싱 개선)
 - **Dense Embeddings**: BGE-M3 1024차원 의미적 검색
 - **Sparse Embeddings**: BM25 키워드 검색
-- **ColBERT 검색**: 토큰 수준 정밀 매칭
+- **ColBERT 검색**: 토큰 수준 정밀 매칭 + **증분 캐싱** 🆕
 - **Cross-encoder Reranking**: 2단계 재순위화로 최고 정확도
 - **쿼리 확장**: 한국어 동의어 + HyDE 기술
 
@@ -35,11 +35,12 @@ BGE-M3 기반 고품질 1024차원 임베딩을 활용한 Obsidian vault 지능�
 - **지식 공백 분석**: 고립된 문서 및 약한 연결 식별
 
 #### 🛠️ 시스템 기능
-- **지능형 캐싱**: SQLite 기반 영구 캐싱으로 성능 최적화  
+- **지능형 캐싱**: SQLite 기반 영구 캐싱 + **ColBERT 증분 캐싱** 🆕
 - **중복 문서 감지**: 코사인 유사도 기반 정확한 중복 감지
 - **주제별 클러스터링**: K-means, DBSCAN 등 다양한 알고리즘 지원
 - **문서 수집**: 주제별 자동 문서 수집 및 통합
 - **배치 처리**: 대용량 vault 효율적 처리
+- **자동 태깅**: BGE-M3 기반 의미적 태그 자동 생성 (Phase 7)
 
 ## 📁 프로젝트 구조
 
@@ -86,9 +87,21 @@ python -m src test
 python -m src init --vault-path /Users/msbaek/DocumentsLocal/msbaek_vault
 ```
 
-### 4. 시스템 정보 확인
+### 4. 전체 인덱싱 (ColBERT 포함)
 ```bash
-python -m src info
+# Dense + ColBERT 통합 인덱싱 (권장) 🆕
+python -m src reindex --with-colbert
+
+# ColBERT만 인덱싱
+python -m src reindex --colbert-only
+
+# 일반 재인덱싱 (Dense 임베딩만)
+python -m src reindex
+```
+
+### 5. 시스템 정보 확인
+```bash
+python -m src info  # 캐시 상태 포함
 ```
 
 ## 🔧 시스템 아키텍처
@@ -128,12 +141,14 @@ python -m src info
 | **임베딩 차원** | 384 | 1024 |
 | **모델** | TaylorAI/bge-micro-v2 | BAAI/bge-m3 |
 | **검색 방식** | Dense만 | Dense + Sparse + ColBERT + Reranking |
+| **ColBERT 지원** | ❌ | ✅ + **증분 캐싱** 🆕 |
 | **지식 그래프** | ❌ | ✅ (관련성 분석, 중심성 랭킹) |
 | **쿼리 확장** | ❌ | ✅ (동의어 + HyDE) |
+| **자동 태깅** | ❌ | ✅ (의미적 태깅) |
 | **의존성** | Obsidian 플러그인 | 완전 독립 |
 | **검색 품질** | 중간 | 최고 품질 (+70%) |
 | **확장성** | 제한적 | 무제한 |
-| **캐싱** | AJSON 파일 | SQLite DB |
+| **캐싱** | AJSON 파일 | SQLite DB + ColBERT 캐시 |
 
 ## 🧪 구현 완료 현황
 

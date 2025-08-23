@@ -683,7 +683,16 @@ python -m src search --query "첫 검색"
 
 ### 수동 재인덱싱
 ```bash
-# 스마트 재인덱싱 (변경된 파일만)
+# 🆕 ColBERT 포함 통합 인덱싱 (권장!)
+python -m src reindex --with-colbert
+
+# ColBERT만 재인덱싱 (Dense 임베딩 제외)
+python -m src reindex --colbert-only
+
+# ColBERT 강제 재인덱싱
+python -m src reindex --with-colbert --force
+
+# 기본 재인덱싱 (Dense 임베딩만)
 python -m src reindex
 
 # 강제 전체 재인덱싱 (모든 캐시 무시)
@@ -698,6 +707,26 @@ python -m src reindex --exclude-folders "ATTACHMENTS" "temp"
 
 # 상세 진행률 표시
 python -m src reindex --force --verbose
+```
+
+### 폴더별 점진적 색인
+
+### 🎯 ColBERT 증분 캐싱 시스템 (신규!)
+
+#### 주요 장점
+- **전체 문서 지원**: max_documents 제한 제거로 vault 전체에서 ColBERT 검색
+- **영구 캐싱**: SQLite 기반으로 재계산 불필요 
+- **증분 처리**: 변경된 문서만 자동 감지하여 재인덱싱
+- **빠른 검색**: 캐시 활용으로 즉시 검색 결과 제공
+
+#### 성능 비교
+- **첫 인덱싱**: 1-2시간 (전체 vault, 1회만)
+- **이후 검색**: 즉시 (캐시 활용)
+- **증분 업데이트**: 변경된 파일만 처리
+
+#### 캐시 상태 확인
+```bash
+python -m src info  # Dense + ColBERT 캐시 통계 포함
 ```
 
 ### 폴더별 점진적 색인

@@ -162,16 +162,25 @@ python visualize_knowledge_graph.py
 
 ### 전체 재인덱싱
 ```bash
-# 일반 재인덱싱
+# 일반 재인덱싱 (Dense 임베딩만)
 python -m src reindex
 
 # 강제 재인덱싱 (기존 캐시 무시)
 python -m src reindex --force
 
+# ColBERT 포함 재인덱싱 (신규 기능!)
+python -m src reindex --with-colbert
+
+# ColBERT 강제 재인덱싱
+python -m src reindex --with-colbert --force
+
+# ColBERT만 재인덱싱 (Dense 임베딩 제외)
+python -m src reindex --colbert-only
+
 # 성능 최대화 재인덱싱
 # config/settings.yaml에서 다음 설정 변경 후 실행:
 # batch_size: 8, max_length: 8192, num_workers: 8
-python -m src reindex
+python -m src reindex --with-colbert
 ```
 
 ### 성능 설정 옵션
@@ -405,7 +414,7 @@ python -m src test
 
 ## 현재 구현 상태
 
-### ✅ 완료된 작업 (Phase 1-6) 🎉
+### ✅ 완료된 작업 (Phase 1-7 + ColBERT 캐싱) 🎉
 - **BGE-M3 기반 고품질 임베딩 시스템** 구현 완료
 - **Dense Embeddings** (1024차원) 의미적 검색
 - **Sparse Embeddings** (BM25) 키워드 검색  
@@ -431,7 +440,21 @@ python -m src test
 - **지식 공백 분석**: 고립된 문서 및 약한 연결 문서 식별을 통한 지식 체계 개선
 - **새로운 CLI 명령어**: `related`, `analyze-gaps`, `--with-centrality` 옵션 추가
 
-### 🎯 향후 개선 사항 (Phase 7+)
+#### 🎯 Phase 7: 자동 태깅 시스템 (2025-08-21 완료)
+- **의미적 태깅**: BGE-M3 기반 문서 내용 분석을 통한 자동 태그 생성
+- **계층적 태그**: 5가지 카테고리(Topic, Document Type, Source, Status, Project) 기반
+- **일괄 처리**: 폴더별 대량 문서 자동 태깅 지원
+- **신뢰도 점수**: 태그별 신뢰도 측정 및 필터링
+
+#### 🚀 NEW: ColBERT 증분 캐싱 시스템 (2025-08-23 완료)
+- **SQLite 기반 ColBERT 캐싱**: 영구 저장으로 재계산 불필요
+- **증분 인덱싱**: 변경된 문서만 재처리하여 효율성 극대화
+- **전체 문서 지원**: max_documents 제한 제거로 vault 전체 ColBERT 검색 가능
+- **명령어 일관성**: 기존 reindex 체계와 완벽한 통합
+- **새로운 옵션**: `--with-colbert`, `--colbert-only` 플래그 추가
+- **캐시 통계**: 실시간 캐싱 상태 및 성능 모니터링
+
+### 🎯 향후 개선 사항 (Phase 8+)
 - 웹 인터페이스 (FastAPI + React)
 - 실시간 모니터링 대시보드  
 - 자동 태깅 및 문서 분류

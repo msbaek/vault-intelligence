@@ -818,24 +818,32 @@ class AdvancedSearchEngine:
             # ColBERT 엔진 설정
             colbert_config = self.config.get('colbert', {})
             
-            # ColBERT 엔진 초기화
+            # ColBERT 엔진 초기화 (캐시 포함)
             colbert_engine = ColBERTSearchEngine(
                 model_name=colbert_config.get('model_name', 'BAAI/bge-m3'),
                 device=colbert_config.get('device', self.config.get('model', {}).get('device')),
                 use_fp16=colbert_config.get('use_fp16', True),
                 cache_folder=colbert_config.get('cache_folder', self.config.get('model', {}).get('cache_folder')),
-                max_length=colbert_config.get('max_length', self.config.get('model', {}).get('max_length', 4096))
+                max_length=colbert_config.get('max_length', self.config.get('model', {}).get('max_length', 4096)),
+                cache_dir=self.cache_dir,
+                enable_cache=colbert_config.get('enable_cache', True)
             )
             
             if not colbert_engine.is_available():
                 logger.warning("ColBERT 엔진을 사용할 수 없습니다. 의미적 검색으로 대체합니다.")
                 return self.semantic_search(query, top_k, threshold)
             
-            # 인덱스가 없으면 구축 (성능을 위해 문서 수 제한)
+            # 인덱스가 없으면 구축 (캐시를 활용하여 전체 문서 처리 가능)
             if not colbert_engine.is_indexed:
                 logger.info("ColBERT 인덱스 구축 중...")
-                max_docs = colbert_config.get('max_documents', 50)  # 기본값 50개로 제한
-                if not colbert_engine.build_index(self.documents, max_documents=max_docs):
+                max_docs = colbert_config.get('max_documents', None)  # None이면 전체 문서
+                force_rebuild = False  # 기본적으로 캐시 활용
+                
+                if not colbert_engine.build_index(
+                    self.documents, 
+                    max_documents=max_docs,
+                    force_rebuild=force_rebuild
+                ):
                     logger.error("ColBERT 인덱스 구축 실패")
                     return self.semantic_search(query, top_k, threshold)
             

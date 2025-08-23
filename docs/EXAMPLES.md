@@ -62,6 +62,36 @@ python -m src search --query "Spring Boot 아키텍처"
 python -m src search --query "JPA 성능 최적화"
 ```
 
+### 🆕 예제 6: ColBERT 토큰 수준 검색 (신규!)
+```bash
+# ColBERT 검색 - 세밀한 토큰 매칭
+python -m src search --query "TDD" --search-method colbert
+
+# ColBERT 검색과 재순위화 결합 - 최고 품질
+python -m src search --query "클린 코드" --search-method colbert --rerank
+
+# ColBERT 검색에서 더 많은 결과
+python -m src search --query "리팩토링" --search-method colbert --top-k 15
+```
+
+**ColBERT vs 다른 검색 방법 비교:**
+```bash
+# 동일한 쿼리로 다양한 검색 방법 테스트
+python -m src search --query "테스트 주도 개발" --search-method semantic
+python -m src search --query "테스트 주도 개발" --search-method keyword  
+python -m src search --query "테스트 주도 개발" --search-method hybrid
+python -m src search --query "테스트 주도 개발" --search-method colbert
+```
+
+### 예제 7: 초기 ColBERT 인덱싱
+```bash
+# 🎯 처음 사용 시 ColBERT 전체 인덱싱 (1회, 1-2시간)
+python -m src reindex --with-colbert
+
+# ✅ 이후로는 캐시 활용으로 즉시 검색 가능!
+python -m src search --query "아무 검색어" --search-method colbert
+```
+
 ---
 
 ## 🔎 중복 감지 예제

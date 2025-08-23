@@ -3,20 +3,23 @@
 ## 📅 프로젝트 개요
 - **프로젝트명**: Vault Intelligence System V2
 - **목적**: Smart Connections를 대체하는 Sentence Transformers 기반 지능형 검색 시스템
-- **완료일**: 2025-08-18
+- **최초 완료일**: 2025-08-18
+- **ColBERT 캐싱 완료일**: 2025-08-23
 - **주요 목표**: "AI 시대의 TDD 활용" 책 집필 지원
 
 ## ✅ 구현 완료된 기능들
 
 ### 1. 핵심 엔진 (src/core/)
-- **sentence_transformer_engine.py** (768차원)
-  - paraphrase-multilingual-mpnet-base-v2 모델 사용
-  - GPU/CPU 자동 감지
+- **sentence_transformer_engine.py** (1024차원) 🆕
+  - BAAI/bge-m3 모델 사용 (768차원 → 1024차원 업그레이드)
+  - MPS(Metal)/GPU/CPU 자동 감지
   - 배치 처리 지원
   - 유사도 계산 최적화
 
-- **embedding_cache.py** (SQLite 캐싱)
+- **embedding_cache.py** (SQLite 캐싱 + ColBERT 지원) 🆕
   - 파일 해시 기반 변경 감지
+  - Dense + ColBERT 임베딩 통합 캐싱
+  - 증분 인덱싱 지원
   - 영구 캐시로 재실행 속도 향상
   - 통계 및 모니터링 기능
 
@@ -26,11 +29,35 @@
   - 파일 메타데이터 수집
 
 ### 2. 고급 기능 (src/features/)
-- **advanced_search.py** 🔍
+- **advanced_search.py** 🔍 (Phase 1-5 완료)
   - 의미적 검색 (semantic)
   - 키워드 검색 (keyword)  
   - 하이브리드 검색 (semantic + keyword)
-  - FAISS 최적화 지원
+  - ColBERT 토큰 수준 검색 🆕
+  - Cross-encoder 재순위화
+  - 쿼리 확장 (동의어 + HyDE)
+  - 중심성 기반 랭킹 부스팅
+
+- **colbert_search.py** 🎯 (Phase 5.2 + 캐싱)
+  - BGE-M3 ColBERT 기능 활용
+  - 토큰 수준 late interaction 검색
+  - SQLite 기반 증분 캐싱 시스템 🆕
+  - 전체 vault 문서 지원 (제한 제거) 🆕
+
+- **reranker.py** 🔝 (Phase 5.1)
+  - BAAI/bge-reranker-v2-m3 모델
+  - 2단계 검색으로 정확도 극대화
+  - Cross-encoder 기반 재순위화
+
+- **query_expansion.py** 📝 (Phase 5.3)
+  - 한국어 동의어 확장
+  - HyDE (Hypothetical Document Embeddings)
+  - 검색 포괄성 향상
+
+- **semantic_tagger.py** 🏷️ (Phase 7)
+  - BGE-M3 기반 의미적 자동 태깅
+  - 계층적 태그 체계 지원
+  - 일괄 처리 및 신뢰도 점수
 
 - **duplicate_detector.py** 🔗
   - 유사도 기반 중복 문서 감지
@@ -170,4 +197,35 @@ pip install sentence-transformers
 
 **🎉 Vault Intelligence System V2가 성공적으로 완료되었습니다!**
 
+## 🚀 NEW: ColBERT 증분 캐싱 시스템 (2025-08-23 완료)
+
+### 주요 성과:
+1. **전체 문서 ColBERT 검색 실현**
+   - 기존 max_documents=20 제한 → 제한 없음으로 변경
+   - 수천 개 문서에서도 ColBERT 검색 가능
+
+2. **SQLite 기반 영구 캐싱**
+   - 새로운 `colbert_embeddings` 테이블 추가
+   - 파일 해시 기반 변경 감지
+   - 증분 인덱싱으로 효율성 극대화
+
+3. **명령어 체계 일관성 유지**
+   - `--with-colbert`: ColBERT 포함 인덱싱
+   - `--colbert-only`: ColBERT만 인덱싱
+   - 기존 `reindex` 체계와 완벽 통합
+
+4. **성능 최적화**
+   - 첫 인덱싱: 1-2시간 (전체 vault, 1회만)
+   - 이후 검색: 즉시 (캐시 활용)
+   - 증분 업데이트: 변경된 파일만 처리
+
+### 기술 구현:
+- `src/core/embedding_cache.py`: ColBERT 캐싱 메서드 추가
+- `src/features/colbert_search.py`: 캐시 통합 및 증분 처리
+- `src/features/advanced_search.py`: ColBERT 검색 최적화
+- `src/__main__.py`: 새 CLI 옵션 및 로직 추가
+- `config/settings.yaml`: ColBERT 캐싱 설정 통합
+
 사용자가 요청한 모든 기능, 특히 핵심인 "주제 수집(collect)" 기능이 완벽히 구현되어 "AI 시대의 TDD 활용" 책 집필에 바로 활용할 수 있습니다.
+
+**🎯 이제 ColBERT 검색도 vault 전체를 대상으로 빠르고 정확하게 작동합니다!**
