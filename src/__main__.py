@@ -25,6 +25,7 @@ try:
     from src.features.topic_collector import TopicCollector
     from src.features.topic_analyzer import TopicAnalyzer
     from src.features.semantic_tagger import SemanticTagger, TaggingResult
+    from src.features.moc_generator import MOCGenerator
     import yaml
     DEPENDENCIES_AVAILABLE = True
 except ImportError as e:
@@ -987,6 +988,80 @@ def display_tagging_result(result: TaggingResult):
         print(f"❌ 실패: {result.error_message}")
 
 
+def run_moc_generation(
+    vault_path: str,
+    topic: str,
+    top_k: int,
+    threshold: float,
+    output_file: Optional[str],
+    config: dict,
+    include_orphans: bool = False,
+    use_expansion: bool = True
+):
+    """MOC 생성 실행"""
+    try:
+        print(f"📚 '{topic}' MOC 생성 시작...")
+        
+        # 검색 엔진 초기화
+        cache_dir = str(project_root / "cache")
+        search_engine = AdvancedSearchEngine(vault_path, cache_dir, config)
+        
+        if not search_engine.indexed:
+            print("📚 인덱스 구축 중...")
+            if not search_engine.build_index():
+                print("❌ 인덱스 구축 실패")
+                return False
+        
+        # MOC 생성기 초기화
+        moc_generator = MOCGenerator(search_engine, config)
+        
+        # 출력 파일명 자동 생성 (지정되지 않은 경우)
+        if not output_file:
+            safe_topic = topic.replace(' ', '-').replace('/', '-')
+            output_file = f"MOC-{safe_topic}.md"
+        
+        # MOC 생성
+        moc_data = moc_generator.generate_moc(
+            topic=topic,
+            top_k=top_k,
+            threshold=threshold,
+            include_orphans=include_orphans,
+            use_expansion=use_expansion,
+            output_file=output_file
+        )
+        
+        print(f"\n📊 MOC 생성 결과:")
+        print("-" * 50)
+        print(f"주제: {moc_data.topic}")
+        print(f"총 문서: {moc_data.total_documents}개")
+        print(f"핵심 문서: {len(moc_data.core_documents)}개")
+        print(f"카테고리: {len(moc_data.categories)}개")
+        print(f"학습 경로: {len(moc_data.learning_path)}단계")
+        print(f"관련 주제: {len(moc_data.related_topics)}개")
+        print(f"최근 업데이트: {len(moc_data.recent_updates)}개")
+        print(f"문서 관계: {len(moc_data.relationships)}개")
+        
+        if moc_data.categories:
+            print(f"\n📋 카테고리별 문서 분포:")
+            for category in moc_data.categories:
+                print(f"  {category.name}: {len(category.documents)}개 문서")
+        
+        if moc_data.learning_path:
+            print(f"\n🛤️ 학습 경로:")
+            for step in moc_data.learning_path:
+                print(f"  {step.step}. {step.title} ({step.difficulty_level}) - {len(step.documents)}개 문서")
+        
+        if output_file:
+            print(f"\n💾 MOC 파일이 {output_file}에 저장되었습니다.")
+            
+        return True
+        
+    except Exception as e:
+        print(f"❌ MOC 생성 실패: {e}")
+        logger.exception("MOC 생성 중 상세 오류:")
+        return False
+
+
 def main():
     """메인 함수"""
     parser = argparse.ArgumentParser(
@@ -995,7 +1070,7 @@ def main():
     
     parser.add_argument(
         "command",
-        choices=["init", "test", "info", "search", "duplicates", "collect", "analyze", "reindex", "related", "analyze-gaps", "tag"],
+        choices=["init", "test", "info", "search", "duplicates", "collect", "analyze", "reindex", "related", "analyze-gaps", "tag", "generate-moc"],
         help="실행할 명령어"
     )
     
@@ -1175,6 +1250,13 @@ def main():
         type=int,
         default=10,
         help="배치 처리 크기 (기본값: 10)"
+    )
+    
+    # MOC 생성 관련 인자들
+    parser.add_argument(
+        "--include-orphans",
+        action="store_true",
+        help="연결되지 않은 문서도 MOC에 포함"
     )
     
     args = parser.parse_args()
@@ -1378,6 +1460,33 @@ def main():
             print("✅ 자동 태깅 완료!")
         else:
             print("❌ 자동 태깅 실패!")
+            sys.exit(1)
+    
+    elif args.command == "generate-moc":
+        if not check_dependencies():
+            sys.exit(1)
+        
+        if not args.topic:
+            print("❌ MOC 생성할 주제가 필요합니다. --topic 옵션을 사용하세요.")
+            print("사용법:")
+            print("  python -m src generate-moc --topic 'TDD'")
+            print("  python -m src generate-moc --topic 'TDD' --output 'TDD-MOC.md'")
+            print("  python -m src generate-moc --topic 'TDD' --top-k 50 --include-orphans")
+            sys.exit(1)
+        
+        if run_moc_generation(
+            vault_path=args.vault_path,
+            topic=args.topic,
+            top_k=args.top_k,
+            threshold=args.threshold,
+            output_file=args.output,
+            config=config,
+            include_orphans=args.include_orphans,
+            use_expansion=args.expand
+        ):
+            print("✅ MOC 생성 완료!")
+        else:
+            print("❌ MOC 생성 실패!")
             sys.exit(1)
 
 

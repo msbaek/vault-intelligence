@@ -133,6 +133,21 @@ python -m src collect --topic "아키텍처" --expand --threshold 0.1 --top-k 20
 python -m src analyze
 ```
 
+### MOC(Map of Content) 자동 생성 (Phase 8)
+```bash
+# 기본 MOC 생성
+python -m src generate-moc --topic "TDD"
+
+# 상세 옵션 지정
+python -m src generate-moc --topic "TDD" --output "TDD-MOC.md" --top-k 50
+
+# 연결되지 않은 문서도 포함
+python -m src generate-moc --topic "리팩토링" --include-orphans
+
+# 임계값 조정과 함께 생성
+python -m src generate-moc --topic "아키텍처" --threshold 0.2 --top-k 30
+```
+
 ### 지식 그래프 기능 (Phase 6)
 ```bash
 # 관련 문서 추천
@@ -352,6 +367,13 @@ gaps = engine.analyze_knowledge_gaps(
 
 **쿼리 확장 설정 (Phase 5.3)**
 - `query_expansion.enable_hyde`: HyDE 활성화 여부 (true)
+
+**MOC 생성 설정 (Phase 8)**
+- `moc.max_core_documents`: 핵심 문서 최대 수 (5)
+- `moc.max_category_documents`: 카테고리별 최대 문서 수 (10)
+- `moc.recent_days`: 최근 업데이트 기준 일수 (30)
+- `moc.min_similarity_threshold`: 최소 유사도 임계값 (0.3)
+- `moc.relationship_threshold`: 관계 판정 임계값 (0.6)
 - `query_expansion.max_synonyms`: 최대 동의어 수 (3)
 - `query_expansion.synonym_weight`: 동의어 가중치 (0.8)
 - `query_expansion.hyde_weight`: HyDE 가중치 (0.6)
@@ -454,10 +476,20 @@ python -m src test
 - **새로운 옵션**: `--with-colbert`, `--colbert-only` 플래그 추가
 - **캐시 통계**: 실시간 캐싱 상태 및 성능 모니터링
 
-### 🎯 향후 개선 사항 (Phase 8+)
+#### 📚 Phase 8: MOC(Map of Content) 자동 생성 시스템 (2025-08-23 완료)
+- **주제별 체계적 목차**: 특정 주제 관련 문서들을 체계적으로 정리한 탐색 가이드
+- **자동 카테고리 분류**: 6가지 카테고리(입문/기초, 개념/이론, 실습/예제, 도구/기술, 심화/고급, 참고자료)로 문서 자동 분류
+- **학습 경로 생성**: 난이도와 선후 관계를 고려한 단계별 학습 가이드 제공
+- **핵심 문서 선정**: 중요도 점수 기반 주제별 핵심 문서 자동 추천
+- **관련 주제 추출**: 태그와 내용 분석을 통한 연관 주제 자동 발견
+- **문서 관계 분석**: 유사도 기반 문서 간 연관성 매핑
+- **Obsidian 최적화**: Obsidian에서 즉시 활용 가능한 마크다운 형식 출력
+- **새로운 CLI 명령어**: `generate-moc --topic "주제명"` 명령어 추가
+
+### 🎯 향후 개선 사항 (Phase 9+)
 - 웹 인터페이스 (FastAPI + React)
 - 실시간 모니터링 대시보드  
-- 자동 태깅 및 문서 분류
+- 시각적 MOC 그래프 (Mermaid 다이어그램)
 - Obsidian 링크 그래프 시각화
 
 ## 문제 해결
