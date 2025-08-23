@@ -415,6 +415,231 @@ python -m src analyze
   주요 키워드: 리팩토링, 클린코드, SOLID, 디자인패턴
 ```
 
+## 📚 MOC(Map of Content) 자동 생성 (Phase 8) 🆕
+
+### 개요
+MOC(Map of Content)는 특정 주제에 대한 체계적인 탐색 가이드로, 관련 문서들을 카테고리별로 분류하고 학습 경로를 제공합니다. Obsidian vault에서 지식을 효과적으로 탐색할 수 있도록 구조화된 목차 문서를 자동으로 생성합니다.
+
+### 주요 특징
+- **6가지 카테고리 자동 분류**: 입문/기초, 개념/이론, 실습/예제, 도구/기술, 심화/고급, 참고자료
+- **학습 경로 생성**: 난이도와 선후 관계를 고려한 단계별 가이드
+- **핵심 문서 선정**: 중요도 점수 기반 주제별 필수 문서 추천
+- **관련 주제 추출**: 태그와 내용 분석을 통한 연관 주제 발견
+- **Obsidian 최적화**: 즉시 사용 가능한 마크다운 형식 출력
+
+### 기본 사용법
+
+#### 기본 MOC 생성
+```bash
+python -m src generate-moc --topic "TDD"
+```
+
+**결과 예시:**
+```
+📊 MOC 생성 결과:
+--------------------------------------------------
+주제: TDD
+총 문서: 20개
+핵심 문서: 5개
+카테고리: 6개
+학습 경로: 6단계
+관련 주제: 10개
+최근 업데이트: 10개
+문서 관계: 0개
+
+📋 카테고리별 문서 분포:
+  입문/기초: 5개 문서
+  개념/이론: 6개 문서
+  실습/예제: 9개 문서
+  도구/기술: 9개 문서
+  심화/고급: 7개 문서
+  참고자료: 7개 문서
+
+💾 MOC 파일이 MOC-TDD.md에 저장되었습니다.
+```
+
+#### 고급 옵션
+```bash
+# 사용자 정의 출력 파일
+python -m src generate-moc --topic "TDD" --output "TDD-완전정리.md"
+
+# 더 많은 문서 포함
+python -m src generate-moc --topic "리팩토링" --top-k 50
+
+# 연결되지 않은 문서도 포함
+python -m src generate-moc --topic "아키텍처" --include-orphans
+
+# 임계값 조정 (더 포괄적인 수집)
+python -m src generate-moc --topic "클린코드" --threshold 0.2 --top-k 30
+```
+
+### MOC 문서 구조
+
+생성되는 MOC 문서는 다음과 같은 구조를 가집니다:
+
+```markdown
+# 📚 TDD Map of Content
+
+## 🎯 개요
+- 총 문서 수, 단어 수, 주요 태그 등 통계 정보
+
+## 🌟 핵심 문서 (Top 5)
+- 가장 중요하고 핵심적인 문서들
+- 단어 수와 주요 태그 표시
+
+## 📖 카테고리별 분류
+### 입문/기초
+- 주제에 대한 첫 걸음과 기본 개념
+
+### 개념/이론
+- 핵심 개념과 이론적 배경
+
+### 실습/예제
+- 실제 적용 사례와 연습 문제
+
+### 도구/기술
+- 관련 도구와 기술 스택
+
+### 심화/고급
+- 전문적이고 깊이 있는 내용
+
+### 참고자료
+- 추가 학습을 위한 참고 자료
+
+## 🛤️ 추천 학습 경로
+- 체계적인 학습을 위한 단계별 가이드
+- 각 단계별 난이도와 추천 문서
+
+## 🔗 관련 주제
+- 이 주제와 연관된 다른 주제들
+
+## 📅 최근 업데이트
+- 최근 30일 이내 업데이트된 문서들
+
+## 📊 문서 관계도
+- 주요 문서들 간의 관련성 시각화
+
+## 📈 통계
+- 상세한 문서 및 관계 통계
+```
+
+### 카테고리 분류 시스템
+
+MOC는 다음 키워드를 기반으로 문서를 자동 분류합니다:
+
+#### 1. **입문/기초** 카테고리
+- **키워드**: 입문, 시작, 기초, 기본, 소개, 개요, introduction, basic, fundamental
+- **용도**: 주제에 처음 접근하는 사용자를 위한 문서
+
+#### 2. **개념/이론** 카테고리  
+- **키워드**: 개념, 이론, 원리, 정의, concept, theory, principle, definition
+- **용도**: 핵심 개념과 이론적 배경을 다루는 문서
+
+#### 3. **실습/예제** 카테고리
+- **키워드**: 실습, 예제, 연습, 실전, 구현, practice, example, exercise
+- **용도**: 실제 적용 사례와 연습 문제를 다루는 문서
+
+#### 4. **도구/기술** 카테고리
+- **키워드**: 도구, 툴, 기술, 방법, tool, technique, method, framework
+- **용도**: 관련 도구와 기술 스택을 다루는 문서
+
+#### 5. **심화/고급** 카테고리
+- **키워드**: 심화, 고급, 전문, 상세, advanced, deep, expert, detailed
+- **용도**: 전문적이고 깊이 있는 내용을 다루는 문서
+
+#### 6. **참고자료** 카테고리
+- **키워드**: 참고, 자료, 리소스, 문서, reference, resource, documentation
+- **용도**: 추가 학습을 위한 참고 자료
+
+### 활용 팁
+
+#### 주제 선택 가이드
+```bash
+# ✅ 좋은 주제 예시 (구체적이고 명확한 주제)
+python -m src generate-moc --topic "TDD"
+python -m src generate-moc --topic "리팩토링"
+python -m src generate-moc --topic "Spring Boot"
+python -m src generate-moc --topic "도메인 주도 설계"
+
+# ❌ 피해야 할 주제 예시 (너무 광범위하거나 모호한 주제)
+python -m src generate-moc --topic "프로그래밍"  # 너무 광범위
+python -m src generate-moc --topic "공부"        # 너무 모호
+```
+
+#### 임계값 조정 가이드
+- **0.1-0.2**: 매우 포괄적 (관련성이 낮아도 포함)
+- **0.3**: 기본값 (균형잡힌 수집)
+- **0.4-0.5**: 엄격한 기준 (매우 관련성 높은 문서만)
+
+#### 문서 수 가이드
+- **--top-k 10-20**: 핵심만 간추린 MOC
+- **--top-k 30-50**: 표준적인 MOC (권장)
+- **--top-k 100+**: 매우 포괄적인 MOC
+
+### 설정 옵션 (config/settings.yaml)
+
+```yaml
+moc:
+  max_core_documents: 5      # 핵심 문서 최대 수
+  max_category_documents: 10 # 카테고리별 최대 문서 수
+  recent_days: 30           # 최근 업데이트 기준 일수
+  min_similarity_threshold: 0.3  # 최소 유사도 임계값
+  relationship_threshold: 0.6    # 관계 판정 임계값
+```
+
+### 프로그래밍 방식 사용
+
+```python
+from src.features.moc_generator import MOCGenerator
+from src.features.advanced_search import AdvancedSearchEngine
+
+# MOC 생성기 초기화
+engine = AdvancedSearchEngine(vault_path, cache_dir, config)
+moc_generator = MOCGenerator(engine, config)
+
+# MOC 생성
+moc_data = moc_generator.generate_moc(
+    topic="TDD",
+    top_k=50,
+    threshold=0.3,
+    include_orphans=False,
+    use_expansion=True,
+    output_file="TDD-MOC.md"
+)
+
+# 결과 접근
+print(f"총 문서: {len(moc_data.documents)}")
+print(f"카테고리: {len(moc_data.categories)}")
+print(f"학습 단계: {len(moc_data.learning_path)}")
+```
+
+### 문제 해결
+
+#### MOC 생성이 안 될 때
+```bash
+# 1. 임계값을 낮춰서 다시 시도
+python -m src generate-moc --topic "TDD" --threshold 0.2
+
+# 2. 더 많은 문서 포함
+python -m src generate-moc --topic "TDD" --top-k 100
+
+# 3. 연결되지 않은 문서도 포함
+python -m src generate-moc --topic "TDD" --include-orphans
+```
+
+#### 문서가 잘못 분류될 때
+- 문서 제목과 내용에 카테고리 키워드를 명확히 포함
+- 태그를 체계적으로 활용 (`#topic/tdd/basic`, `#type/tutorial` 등)
+
+#### MOC가 너무 클 때
+```bash
+# 임계값 높이기
+python -m src generate-moc --topic "TDD" --threshold 0.4
+
+# 문서 수 제한
+python -m src generate-moc --topic "TDD" --top-k 20
+```
+
 ## 🏷️ 자동 태깅 시스템 (Phase 7)
 
 ### 개요
@@ -949,6 +1174,31 @@ collection = collector.collect_topic(
 
 print(f"수집된 문서: {collection.metadata.total_documents}개")
 print(f"총 단어수: {collection.metadata.total_word_count:,}개")
+```
+
+#### MOC 생성 직접 사용 (Phase 8) 🆕
+```python
+from src.features.moc_generator import MOCGenerator
+
+moc_generator = MOCGenerator(search_engine, config)
+moc_data = moc_generator.generate_moc(
+    topic="TDD",
+    top_k=50,
+    threshold=0.3,
+    include_orphans=False,
+    use_expansion=True,
+    output_file="TDD-MOC.md"
+)
+
+print(f"MOC 생성 완료:")
+print(f"- 총 문서: {moc_data.total_documents}개")
+print(f"- 카테고리: {len(moc_data.categories)}개")
+print(f"- 핵심 문서: {len(moc_data.core_documents)}개")
+print(f"- 학습 단계: {len(moc_data.learning_path)}개")
+
+# 카테고리별 분포 확인
+for category in moc_data.categories:
+    print(f"- {category.name}: {len(category.documents)}개")
 ```
 
 #### 지식 그래프 직접 사용 (Phase 6)

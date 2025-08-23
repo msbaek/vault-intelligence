@@ -7,10 +7,11 @@
 1. [검색 예제](#-검색-예제)
 2. [중복 감지 예제](#-중복-감지-예제)
 3. [주제 수집 예제](#-주제-수집-예제)
-4. [주제 분석 예제](#-주제-분석-예제)
-5. [프로그래밍 API 예제](#-프로그래밍-api-예제)
-6. [배치 처리 예제](#-배치-처리-예제)
-7. [문제 해결 예제](#-문제-해결-예제)
+4. [MOC 자동 생성 예제](#-moc-자동-생성-예제) 🆕
+5. [주제 분석 예제](#-주제-분석-예제)
+6. [프로그래밍 API 예제](#-프로그래밍-api-예제)
+7. [배치 처리 예제](#-배치-처리-예제)
+8. [문제 해결 예제](#-문제-해결-예제)
 
 ---
 
@@ -241,6 +242,249 @@ python -m src collect --topic "React 컴포넌트 아키텍처" --output project
 
 ---
 
+## 📚 MOC 자동 생성 예제 🆕
+
+MOC(Map of Content)는 특정 주제에 대한 체계적인 탐색 가이드입니다. 관련 문서들을 카테고리별로 분류하고 학습 경로를 제공합니다.
+
+### 예제 1: 기본 MOC 생성
+
+```bash
+# TDD 주제 MOC 생성
+python -m src generate-moc --topic "TDD"
+```
+
+**결과 예시:**
+```
+📊 MOC 생성 결과:
+--------------------------------------------------
+주제: TDD
+총 문서: 20개
+핵심 문서: 5개
+카테고리: 6개
+학습 경로: 6단계
+관련 주제: 10개
+최근 업데이트: 10개
+
+📋 카테고리별 문서 분포:
+  입문/기초: 5개 문서
+  개념/이론: 6개 문서  
+  실습/예제: 9개 문서
+  도구/기술: 9개 문서
+  심화/고급: 7개 문서
+  참고자료: 7개 문서
+
+💾 MOC 파일이 MOC-TDD.md에 저장되었습니다.
+```
+
+### 예제 2: 리팩토링 MOC (더 많은 문서 포함)
+
+```bash
+# 50개 문서로 더 포괄적인 MOC 생성
+python -m src generate-moc --topic "리팩토링" --top-k 50 --output "리팩토링-완전가이드.md"
+```
+
+**결과 예시:**
+```
+📊 MOC 생성 결과:
+--------------------------------------------------
+주제: 리팩토링
+총 문서: 35개
+핵심 문서: 5개
+카테고리: 7개
+학습 경로: 7단계
+관련 주제: 12개
+
+📋 카테고리별 문서 분포:
+  입문/기초: 8개 문서
+  개념/이론: 12개 문서
+  실습/예제: 15개 문서
+  도구/기술: 18개 문서
+  심화/고급: 10개 문서
+  참고자료: 6개 문서
+  기타: 3개 문서
+
+💾 MOC 파일이 리팩토링-완전가이드.md에 저장되었습니다.
+```
+
+### 예제 3: 포괄적 MOC 생성 (고립 문서 포함)
+
+```bash
+# 연결되지 않은 문서들도 포함하여 완전한 MOC 생성
+python -m src generate-moc --topic "Spring Boot" --include-orphans --threshold 0.2
+```
+
+**사용 시나리오**: Spring Boot 관련 문서들이 vault 전체에 흩어져 있고, 일부 문서들이 태그나 링크로 연결되지 않은 경우
+
+### 예제 4: 실제 책 집필용 MOC 생성
+
+```bash
+# "AI 시대의 TDD 활용" 책 집필을 위한 체계적 MOC
+python -m src generate-moc \
+  --topic "TDD" \
+  --output "book/TDD-책구성.md" \
+  --top-k 100 \
+  --threshold 0.25 \
+  --include-orphans
+```
+
+**결과**: 책의 목차 구성에 활용할 수 있는 체계적인 문서 분류와 학습 경로
+
+### 예제 5: 여러 주제 MOC 일괄 생성
+
+```bash
+# 여러 주제에 대한 MOC를 한번에 생성
+topics=("TDD" "리팩토링" "클린코드" "DDD" "마이크로서비스")
+
+for topic in "${topics[@]}"; do
+    echo "MOC 생성 중: $topic"
+    python -m src generate-moc --topic "$topic" --output "MOCs/MOC-${topic}.md"
+done
+```
+
+### 예제 6: 프로그래밍 방식 MOC 생성
+
+```python
+from src.features.moc_generator import MOCGenerator
+from src.features.advanced_search import AdvancedSearchEngine
+
+# 검색 엔진과 MOC 생성기 초기화
+engine = AdvancedSearchEngine("/path/to/vault", "cache", config)
+moc_generator = MOCGenerator(engine, config)
+
+# TDD MOC 생성
+moc_data = moc_generator.generate_moc(
+    topic="TDD",
+    top_k=50,
+    threshold=0.3,
+    include_orphans=False,
+    output_file="TDD-MOC.md"
+)
+
+# 생성된 MOC 정보 출력
+print(f"🎯 주제: {moc_data.topic}")
+print(f"📄 총 문서: {moc_data.total_documents}개")
+print(f"⭐ 핵심 문서: {len(moc_data.core_documents)}개")
+
+print(f"\n📂 카테고리별 분포:")
+for category in moc_data.categories:
+    print(f"  {category.name}: {len(category.documents)}개")
+
+print(f"\n🛤️ 학습 경로:")
+for step in moc_data.learning_path:
+    print(f"  {step.step}단계: {step.title} ({step.difficulty_level})")
+    print(f"    문서 수: {len(step.documents)}개")
+
+print(f"\n🔗 관련 주제:")
+for topic, count in moc_data.related_topics[:5]:
+    print(f"  - {topic}: {count}개 문서")
+```
+
+### MOC 활용 사례
+
+#### 사례 1: 신입 개발자 온보딩
+```bash
+# 신입 개발자를 위한 기초 개념 MOC
+python -m src generate-moc --topic "프로그래밍 기초" --top-k 20 --threshold 0.4
+```
+→ 학습 경로를 따라 체계적으로 기초를 다질 수 있음
+
+#### 사례 2: 기술 세미나 준비
+```bash
+# TDD 세미나를 위한 발표 자료 구성
+python -m src generate-moc --topic "TDD" --output "seminar/TDD-발표자료.md"
+```
+→ 입문부터 심화까지 체계적인 발표 구성 가능
+
+#### 사례 3: 팀 스터디 계획
+```bash
+# 팀 스터디를 위한 단계별 학습 계획
+python -m src generate-moc --topic "클린 아키텍처" --top-k 30
+```
+→ 생성된 학습 경로를 따라 팀 스터디 진행
+
+#### 사례 4: 개인 지식 점검
+```bash
+# 특정 분야 지식 현황 파악
+python -m src generate-moc --topic "Spring" --include-orphans
+```
+→ 빠진 부분이나 약한 영역 파악 가능
+
+### MOC 품질 향상 팁
+
+#### 좋은 MOC를 위한 vault 정리
+```bash
+# 1. 태그 체계 정리 (MOC 품질 향상)
+python -m src tag --target "specific-folder/" --recursive
+
+# 2. MOC 생성
+python -m src generate-moc --topic "TDD"
+
+# 3. 결과 확인 후 태그 보완
+python -m src tag --target "missed-documents/" 
+```
+
+#### 임계값 최적화 과정
+```bash
+# 1. 높은 임계값으로 시작 (핵심만)
+python -m src generate-moc --topic "TDD" --threshold 0.5 --top-k 20
+
+# 2. 중간 임계값으로 확장 (균형)
+python -m src generate-moc --topic "TDD" --threshold 0.3 --top-k 50
+
+# 3. 낮은 임계값으로 포괄적 수집
+python -m src generate-moc --topic "TDD" --threshold 0.2 --top-k 100 --include-orphans
+```
+
+### 생성된 MOC 문서 예시 구조
+
+```markdown
+# 📚 TDD Map of Content
+
+## 🎯 개요
+이 Map of Content는 'TDD' 주제에 대한 종합적인 탐색 가이드입니다.
+
+**📊 컬렉션 통계:**
+- 총 문서 수: 20개
+- 총 단어 수: 48,289개
+- 평균 문서 길이: 2,414개 단어
+
+## 🌟 핵심 문서
+1. **[[TDD 실무 완벽 가이드]]** (3,241 단어)
+2. **[[테스트 주도 개발 원칙]]** (2,156 단어)
+3. **[[TDD 실전 적용 사례]]** (2,891 단어)
+
+## 📖 카테고리별 분류
+
+### 입문/기초
+- [[TDD란 무엇인가]] - TDD의 기본 개념과 원리
+- [[테스트 우선 개발 시작하기]] - 초보자를 위한 단계별 가이드
+
+### 실습/예제  
+- [[TDD 실습 워크샵]] - 실제 코딩을 통한 TDD 연습
+- [[단위 테스트 작성법]] - 좋은 테스트 작성 방법
+
+## 🛤️ 추천 학습 경로
+
+### 1단계: 입문/기초 (입문)
+**설명**: TDD에 대한 기본적인 이해와 개념 학습
+**추천 문서:**
+- [[TDD란 무엇인가]]
+- [[테스트 주도 개발 기초]]
+
+### 2단계: 실습/예제 (중급)
+**설명**: 실제 사례를 통한 실습과 연습
+**추천 문서:**
+- [[TDD 실습 워크샵]]
+- [[단위 테스트 작성법]]
+
+## 🔗 관련 주제
+- **단위 테스트** (12개 문서)
+- **리팩토링** (8개 문서)
+- **클린 코드** (6개 문서)
+```
+
+---
+
 ## 📊 주제 분석 예제
 
 ### 예제 1: 전체 vault 주제 분석
@@ -419,6 +663,218 @@ for topic in topics:
 print(f"\n📊 전체 수집 결과:")
 for topic, count in results.items():
     print(f"  {topic}: {count}개")
+```
+
+### 예제 5: MOC 생성 API (Phase 8) 🆕
+```python
+#!/usr/bin/env python3
+"""
+MOC 자동 생성 API 사용 예제
+"""
+from src.features.moc_generator import MOCGenerator
+from src.features.advanced_search import AdvancedSearchEngine
+import yaml
+
+def generate_moc_for_topic(topic: str, output_dir: str = "MOCs"):
+    """특정 주제에 대한 MOC 생성"""
+    
+    # 설정 로딩
+    with open('config/settings.yaml', 'r') as f:
+        config = yaml.safe_load(f)
+    
+    # 엔진 초기화
+    engine = AdvancedSearchEngine(
+        vault_path="/path/to/vault",
+        cache_dir="cache", 
+        config=config
+    )
+    
+    # MOC 생성기 초기화
+    moc_generator = MOCGenerator(engine, config)
+    
+    # MOC 생성
+    output_file = f"{output_dir}/MOC-{topic.replace(' ', '-')}.md"
+    moc_data = moc_generator.generate_moc(
+        topic=topic,
+        top_k=50,
+        threshold=0.3,
+        include_orphans=False,
+        use_expansion=True,
+        output_file=output_file
+    )
+    
+    # 결과 분석
+    print(f"🎯 {topic} MOC 생성 완료:")
+    print(f"  📄 총 문서: {moc_data.total_documents}개")
+    print(f"  ⭐ 핵심 문서: {len(moc_data.core_documents)}개")
+    print(f"  📂 카테고리: {len(moc_data.categories)}개")
+    print(f"  🛤️ 학습 단계: {len(moc_data.learning_path)}단계")
+    print(f"  🔗 관련 주제: {len(moc_data.related_topics)}개")
+    
+    # 카테고리별 상세 정보
+    print(f"\n📋 카테고리별 분포:")
+    for category in moc_data.categories:
+        print(f"  {category.name}: {len(category.documents)}개")
+        # 각 카테고리의 대표 문서 1개씩 표시
+        if category.documents:
+            sample_doc = category.documents[0]
+            print(f"    예: {sample_doc.title}")
+    
+    # 학습 경로 정보
+    print(f"\n🛤️ 학습 경로 개요:")
+    for step in moc_data.learning_path:
+        print(f"  {step.step}단계: {step.title}")
+        print(f"    난이도: {step.difficulty_level}")
+        print(f"    문서 수: {len(step.documents)}개")
+    
+    # 관련 주제 (상위 5개)
+    if moc_data.related_topics:
+        print(f"\n🔗 주요 관련 주제:")
+        for topic_name, count in moc_data.related_topics[:5]:
+            print(f"  - {topic_name}: {count}개 문서")
+    
+    return moc_data
+
+# 사용 예제
+if __name__ == "__main__":
+    topics = ["TDD", "리팩토링", "클린코드", "DDD"]
+    
+    for topic in topics:
+        print(f"\n{'='*50}")
+        moc_data = generate_moc_for_topic(topic)
+        print(f"✅ {topic} MOC 생성 완료")
+    
+    print(f"\n🎉 모든 MOC 생성 완료!")
+```
+
+### 예제 6: 고급 MOC 생성 및 분석
+```python
+#!/usr/bin/env python3
+"""
+고급 MOC 생성 및 품질 분석 예제
+"""
+from src.features.moc_generator import MOCGenerator, DocumentCategory
+from src.features.advanced_search import AdvancedSearchEngine
+import yaml
+from typing import List
+
+class MOCAnalyzer:
+    """MOC 품질 분석기"""
+    
+    def __init__(self, moc_generator: MOCGenerator):
+        self.moc_generator = moc_generator
+    
+    def analyze_moc_quality(self, moc_data) -> dict:
+        """MOC 품질 분석"""
+        quality_metrics = {}
+        
+        # 1. 카테고리 균형도 분석
+        category_sizes = [len(cat.documents) for cat in moc_data.categories]
+        quality_metrics['category_balance'] = {
+            'avg_size': sum(category_sizes) / len(category_sizes),
+            'max_size': max(category_sizes),
+            'min_size': min(category_sizes),
+            'balance_ratio': min(category_sizes) / max(category_sizes) if max(category_sizes) > 0 else 0
+        }
+        
+        # 2. 학습 경로 완성도
+        quality_metrics['learning_path_completeness'] = {
+            'total_steps': len(moc_data.learning_path),
+            'avg_docs_per_step': sum(len(step.documents) for step in moc_data.learning_path) / len(moc_data.learning_path),
+            'difficulty_coverage': len(set(step.difficulty_level for step in moc_data.learning_path))
+        }
+        
+        # 3. 관련성 점수
+        quality_metrics['relatedness_score'] = {
+            'total_relationships': len(moc_data.relationships),
+            'avg_relationship_strength': sum(rel.strength for rel in moc_data.relationships) / len(moc_data.relationships) if moc_data.relationships else 0,
+            'connected_documents_ratio': len(set([rel.source_doc.path for rel in moc_data.relationships] + 
+                                                [rel.target_doc.path for rel in moc_data.relationships])) / moc_data.total_documents if moc_data.total_documents > 0 else 0
+        }
+        
+        return quality_metrics
+    
+    def suggest_improvements(self, moc_data, quality_metrics: dict) -> List[str]:
+        """MOC 개선 제안"""
+        suggestions = []
+        
+        balance = quality_metrics['category_balance']
+        if balance['balance_ratio'] < 0.3:
+            suggestions.append(f"📊 카테고리 불균형: 일부 카테고리에 문서가 편중됨 (균형도: {balance['balance_ratio']:.2f})")
+            suggestions.append("   → 임계값을 조정하거나 더 많은 문서를 포함해보세요")
+        
+        path = quality_metrics['learning_path_completeness']
+        if path['avg_docs_per_step'] < 2:
+            suggestions.append(f"🛤️ 학습 경로 부족: 단계별 문서가 부족함 (평균 {path['avg_docs_per_step']:.1f}개)")
+            suggestions.append("   → --top-k 값을 증가시키거나 threshold를 낮춰보세요")
+        
+        relatedness = quality_metrics['relatedness_score']
+        if relatedness['connected_documents_ratio'] < 0.5:
+            suggestions.append(f"🔗 연결성 부족: 문서 간 관계가 부족함 ({relatedness['connected_documents_ratio']:.1%})")
+            suggestions.append("   → 태그를 체계적으로 정리하거나 문서 간 링크를 추가해보세요")
+        
+        return suggestions
+
+def advanced_moc_generation_example():
+    """고급 MOC 생성 및 분석 예제"""
+    
+    # 설정 로딩
+    with open('config/settings.yaml', 'r') as f:
+        config = yaml.safe_load(f)
+    
+    # 엔진 및 생성기 초기화
+    engine = AdvancedSearchEngine("/path/to/vault", "cache", config)
+    moc_generator = MOCGenerator(engine, config)
+    analyzer = MOCAnalyzer(moc_generator)
+    
+    topic = "TDD"
+    
+    # 1. 기본 MOC 생성
+    print(f"🚀 {topic} MOC 생성 중...")
+    moc_data = moc_generator.generate_moc(
+        topic=topic,
+        top_k=30,
+        threshold=0.3,
+        use_expansion=True,
+        output_file=f"MOC-{topic}-basic.md"
+    )
+    
+    # 2. MOC 품질 분석
+    print(f"📊 MOC 품질 분석 중...")
+    quality_metrics = analyzer.analyze_moc_quality(moc_data)
+    
+    print(f"\n📈 {topic} MOC 품질 분석 결과:")
+    print(f"카테고리 균형도: {quality_metrics['category_balance']['balance_ratio']:.2f}")
+    print(f"학습 경로 완성도: {quality_metrics['learning_path_completeness']['total_steps']}단계")
+    print(f"문서 연결성: {quality_metrics['relatedness_score']['connected_documents_ratio']:.1%}")
+    
+    # 3. 개선 제안
+    suggestions = analyzer.suggest_improvements(moc_data, quality_metrics)
+    if suggestions:
+        print(f"\n💡 MOC 개선 제안:")
+        for suggestion in suggestions:
+            print(f"  {suggestion}")
+        
+        # 4. 개선된 MOC 재생성
+        print(f"\n🔧 개선된 MOC 재생성 중...")
+        improved_moc = moc_generator.generate_moc(
+            topic=topic,
+            top_k=50,  # 더 많은 문서
+            threshold=0.25,  # 낮은 임계값
+            include_orphans=True,  # 고립 문서 포함
+            use_expansion=True,
+            output_file=f"MOC-{topic}-improved.md"
+        )
+        
+        # 5. 개선 효과 비교
+        improved_metrics = analyzer.analyze_moc_quality(improved_moc)
+        print(f"\n📊 개선 효과:")
+        print(f"문서 수: {moc_data.total_documents} → {improved_moc.total_documents}")
+        print(f"카테고리 균형도: {quality_metrics['category_balance']['balance_ratio']:.2f} → {improved_metrics['category_balance']['balance_ratio']:.2f}")
+        print(f"연결성: {quality_metrics['relatedness_score']['connected_documents_ratio']:.1%} → {improved_metrics['relatedness_score']['connected_documents_ratio']:.1%}")
+
+if __name__ == "__main__":
+    advanced_moc_generation_example()
 ```
 
 ---
