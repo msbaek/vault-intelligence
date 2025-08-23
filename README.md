@@ -41,6 +41,7 @@ BGE-M3 기반 고품질 1024차원 임베딩을 활용한 Obsidian vault 지능�
 - **문서 수집**: 주제별 자동 문서 수집 및 통합
 - **배치 처리**: 대용량 vault 효율적 처리
 - **자동 태깅**: BGE-M3 기반 의미적 태그 자동 생성 (Phase 7)
+- **MOC 자동 생성**: 주제별 체계적 목차 문서 자동 생성 (Phase 8) 🆕
 
 ## 📁 프로젝트 구조
 
@@ -145,6 +146,7 @@ python -m src info  # 캐시 상태 포함
 | **지식 그래프** | ❌ | ✅ (관련성 분석, 중심성 랭킹) |
 | **쿼리 확장** | ❌ | ✅ (동의어 + HyDE) |
 | **자동 태깅** | ❌ | ✅ (의미적 태깅) |
+| **MOC 자동 생성** | ❌ | ✅ (6가지 카테고리 분류) 🆕 |
 | **의존성** | Obsidian 플러그인 | 완전 독립 |
 | **검색 품질** | 중간 | 최고 품질 (+70%) |
 | **확장성** | 제한적 | 무제한 |
@@ -176,6 +178,21 @@ python -m src info  # 캐시 상태 포함
 - [x] 중심성 점수 기반 검색 랭킹
 - [x] 지식 공백 분석 기능
 - [x] CLI 명령어 확장 (related, analyze-gaps, --with-centrality)
+
+### Phase 7: 자동 태깅 시스템 ✅
+- [x] BGE-M3 기반 의미적 태깅
+- [x] 5가지 카테고리 계층적 태그 체계
+- [x] 단일/폴더 일괄 태깅 지원
+- [x] 신뢰도 점수 기반 태그 필터링
+- [x] CLI 명령어 (tag) 구현
+
+### Phase 8: MOC 자동 생성 시스템 ✅ 🆕
+- [x] 주제별 체계적 목차 자동 생성
+- [x] 6가지 카테고리 자동 분류 시스템
+- [x] 학습 경로 알고리즘 구현
+- [x] 핵심 문서 선정 및 관계 분석
+- [x] Obsidian 최적화 마크다운 출력
+- [x] CLI 명령어 (generate-moc) 구현
 
 ## 📚 문서 및 가이드
 
@@ -210,6 +227,11 @@ python -m src duplicates                                         # 중복 문서
 python -m src collect --topic "리팩토링" --output results.md    # 주제별 문서 수집
 python -m src analyze                                            # 주제 분석 및 클러스터링
 
+# 📚 MOC(Map of Content) 자동 생성 (Phase 8) 🆕
+python -m src generate-moc --topic "TDD"                        # 기본 MOC 생성
+python -m src generate-moc --topic "TDD" --output "TDD-MOC.md" --top-k 50  # 상세 옵션
+python -m src generate-moc --topic "리팩토링" --include-orphans  # 연결되지 않은 문서도 포함
+
 # 전체 재인덱싱 (필요시)
 python -m src reindex --force
 
@@ -222,6 +244,7 @@ python -m src info
 from src.features.advanced_search import AdvancedSearchEngine
 from src.features.duplicate_detector import DuplicateDetector
 from src.features.topic_collector import TopicCollector
+from src.features.moc_generator import MOCGenerator
 
 # 검색 엔진 초기화
 engine = AdvancedSearchEngine("vault_path", "cache_dir", config)
@@ -236,6 +259,10 @@ analysis = detector.find_duplicates()
 # 주제 수집
 collector = TopicCollector(engine, config)
 collection = collector.collect_topic("TDD")
+
+# MOC 생성 (Phase 8) 🆕
+moc_generator = MOCGenerator(engine, config)
+moc_data = moc_generator.generate_moc("TDD", top_k=50)
 ```
 
 > 💡 **자세한 사용법은 [사용자 가이드](docs/USER_GUIDE.md)와 [실전 예제](docs/EXAMPLES.md)를 참고하세요!**
