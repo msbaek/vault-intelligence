@@ -1,5 +1,10 @@
 # 🎯 Vault Intelligence System V2 실전 예제 모음
 
+## 📖 문서 내비게이션
+- [🏠 프로젝트 홈](../README.md) | [🚀 빠른 시작](QUICK_START.md) | [📚 사용자 가이드](USER_GUIDE.md) | **💡 실전 예제** | [🔧 문제 해결](TROUBLESHOOTING.md) | [⚙️ 개발자 가이드](../CLAUDE.md)
+
+---
+
 실제 사용 상황에 따른 구체적인 예제들을 정리했습니다.
 
 ## 📚 목차
@@ -553,7 +558,7 @@ def main():
     
     # 검색 엔진 초기화
     engine = AdvancedSearchEngine(
-        vault_path="/Users/msbaek/DocumentsLocal/msbaek_vault",
+        vault_path="/path/to/your/vault",
         cache_dir="cache",
         config=config
     )

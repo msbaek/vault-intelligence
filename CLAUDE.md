@@ -1,652 +1,345 @@
-# CLAUDE.md
+# Developer Guide - Vault Intelligence System V2
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+이 문서는 Claude Code에서 이 레포지토리 작업 시 참조하는 개발자 가이드입니다.
 
-## 프로젝트 개요
+## 📖 문서 구조
 
-Vault Intelligence System V2는 BGE-M3 기반 Obsidian vault 지능형 검색 및 태깅 시스템입니다. Smart Connections 플러그인에서 완전히 독립하여 더 높은 차원의 임베딩(1024차원)과 다층 검색 시스템을 제공합니다. Phase 7 완료로 자동 태깅까지 지원하는 완전한 vault 관리 시스템입니다.
+- **[README.md](README.md)** - 프로젝트 개요 및 빠른 시작
+- **[사용자 가이드](docs/USER_GUIDE.md)** - 완전한 사용법 매뉴얼  
+- **[실전 예제](docs/EXAMPLES.md)** - 다양한 활용 사례
+- **[문제 해결](docs/TROUBLESHOOTING.md)** - 기술 지원 가이드
+- **이 문서** - 개발자 및 기여자를 위한 상세 가이드
 
-**주요 특징**:
-- 🔍 **다층 검색 시스템**: Dense + Sparse + ColBERT + Reranking
-- 🏷️ **자동 태깅**: BGE-M3 기반 의미 분석으로 계층적 태그 자동 생성
-- 🇰🇷 **한국어 최적화**: 동의어 확장 및 HyDE 기술
-- ⚡ **M1 Pro 최적화**: Metal Performance Shaders 가속
-- 🎯 **최고 품질**: Cross-encoder 재순위화로 정밀도 극대화
-
-## 개발 환경 설정
-
-### 의존성 설치
-```bash
-pip install -r requirements.txt
-```
-
-### 시스템 테스트
-```bash
-python -m src test
-```
-
-### 시스템 초기화
-```bash
-python -m src init --vault-path /Users/msbaek/DocumentsLocal/msbaek_vault
-```
-
-## 주요 명령어
-
-### 검색 기능
-
-#### 기본 검색 방법들
-```bash
-# 의미적 검색
-python -m src search --query "TDD" --search-method semantic
-
-# 키워드 검색  
-python -m src search --query "TDD" --search-method keyword
-
-# 하이브리드 검색 (기본값, 의미적 + 키워드)
-python -m src search --query "TDD" --search-method hybrid
-
-# ColBERT 토큰 수준 검색 (Phase 5.2)
-python -m src search --query "TDD" --search-method colbert
-
-# 유사도 임계값 조정
-python -m src search --query "리팩토링" --threshold 0.3
-```
-
-#### 고급 검색 기능들 (Phase 5 완료)
-```bash
-# 재순위화 포함 검색 (최고 품질)
-python -m src search --query "TDD" --rerank
-
-# 쿼리 확장 검색 (최대 포괄성)
-python -m src search --query "TDD" --expand
-
-# 동의어만 확장 (HyDE 제외)
-python -m src search --query "TDD" --expand --no-hyde
-
-# HyDE만 활용 (동의어 제외)
-python -m src search --query "TDD" --expand --no-synonyms
-
-# 모든 기능 결합 (최고 성능)
-python -m src search --query "TDD" --rerank --expand
-```
-
-### 자동 태깅 기능 (Phase 7)
-
-#### 단일 문서 태깅
-```bash
-# 절대 경로로 태깅
-python -m src tag "/full/path/to/document.md"
-
-# Vault 상대 경로로 태깅
-python -m src tag "997-BOOKS/clean-code.md"
-
-# 파일명만으로 태깅 (자동 검색)
-python -m src tag "clean-code.md"
-
-# Dry-run 모드 (실제 적용하지 않고 미리보기)
-python -m src tag "document.md" --dry-run
-```
-
-#### 폴더별 일괄 태깅
-```bash
-# 특정 폴더 일괄 태깅
-python -m src tag "997-BOOKS/"
-
-# 대용량 폴더 점진적 처리
-python -m src tag "large-folder/" --batch-size 50
-
-# 기존 태그 완전 교체
-python -m src tag "folder/" --replace-existing
-
-# 상세 진행률 표시
-python -m src tag "folder/" --verbose
-```
-
-### 중복 문서 감지
-```bash
-python -m src duplicates
-```
-
-### 주제별 문서 수집
-```bash
-# 기본 주제별 문서 수집
-python -m src collect --topic "TDD" --output results.md
-
-# 상위 K개 결과만 수집
-python -m src collect --topic "클린코드" --top-k 20
-
-# 쿼리 확장을 통한 포괄적 수집 (동의어 + HyDE)
-python -m src collect --topic "TDD" --expand
-
-# 동의어만 확장 (HyDE 제외)
-python -m src collect --topic "리팩토링" --expand --no-hyde
-
-# HyDE만 활용 (동의어 제외)
-python -m src collect --topic "TDD" --expand --no-synonyms
-
-# 임계값 조정과 함께 확장 검색
-python -m src collect --topic "아키텍처" --expand --threshold 0.1 --top-k 20
-```
-
-### 주제 분석 및 클러스터링
-```bash
-python -m src analyze
-```
-
-### MOC(Map of Content) 자동 생성 (Phase 8)
-```bash
-# 기본 MOC 생성
-python -m src generate-moc --topic "TDD"
-
-# 상세 옵션 지정
-python -m src generate-moc --topic "TDD" --output "TDD-MOC.md" --top-k 50
-
-# 연결되지 않은 문서도 포함
-python -m src generate-moc --topic "리팩토링" --include-orphans
-
-# 임계값 조정과 함께 생성
-python -m src generate-moc --topic "아키텍처" --threshold 0.2 --top-k 30
-```
-
-### 다중 문서 요약 시스템 (Phase 9)
-
-#### 문서 클러스터링 및 요약
-```bash
-# 기본 클러스터링 (자동으로 최적 클러스터 수 결정)
-python -m src summarize --clusters 3
-
-# 주제별 클러스터링
-python -m src summarize --topic "TDD" --clusters 5 --style detailed
-
-# 최근 문서만 대상으로 클러스터링
-python -m src summarize --since "2024-01-01" --clusters 4 --output recent-clusters.md
-
-# 다양한 클러스터링 알고리즘 사용
-python -m src summarize --algorithm dbscan --style technical
-
-# 특정 요약 스타일 지정
-python -m src summarize --clusters 3 --style brief  # brief, detailed, technical, conceptual
-```
-
-#### 학습 리뷰 시스템
-```bash
-# 주간 학습 리뷰
-python -m src review --period weekly
-
-# 월간 학습 리뷰
-python -m src review --period monthly --output monthly-review.md
-
-# 분기별 학습 리뷰
-python -m src review --period quarterly
-
-# 특정 기간 학습 리뷰
-python -m src review --from "2024-08-01" --to "2024-08-31"
-
-# 주제별 학습 리뷰
-python -m src review --topic "TDD" --period monthly
-
-# 자세한 분석 포함
-python -m src review --period weekly --output weekly-detail.md
-```
-
-### 지식 그래프 기능 (Phase 6)
-```bash
-# 관련 문서 추천
-python -m src related --file "클린 애자일(Back to Basics)" --top-k 5
-
-# 중심성 점수 기반 검색 랭킹 향상
-python -m src search --query "TDD" --with-centrality --top-k 10
-
-# 지식 공백 분석
-python -m src analyze-gaps --top-k 10
-
-# 지식 그래프 시각화 (색인 재구축 불필요)
-python visualize_knowledge_graph.py
-```
-
-#### 지식 그래프 시각화 특징
-- **캐시 활용**: 기존 임베딩 캐시를 활용하여 빠른 시각화
-- **한글 지원**: AppleGothic 폰트 자동 적용 (macOS 환경)
-- **샘플링**: 대규모 vault도 샘플링으로 빠른 프로토타이핑
-- **다양한 관계**: 유사도, 태그, 참조(Obsidian 링크) 기반 엣지
-- **중심성 분석**: PageRank, 근접/매개 중심성 점수 계산
-- **커뮤니티 탐지**: 관련 문서 그룹 자동 식별
-
-**생성 파일**:
-- `knowledge_graph_korean.png` - 한글 폰트 적용된 시각화
-- `knowledge_graph.json` - 그래프 데이터 (노드, 엣지, 메트릭)
-
-### 전체 재인덱싱
-```bash
-# 일반 재인덱싱 (Dense 임베딩만)
-python -m src reindex
-
-# 강제 재인덱싱 (기존 캐시 무시)
-python -m src reindex --force
-
-# ColBERT 포함 재인덱싱 (신규 기능!)
-python -m src reindex --with-colbert
-
-# ColBERT 강제 재인덱싱
-python -m src reindex --with-colbert --force
-
-# ColBERT만 재인덱싱 (Dense 임베딩 제외)
-python -m src reindex --colbert-only
-
-# 성능 최대화 재인덱싱
-# config/settings.yaml에서 다음 설정 변경 후 실행:
-# batch_size: 8, max_length: 8192, num_workers: 8
-python -m src reindex --with-colbert
-```
-
-### 성능 설정 옵션
-
-#### 안정적 설정 (기본값)
-- 배치 크기: 4, 토큰 길이: 4096, 워커: 6개
-- 소요 시간: 40-60분
-- 시스템 부하: 보통, 다른 작업 동시 가능
-
-#### 성능 최대화 설정
-- 배치 크기: 8, 토큰 길이: 8192, 워커: 8개  
-- 소요 시간: 25-35분 (50-70% 향상)
-- 시스템 부하: 높음, 색인 중 다른 작업 제한적
-
-### 시스템 정보
-```bash
-python -m src info
-```
-
-## 아키텍처 구조
+## 🏗️ 시스템 아키텍처
 
 ### 핵심 모듈 구조
 ```
 src/
 ├── core/                           # 핵심 엔진
-│   ├── sentence_transformer_engine.py  # BGE-M3 기반 고품질 임베딩 엔진
-│   ├── embedding_cache.py              # SQLite 기반 임베딩 캐싱
-│   └── vault_processor.py              # Obsidian 마크다운 파일 처리
+│   ├── sentence_transformer_engine.py  # BGE-M3 임베딩 엔진
+│   ├── embedding_cache.py              # SQLite 캐싱 시스템
+│   └── vault_processor.py              # Vault 파일 처리
 ├── features/                       # 기능 모듈
-│   ├── advanced_search.py              # 의미적/키워드/하이브리드/확장 검색
-│   ├── reranker.py                     # Cross-encoder 재순위화 (Phase 5.1)
-│   ├── colbert_search.py               # ColBERT 토큰 수준 검색 (Phase 5.2)
-│   ├── query_expansion.py              # 쿼리 확장 및 HyDE (Phase 5.3)
-│   ├── duplicate_detector.py           # 중복 문서 감지
+│   ├── advanced_search.py              # 다층 검색 엔진
+│   ├── reranker.py                     # Cross-encoder 재순위화
+│   ├── colbert_search.py               # ColBERT 토큰 검색
+│   ├── query_expansion.py              # 쿼리 확장 (동의어 + HyDE)
+│   ├── semantic_tagger.py              # 자동 태깅 시스템
+│   ├── content_clusterer.py            # 문서 클러스터링 (Phase 9)
+│   ├── document_summarizer.py          # 문서 요약 시스템 (Phase 9)  
+│   ├── learning_reviewer.py            # 학습 리뷰 시스템 (Phase 9)
+│   ├── knowledge_graph.py              # 지식 그래프 분석
+│   ├── moc_generator.py                # MOC 자동 생성
 │   ├── topic_collector.py              # 주제별 문서 수집
-│   ├── topic_analyzer.py               # 주제 분석 및 클러스터링
-│   └── knowledge_graph.py              # 지식 그래프 (계획)
+│   └── duplicate_detector.py           # 중복 문서 감지
+├── utils/                          # 유틸리티
+│   └── claude_code_integration.py      # Claude Code LLM 통합
 └── __main__.py                     # CLI 엔트리 포인트
 ```
 
 ### 데이터 계층
 - **SQLite 캐시**: `cache/embeddings.db` - 임베딩 벡터 영구 저장
-- **메타데이터**: `cache/metadata.json` - 문서 메타데이터 캐싱
+- **메타데이터**: `cache/metadata.json` - 문서 메타데이터 캐싱  
 - **설정**: `config/settings.yaml` - 시스템 전역 설정
 - **모델**: `models/` - 다운로드된 BGE-M3 모델
 
-## 프로그래밍 방식 사용
+## 🚀 개발 환경 설정
 
-### 검색 엔진 초기화
-```python
-from src.features.advanced_search import AdvancedSearchEngine
-
-# 검색 엔진 초기화
-engine = AdvancedSearchEngine(
-    vault_path="/path/to/vault",
-    cache_dir="cache",
-    config=config
-)
-
-# 인덱스 구축 (처음 실행 시)
-engine.build_index()
-```
-
-### 하이브리드 검색
-```python
-# 하이브리드 검색 (의미적 + 키워드)
-results = engine.hybrid_search("TDD", top_k=10)
-
-# 의미적 검색만
-results = engine.semantic_search("테스트 주도 개발", top_k=5)
-
-# 키워드 검색만  
-results = engine.keyword_search("refactoring", top_k=10)
-```
-
-### 중복 문서 감지
-```python
-from src.features.duplicate_detector import DuplicateDetector
-
-detector = DuplicateDetector(engine, config)
-analysis = detector.find_duplicates()
-
-print(f"중복 그룹: {analysis.get_group_count()}개")
-print(f"중복 비율: {analysis.get_duplicate_ratio():.1%}")
-```
-
-### 주제별 문서 수집
-```python
-from src.features.topic_collector import TopicCollector
-
-collector = TopicCollector(engine, config)
-
-# 기본 수집
-collection = collector.collect_topic("TDD", top_k=20)
-
-# 쿼리 확장을 통한 포괄적 수집
-expanded_collection = collector.collect_topic(
-    "TDD", 
-    top_k=20,
-    use_expansion=True,
-    include_synonyms=True,
-    include_hyde=True
-)
-
-# 동의어만 사용하는 확장 수집
-synonym_collection = collector.collect_topic(
-    "리팩토링",
-    top_k=15,
-    use_expansion=True,
-    include_synonyms=True,
-    include_hyde=False
-)
-
-# 결과를 마크다운으로 저장
-collector.save_collection(collection, "tdd_collection.md")
-```
-
-### 지식 그래프 및 관련 문서 추천 (Phase 6)
-```python
-# 관련 문서 추천
-related_docs = engine.get_related_documents(
-    document_path="클린 애자일(Back to Basics)",
-    top_k=5,
-    include_centrality_boost=True
-)
-
-# 중심성 점수 기반 검색 랭킹 향상
-results = engine.search_with_centrality_boost(
-    query="TDD",
-    top_k=10,
-    centrality_weight=0.2
-)
-
-# 지식 공백 분석
-gaps = engine.analyze_knowledge_gaps(
-    min_connections=3,
-    centrality_threshold=0.1
-)
-```
-
-### 다중 문서 요약 시스템 (Phase 9)
-```python
-from src.features.content_clusterer import ContentClusterer
-from src.features.document_summarizer import DocumentSummarizer
-from src.features.learning_reviewer import LearningReviewer
-
-# 문서 클러스터링
-clusterer = ContentClusterer(engine.engine, engine.cache, config)
-clustering_result = clusterer.cluster_documents(
-    documents=documents,
-    algorithm='kmeans',
-    n_clusters=5
-)
-
-# 클러스터별 요약
-summarizer = DocumentSummarizer(engine.cache, config)
-summary_result = summarizer.summarize_clustering_result(
-    clustering_result,
-    style='detailed',
-    topic='TDD'
-)
-
-# 학습 리뷰 생성
-reviewer = LearningReviewer(engine, config)
-learning_review = reviewer.generate_review(
-    period='weekly',
-    topic=None,
-    start_date=None,
-    end_date=None
-)
-
-# 결과를 마크다운으로 저장
-clusterer.save_clustering_result(clustering_result, "clustering-result.md")
-summarizer.save_summary_result(summary_result, "summary-result.md")
-reviewer.save_review(learning_review, "learning-review.md")
-```
-
-## 설정 관리
-
-### 주요 설정 (`config/settings.yaml`)
-
-**모델 설정**
-- `model.name`: BGE 모델명 (기본: BAAI/bge-m3)
-- `model.dimension`: 임베딩 차원 (1024)
-- `model.batch_size`: 배치 크기 (12)
-- `model.use_fp16`: FP16 정밀도 사용 여부 (true)
-
-**검색 설정**
-- `search.similarity_threshold`: 유사도 임계값 (0.3)
-- `search.text_weight`: 키워드 검색 가중치 (0.3)
-- `search.semantic_weight`: 의미적 검색 가중치 (0.7)
-
-**중복 감지 설정**
-- `duplicates.similarity_threshold`: 중복 판정 임계값 (0.85)
-- `duplicates.min_word_count`: 최소 단어 수 (50)
-
-**Reranker 설정 (Phase 5.1)**
-- `reranker.model_name`: Reranker 모델명 (BAAI/bge-reranker-v2-m3)
-- `reranker.batch_size`: 배치 크기 (4)
-- `reranker.initial_candidates_multiplier`: 초기 후보 배수 (3)
-
-**ColBERT 설정 (Phase 5.2)**
-- `colbert.model_name`: ColBERT 모델명 (BAAI/bge-m3)
-- `colbert.max_documents`: 최대 처리 문서 수 (20)
-- `colbert.batch_size`: 배치 크기 (2)
-
-**쿼리 확장 설정 (Phase 5.3)**
-- `query_expansion.enable_hyde`: HyDE 활성화 여부 (true)
-
-**MOC 생성 설정 (Phase 8)**
-- `moc.max_core_documents`: 핵심 문서 최대 수 (5)
-- `moc.max_category_documents`: 카테고리별 최대 문서 수 (10)
-- `moc.recent_days`: 최근 업데이트 기준 일수 (30)
-- `moc.min_similarity_threshold`: 최소 유사도 임계값 (0.3)
-- `moc.relationship_threshold`: 관계 판정 임계값 (0.6)
-- `query_expansion.max_synonyms`: 최대 동의어 수 (3)
-- `query_expansion.synonym_weight`: 동의어 가중치 (0.8)
-- `query_expansion.hyde_weight`: HyDE 가중치 (0.6)
-
-**문서 클러스터링 설정 (Phase 9)**
-- `clustering.default_algorithm`: 기본 클러스터링 알고리즘 (kmeans)
-- `clustering.max_clusters`: 최대 클러스터 수 (10)
-- `clustering.min_cluster_size`: 최소 클러스터 크기 (5)
-- `clustering.silhouette_threshold`: 실루엣 점수 임계값 (0.3)
-
-**문서 요약 설정 (Phase 9)**
-- `document_summarization.default_style`: 기본 요약 스타일 (detailed)
-- `document_summarization.max_cluster_size`: 요약 대상 최대 클러스터 크기 (100)
-- `document_summarization.summary_length`: 요약 길이 제한 (500자)
-
-**학습 리뷰 설정 (Phase 9)**
-- `learning_review.default_period`: 기본 리뷰 기간 (weekly)
-- `learning_review.min_activity_threshold`: 최소 활동 임계값 (1)
-- `learning_review.quality_score_weight`: 품질 점수 가중치 (0.3)
-- `learning_review.growth_rate_weight`: 성장률 가중치 (0.4)
-
-**파일 제외 설정**
-- `vault.excluded_dirs`: 제외할 디렉토리 목록 (`.obsidian`, `.trash` 등)
-- `vault.excluded_files`: 제외할 파일 패턴 목록 (glob 패턴 지원)
-  - 예시: `*.tmp`, `*.backup`, `README.md`, `LICENSE*`
-  - 시스템 파일: `.DS_Store`, `Thumbs.db`, `desktop.ini`
-  - 임시 파일: `*.tmp`, `*.temp`, `*.bak`, `*~`
-
-## 테스트
-
-### 단위 테스트 실행
+### 1. 개발 의존성 설치
 ```bash
+pip install -r requirements.txt
+pip install -r requirements-dev.txt  # 개발용 추가 도구들
+```
+
+### 2. 개발용 설정
+```bash
+# 테스트 vault 설정 (개발용)
+python -m src init --vault-path ./test-vault
+
+# 시스템 상태 확인
+python -m src info
+
+# 전체 시스템 테스트
 python -m src test
 ```
 
-개별 모듈 테스트 함수:
-- `src.core.sentence_transformer_engine.test_engine()`
-- `src.core.embedding_cache.test_cache()`
-- `src.core.vault_processor.test_processor()`
-- `src.features.reranker.test_reranker()` (Phase 5.1)
-- `src.features.colbert_search.test_colbert_search()` (Phase 5.2)
-- `src.features.query_expansion.test_query_expansion()` (Phase 5.3)
+### 3. 개발 워크플로우
+```bash
+# 새 기능 개발 시
+1. 기능별 브랜치 생성: git checkout -b feature/new-feature
+2. 단위 테스트 작성: tests/test_new_feature.py
+3. 기능 구현: src/features/new_feature.py  
+4. CLI 통합: src/__main__.py에 명령어 추가
+5. 문서 업데이트: 이 파일 및 사용자 가이드 업데이트
+```
 
-## 성능 최적화
+## 🧪 테스트 및 검증
 
-### 캐싱 시스템
-- SQLite 기반 영구 캐싱으로 재처리 방지
-- 문서 내용 해시 기반 캐시 무효화
-- 배치 처리로 대량 임베딩 최적화
+### 단위 테스트
+```bash
+# 전체 시스템 테스트
+python -m src test
 
-### 메모리 관리
-- BGE-M3 모델 캐싱 및 재사용
-- 대용량 vault 처리를 위한 배치 단위 처리
-- 진행률 표시로 사용자 경험 개선
-- GPU/CPU 자동 감지 및 최적화
+# 개별 모듈 테스트
+python -c "from src.core.sentence_transformer_engine import test_engine; test_engine()"
+python -c "from src.features.advanced_search import test_search_engine; test_search_engine()"
+```
 
-## 프로젝트 관리 방식
+### 성능 벤치마크
+```bash
+# 검색 성능 테스트 (1000개 문서 기준)
+python -m src search --query "test" --benchmark
 
-### 문서화 전략
-- **계획 문서**: `docs/embedding-upgrade-plan.md`에 전체 구현 계획 관리
-- **TODO 추적**: `docs/todo-embedding-upgrade.md`에 체크리스트 형식으로 진행 상황 관리
-- **커밋 전략**: 각 기능 완성 시점에 의미 있는 커밋 메시지와 함께 커밋
-- **태깅**: 주요 마일스톤 달성 시 Git 태그로 버전 관리
+# 인덱싱 성능 테스트
+time python -m src reindex --force
 
-### 개발 워크플로우
-1. TODO 문서에서 다음 작업 항목 선택
-2. 해당 항목을 '진행 중'으로 표시
-3. 기능 구현 완료 후 '완료'로 표시
-4. 관련 문서 업데이트 (README, CLAUDE.md)
-5. 적절한 커밋 메시지와 함께 변경사항 커밋
+# 메모리 사용량 모니터링
+python -c "
+import psutil, os
+process = psutil.Process(os.getpid())
+print(f'Memory: {process.memory_info().rss / 1024 / 1024:.1f}MB')
+"
+```
 
-### 품질 관리
-- 각 단계별 테스트 실행 필수
-- 성능 벤치마크 측정 및 기록
-- 코드 리뷰 및 리팩토링 지속 수행
-- 문서화 동기화 유지
+## ⚙️ 설정 시스템
 
-## 현재 구현 상태
+### config/settings.yaml 구조
+```yaml
+# 모델 설정
+model:
+  name: "BAAI/bge-m3"
+  dimension: 1024
+  batch_size: 8          # 안정적 설정
+  max_length: 4096       # 토큰 길이 제한
+  use_fp16: false        # M1 호환성
+  num_workers: 6         # 병렬 처리 워커 수
 
-### ✅ 완료된 작업 (Phase 1-9) 🎉
-- **BGE-M3 기반 고품질 임베딩 시스템** 구현 완료
-- **Dense Embeddings** (1024차원) 의미적 검색
-- **Sparse Embeddings** (BM25) 키워드 검색  
-- **Hybrid Search** (RRF 기반 Dense + Sparse 융합)
-- **고급 검색 엔진** (의미적/키워드/하이브리드/ColBERT/확장)
-- **중복 문서 감지** 및 그룹화
-- **주제별 클러스터링** (K-means, DBSCAN)
-- **문서 수집 및 통합** 시스템
-- **통합 CLI 인터페이스**
-- **전체 시스템 통합 테스트** 완료
+# 검색 설정  
+search:
+  similarity_threshold: 0.3
+  text_weight: 0.3       # BM25 가중치
+  semantic_weight: 0.7   # Dense 가중치
 
-#### 🆕 Phase 5: 검색 품질 향상 시스템 (2025-08-21 완료)
-- **Cross-encoder Reranking**: BAAI/bge-reranker-v2-m3 기반 2단계 검색
-- **ColBERT 토큰 수준 검색**: 세밀한 토큰 매칭 및 late interaction
-- **쿼리 확장 시스템**: 한국어 동의어 사전 + HyDE (Hypothetical Document Embeddings)
-- **다중 검색 모드**: semantic, keyword, hybrid, colbert, rerank, expand
-- **MPS 가속 최적화**: M1 Pro Metal Performance Shaders 완전 활용
+# 캐싱 설정
+caching:
+  enable_dense: true
+  enable_colbert: true
+  enable_metadata: true
 
-#### 🆕 Phase 6: 지식 그래프 및 관련성 분석 시스템 (2025-08-21 완료)
-- **지식 그래프 구축**: NetworkX 기반 문서 관계 분석 및 중심성 점수 계산
-- **관련 문서 추천**: 의미적 유사도 + 태그 유사도 + 중심성 점수 기반 추천
-- **중심성 기반 검색 랭킹**: PageRank, 근접 중심성, 매개 중심성을 활용한 검색 결과 향상
-- **지식 공백 분석**: 고립된 문서 및 약한 연결 문서 식별을 통한 지식 체계 개선
-- **새로운 CLI 명령어**: `related`, `analyze-gaps`, `--with-centrality` 옵션 추가
+# Phase 9 설정
+clustering:
+  default_algorithm: "kmeans"
+  max_clusters: 10
+  silhouette_threshold: 0.3
 
-#### 🎯 Phase 7: 자동 태깅 시스템 (2025-08-21 완료)
-- **의미적 태깅**: BGE-M3 기반 문서 내용 분석을 통한 자동 태그 생성
-- **계층적 태그**: 5가지 카테고리(Topic, Document Type, Source, Status, Project) 기반
-- **일괄 처리**: 폴더별 대량 문서 자동 태깅 지원
-- **신뢰도 점수**: 태그별 신뢰도 측정 및 필터링
+document_summarization:
+  default_style: "detailed" 
+  max_cluster_size: 100
 
-#### 🚀 NEW: ColBERT 증분 캐싱 시스템 (2025-08-23 완료)
-- **SQLite 기반 ColBERT 캐싱**: 영구 저장으로 재계산 불필요
-- **증분 인덱싱**: 변경된 문서만 재처리하여 효율성 극대화
-- **전체 문서 지원**: max_documents 제한 제거로 vault 전체 ColBERT 검색 가능
-- **명령어 일관성**: 기존 reindex 체계와 완벽한 통합
-- **새로운 옵션**: `--with-colbert`, `--colbert-only` 플래그 추가
-- **캐시 통계**: 실시간 캐싱 상태 및 성능 모니터링
+learning_review:
+  default_period: "weekly"
+  min_activity_threshold: 1
+```
 
-#### 📚 Phase 8: MOC(Map of Content) 자동 생성 시스템 (2025-08-23 완료)
-- **주제별 체계적 목차**: 특정 주제 관련 문서들을 체계적으로 정리한 탐색 가이드
-- **자동 카테고리 분류**: 6가지 카테고리(입문/기초, 개념/이론, 실습/예제, 도구/기술, 심화/고급, 참고자료)로 문서 자동 분류
-- **학습 경로 생성**: 난이도와 선후 관계를 고려한 단계별 학습 가이드 제공
-- **핵심 문서 선정**: 중요도 점수 기반 주제별 핵심 문서 자동 추천
-- **관련 주제 추출**: 태그와 내용 분석을 통한 연관 주제 자동 발견
-- **문서 관계 분析**: 유사도 기반 문서 간 연관성 매핑
-- **Obsidian 최적화**: Obsidian에서 즉시 활용 가능한 마크다운 형식 출력
-- **새로운 CLI 명령어**: `generate-moc --topic "주제명"` 명령어 추가
+### 성능 튜닝 가이드
 
-#### 🚀 Phase 9: 다중 문서 요약 시스템 (2025-08-24 완료)
-- **의미적 문서 클러스터링**: BGE-M3 임베딩 기반 콘텐츠 중심 자동 그룹화
-- **다중 클러스터링 알고리즘**: K-means, DBSCAN, Agglomerative 지원으로 다양한 데이터 분포 대응
-- **자동 클러스터 수 결정**: Elbow method + Silhouette analysis 기반 최적화
-- **Claude Code LLM 통합**: 유료 API 없이 로컬 Claude Code 기반 지능형 요약
-- **계층적 요약**: 개별 문서 → 소그룹 → 전체 그룹 단계별 요약
-- **다양한 요약 스타일**: brief, detailed, technical, conceptual 스타일 지원
-- **학습 리뷰 시스템**: 시간 기반 학습 활동 패턴 분석 및 주제별 진전도 측정
-- **스마트 인사이트**: 취약 영역 식별, 성장세 주제 추천, 학습 습관 분석
-- **새로운 CLI 명령어**: `summarize --clusters N`, `review --period weekly/monthly/quarterly`
+**안정적 설정 (기본값)**:
+- batch_size: 4-8
+- max_length: 4096  
+- num_workers: 6
+- 소요시간: 40-60분 (1000개 문서)
 
-### 🎯 향후 개선 사항 (Phase 10+)
+**고성능 설정**:
+- batch_size: 8-12
+- max_length: 8192
+- num_workers: 8
+- 소요시간: 25-35분 (50-70% 향상)
+- ⚠️ 메모리 사용량 증가
+
+## 🔧 주요 API
+
+### 1. 검색 엔진 (AdvancedSearchEngine)
+```python
+from src.features.advanced_search import AdvancedSearchEngine
+
+# 초기화
+engine = AdvancedSearchEngine(
+    vault_path="/path/to/vault",
+    cache_dir="cache", 
+    config=config
+)
+
+# 인덱스 구축
+engine.build_index()
+
+# 다양한 검색 방법
+results = engine.hybrid_search("query", top_k=10)
+results = engine.semantic_search("query", top_k=5)  
+results = engine.colbert_search("query", top_k=10)
+
+# 재순위화 적용
+from src.features.reranker import Reranker
+reranker = Reranker(config)
+reranked = reranker.rerank(results, "query")
+```
+
+### 2. 문서 클러스터링 (Phase 9)
+```python
+from src.features.content_clusterer import ContentClusterer
+
+clusterer = ContentClusterer(engine.engine, engine.cache, config)
+result = clusterer.cluster_documents(
+    documents=documents,
+    algorithm='kmeans',    # kmeans, dbscan, agglomerative
+    n_clusters=5
+)
+
+# 결과 분석
+print(f"실루엣 점수: {result.silhouette_score}")
+for i, cluster in enumerate(result.clusters):
+    print(f"클러스터 {i}: {len(cluster.documents)}개 문서")
+    print(f"키워드: {cluster.keywords}")
+```
+
+### 3. 문서 요약 (Phase 9)
+```python  
+from src.features.document_summarizer import DocumentSummarizer
+
+summarizer = DocumentSummarizer(engine.cache, config)
+summary = summarizer.summarize_clustering_result(
+    clustering_result,
+    style='detailed',     # brief, detailed, technical, conceptual
+    topic='TDD'
+)
+
+# Claude Code LLM 통합 (목 구현)
+from src.utils.claude_code_integration import ClaudeCodeLLM
+llm = ClaudeCodeLLM(config)
+response = llm.summarize_documents(content, cluster_info, style='detailed')
+```
+
+### 4. 학습 리뷰 (Phase 9)
+```python
+from src.features.learning_reviewer import LearningReviewer
+
+reviewer = LearningReviewer(engine, config) 
+review = reviewer.generate_review(
+    period='weekly',      # weekly, monthly, quarterly
+    topic=None,           # 특정 주제 필터링
+    start_date=None,      # 커스텀 기간
+    end_date=None
+)
+
+# 인사이트 분석
+insights = review.insights
+for insight in insights:
+    print(f"{insight.type}: {insight.content}")
+```
+
+## 🎯 확장 가이드
+
+### 새로운 검색 방법 추가
+1. `src/features/`에 새 모듈 생성
+2. `AdvancedSearchEngine`에 메서드 추가
+3. `__main__.py`에 CLI 옵션 추가
+4. 테스트 함수 구현
+
+### 새로운 클러스터링 알고리즘 추가
+```python
+# src/features/content_clusterer.py에 추가
+def _cluster_custom_algorithm(self, embeddings, **kwargs):
+    """커스텀 클러스터링 알고리즘"""
+    # 알고리즘 구현
+    labels = your_clustering_algorithm(embeddings, **kwargs)
+    return labels
+```
+
+### 새로운 요약 스타일 추가
+```python  
+# src/features/document_summarizer.py에 추가
+def _get_style_prompt(self, style: str) -> str:
+    """요약 스타일별 프롬프트"""
+    style_prompts = {
+        "custom": "커스텀 요약 스타일 프롬프트...",
+        # 기존 스타일들...
+    }
+    return style_prompts.get(style, style_prompts["detailed"])
+```
+
+## 🐛 디버깅 및 로깅
+
+### 로깅 설정
+```python
+import logging
+logging.basicConfig(level=logging.DEBUG)
+
+# 모듈별 로깅
+logger = logging.getLogger(__name__)
+logger.debug("디버그 메시지")
+logger.info("정보 메시지") 
+logger.warning("경고 메시지")
+logger.error("오류 메시지")
+```
+
+### 일반적인 문제 해결
+- **메모리 부족**: batch_size 감소, FP16 비활성화
+- **검색 결과 없음**: similarity_threshold 조정 (기본: 0.3)  
+- **인덱싱 실패**: 캐시 디렉토리 권한 확인, 강제 재인덱싱
+- **모델 로딩 실패**: 네트워크 연결 확인, HuggingFace 캐시 확인
+
+### 성능 프로파일링
+```python
+import cProfile
+import pstats
+
+# 함수 성능 측정
+profiler = cProfile.Profile() 
+profiler.enable()
+# 코드 실행
+profiler.disable()
+stats = pstats.Stats(profiler)
+stats.sort_stats('cumulative')
+stats.print_stats(10)
+```
+
+## 🔄 최신 개발 현황
+
+### ✅ 완료된 Phase들 (Phase 1-9)
+- **Phase 1-4**: 기본 BGE-M3 검색 시스템
+- **Phase 5**: 고급 검색 (Reranking, ColBERT, 쿼리 확장)
+- **Phase 6**: 지식 그래프 및 관련성 분석  
+- **Phase 7**: 자동 태깅 시스템
+- **Phase 8**: MOC 자동 생성
+- **Phase 9**: 다중 문서 요약 시스템 ✨
+
+### 🎯 향후 개발 방향 (Phase 10+)
 - 웹 인터페이스 (FastAPI + React)
-- 실시간 모니터링 대시보드  
-- 시각적 MOC 그래프 (Mermaid 다이어그램)
-- Obsidian 링크 그래프 시각화
+- 실시간 모니터링 대시보드
+- 플러그인 시스템 아키텍처
+- 다중 언어 지원 확장
 
-## 문제 해결
+## 📊 코드 품질
 
-### 일반적인 문제들
+### 코딩 스타일
+- PEP 8 준수
+- Type hints 적극 활용
+- Docstring 필수 (Google style)
+- 함수는 단일 책임 원칙 준수
 
-**임베딩 생성 실패**
-- 의존성 확인: `python -m src test`
-- 캐시 초기화: `rm -rf cache/` 후 재실행
+### 코드 리뷰 체크리스트
+- [ ] 단위 테스트 작성
+- [ ] 타입 힌트 추가
+- [ ] 문서화 (docstring + 주석)
+- [ ] 에러 처리 구현
+- [ ] 성능 고려 (메모리, 속도)
+- [ ] 설정 가능성 (하드코딩 방지)
 
-**검색 결과 없음**
-- 인덱스 재구축: `python -m src reindex --force`
-- 유사도 임계값 조정: `--threshold 0.1`
+## 🤝 기여 가이드
 
-**메모리 부족**
-- 배치 크기 감소: `config/settings.yaml`에서 `model.batch_size` 조정 (기본: 12)
-- FP16 비활성화: `model.use_fp16: false`로 설정
+1. **이슈 먼저**: 새 기능 개발 전 Issue 생성
+2. **브랜치 전략**: `feature/feature-name` 브랜치 사용
+3. **커밋 메시지**: Conventional Commits 형식 준수
+4. **테스트**: 새 코드는 반드시 테스트 포함
+5. **문서화**: README, 이 문서, 사용자 가이드 업데이트
 
-### 로그 및 디버깅
-- 상세 로그: `--verbose` 플래그 사용
-- 로그 레벨 조정: `config/settings.yaml`의 `logging.level` 설정
-
-## 데이터 구조
-
-### Document 클래스
-- `path`: 문서 경로
-- `title`: 문서 제목
-- `content`: 문서 내용
-- `tags`: 추출된 태그
-- `word_count`: 단어 수
-- `created_date`, `modified_date`: 생성/수정일
-
-### SearchResult 클래스
-- `document`: Document 객체
-- `similarity_score`: 유사도 점수
-- `match_type`: 매치 타입 (semantic/keyword/hybrid)
-- `matched_keywords`: 매칭된 키워드
-- `snippet`: 문서 발췌
-
-이 시스템은 BGE-M3 모델을 활용하여 대규모 Obsidian vault에서 효율적인 하이브리드 검색과 문서 분석을 제공하며, 특히 "AI 시대의 TDD 활용" 책 저술을 위한 고품질 지능형 검색 지원을 목표로 합니다.
-
-## 기술 스택
-
-### 핵심 기술
-- **임베딩 모델**: BAAI/bge-m3 (1024차원, 다국어 지원)
-- **하이브리드 검색**: Dense + Sparse (BM25) + RRF 융합
-- **캐싱**: SQLite 기반 영구 임베딩 캐시
-- **언어**: Python 3.11+, PyTorch 기반
-
-### 주요 라이브러리
-- **FlagEmbedding**: BGE-M3 모델 구동
-- **rank-bm25**: 키워드 기반 sparse retrieval
-- **networkx**: 그래프 분석 (향후 확장)
-- **scikit-learn**: 클러스터링 및 유사도 계산
+자세한 내용은 [CONTRIBUTING.md](CONTRIBUTING.md)를 참조하세요.

@@ -1,5 +1,10 @@
 # 🔧 문제 해결 가이드
 
+## 📖 문서 내비게이션
+- [🏠 프로젝트 홈](../README.md) | [🚀 빠른 시작](QUICK_START.md) | [📚 사용자 가이드](USER_GUIDE.md) | [💡 실전 예제](EXAMPLES.md) | **🔧 문제 해결** | [⚙️ 개발자 가이드](../CLAUDE.md)
+
+---
+
 Vault Intelligence System V2 사용 중 발생할 수 있는 문제들과 해결 방법을 정리합니다.
 
 ## 지식 그래프 시각화 문제

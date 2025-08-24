@@ -4,12 +4,12 @@
 model:
   name: "BAAI/bge-m3"
   dimension: 1024
-  batch_size: 8 # 성능 최대화: MPS 가속과 함께 처리량 8배 증가
+  batch_size: 8 # 안정적이고 효율적인 배치 크기
   cache_folder: "models/"
-  device: "mps" # M1 Pro Metal Performance Shaders 가속
-  use_fp16: false # M1 Pro CPU에서는 FP16 비활성화
-  max_length: 4096 # 정확도 향상: 더 긴 문맥 지원으로 검색 품질 개선
-  num_workers: 6 # 성능 최적화: M1 Pro 10코어의 60% 활용
+  device: "auto" # 자동 감지 (GPU 사용 가능시 GPU, 없으면 CPU)
+  use_fp16: false # 호환성을 위해 FP16 비활성화 (필요시 true로 변경)
+  max_length: 4096 # 정확도 향상을 위한 긴 문맥 지원
+  num_workers: 6 # 최적 성능을 위한 워커 수 (시스템에 맞게 조정 가능)
 
 # 캐시 설정
 cache:

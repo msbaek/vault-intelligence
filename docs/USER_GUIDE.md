@@ -1,5 +1,10 @@
 # 📚 Vault Intelligence System V2 사용자 가이드
 
+## 📖 문서 내비게이션
+- [🏠 프로젝트 홈](../README.md) | [🚀 빠른 시작](QUICK_START.md) | **📚 사용자 가이드** | [💡 실전 예제](EXAMPLES.md) | [🔧 문제 해결](TROUBLESHOOTING.md) | [⚙️ 개발자 가이드](../CLAUDE.md)
+
+---
+
 Obsidian vault를 위한 완전한 지능형 검색 및 분석 시스템 사용법
 
 ## 🚀 빠른 시작
@@ -199,7 +204,7 @@ python -m src related --file "DDD" --verbose --top-k 10
 📄 관련 문서 (5개):
 --------------------------------------------------------------------------------
 1. 소프트웨어장인
-   경로: /Users/msbaek/DocumentsLocal/msbaek_vault/997-BOOKS/소프트웨어장인.md
+   경로: /path/to/vault/books/software-craftsman.md
    관련도: 0.9041                    # 높을수록 관련성 높음
    타입: related_semantic            # 관련성 타입
    태그: source/book, topic/career/software-artisan, topic/professional-development
@@ -1463,7 +1468,7 @@ python -m src info
 ```
 ℹ️ Vault Intelligence System V2
 ==================================================
-프로젝트 경로: /Users/msbaek/git/vault-intelligence
+프로젝트 경로: /path/to/vault-intelligence
 Python 버전: 3.11.7 (main, Dec  4 2023, 18:10:11) [Clang 15.0.0 (clang-1500.1.0.2.5)]
 PyTorch 장치: MPS                    # M1/M2 Mac의 Metal Performance Shaders
 GPU 메모리: 24.0GB                   # 통합 메모리
