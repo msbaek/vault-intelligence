@@ -148,6 +148,47 @@ python -m src generate-moc --topic "리팩토링" --include-orphans
 python -m src generate-moc --topic "아키텍처" --threshold 0.2 --top-k 30
 ```
 
+### 다중 문서 요약 시스템 (Phase 9)
+
+#### 문서 클러스터링 및 요약
+```bash
+# 기본 클러스터링 (자동으로 최적 클러스터 수 결정)
+python -m src summarize --clusters 3
+
+# 주제별 클러스터링
+python -m src summarize --topic "TDD" --clusters 5 --style detailed
+
+# 최근 문서만 대상으로 클러스터링
+python -m src summarize --since "2024-01-01" --clusters 4 --output recent-clusters.md
+
+# 다양한 클러스터링 알고리즘 사용
+python -m src summarize --algorithm dbscan --style technical
+
+# 특정 요약 스타일 지정
+python -m src summarize --clusters 3 --style brief  # brief, detailed, technical, conceptual
+```
+
+#### 학습 리뷰 시스템
+```bash
+# 주간 학습 리뷰
+python -m src review --period weekly
+
+# 월간 학습 리뷰
+python -m src review --period monthly --output monthly-review.md
+
+# 분기별 학습 리뷰
+python -m src review --period quarterly
+
+# 특정 기간 학습 리뷰
+python -m src review --from "2024-08-01" --to "2024-08-31"
+
+# 주제별 학습 리뷰
+python -m src review --topic "TDD" --period monthly
+
+# 자세한 분석 포함
+python -m src review --period weekly --output weekly-detail.md
+```
+
 ### 지식 그래프 기능 (Phase 6)
 ```bash
 # 관련 문서 추천
@@ -336,6 +377,43 @@ gaps = engine.analyze_knowledge_gaps(
 )
 ```
 
+### 다중 문서 요약 시스템 (Phase 9)
+```python
+from src.features.content_clusterer import ContentClusterer
+from src.features.document_summarizer import DocumentSummarizer
+from src.features.learning_reviewer import LearningReviewer
+
+# 문서 클러스터링
+clusterer = ContentClusterer(engine.engine, engine.cache, config)
+clustering_result = clusterer.cluster_documents(
+    documents=documents,
+    algorithm='kmeans',
+    n_clusters=5
+)
+
+# 클러스터별 요약
+summarizer = DocumentSummarizer(engine.cache, config)
+summary_result = summarizer.summarize_clustering_result(
+    clustering_result,
+    style='detailed',
+    topic='TDD'
+)
+
+# 학습 리뷰 생성
+reviewer = LearningReviewer(engine, config)
+learning_review = reviewer.generate_review(
+    period='weekly',
+    topic=None,
+    start_date=None,
+    end_date=None
+)
+
+# 결과를 마크다운으로 저장
+clusterer.save_clustering_result(clustering_result, "clustering-result.md")
+summarizer.save_summary_result(summary_result, "summary-result.md")
+reviewer.save_review(learning_review, "learning-review.md")
+```
+
 ## 설정 관리
 
 ### 주요 설정 (`config/settings.yaml`)
@@ -377,6 +455,23 @@ gaps = engine.analyze_knowledge_gaps(
 - `query_expansion.max_synonyms`: 최대 동의어 수 (3)
 - `query_expansion.synonym_weight`: 동의어 가중치 (0.8)
 - `query_expansion.hyde_weight`: HyDE 가중치 (0.6)
+
+**문서 클러스터링 설정 (Phase 9)**
+- `clustering.default_algorithm`: 기본 클러스터링 알고리즘 (kmeans)
+- `clustering.max_clusters`: 최대 클러스터 수 (10)
+- `clustering.min_cluster_size`: 최소 클러스터 크기 (5)
+- `clustering.silhouette_threshold`: 실루엣 점수 임계값 (0.3)
+
+**문서 요약 설정 (Phase 9)**
+- `document_summarization.default_style`: 기본 요약 스타일 (detailed)
+- `document_summarization.max_cluster_size`: 요약 대상 최대 클러스터 크기 (100)
+- `document_summarization.summary_length`: 요약 길이 제한 (500자)
+
+**학습 리뷰 설정 (Phase 9)**
+- `learning_review.default_period`: 기본 리뷰 기간 (weekly)
+- `learning_review.min_activity_threshold`: 최소 활동 임계값 (1)
+- `learning_review.quality_score_weight`: 품질 점수 가중치 (0.3)
+- `learning_review.growth_rate_weight`: 성장률 가중치 (0.4)
 
 **파일 제외 설정**
 - `vault.excluded_dirs`: 제외할 디렉토리 목록 (`.obsidian`, `.trash` 등)
@@ -436,7 +531,7 @@ python -m src test
 
 ## 현재 구현 상태
 
-### ✅ 완료된 작업 (Phase 1-7 + ColBERT 캐싱) 🎉
+### ✅ 완료된 작업 (Phase 1-9) 🎉
 - **BGE-M3 기반 고품질 임베딩 시스템** 구현 완료
 - **Dense Embeddings** (1024차원) 의미적 검색
 - **Sparse Embeddings** (BM25) 키워드 검색  
@@ -482,11 +577,22 @@ python -m src test
 - **학습 경로 생성**: 난이도와 선후 관계를 고려한 단계별 학습 가이드 제공
 - **핵심 문서 선정**: 중요도 점수 기반 주제별 핵심 문서 자동 추천
 - **관련 주제 추출**: 태그와 내용 분석을 통한 연관 주제 자동 발견
-- **문서 관계 분석**: 유사도 기반 문서 간 연관성 매핑
+- **문서 관계 분析**: 유사도 기반 문서 간 연관성 매핑
 - **Obsidian 최적화**: Obsidian에서 즉시 활용 가능한 마크다운 형식 출력
 - **새로운 CLI 명령어**: `generate-moc --topic "주제명"` 명령어 추가
 
-### 🎯 향후 개선 사항 (Phase 9+)
+#### 🚀 Phase 9: 다중 문서 요약 시스템 (2025-08-24 완료)
+- **의미적 문서 클러스터링**: BGE-M3 임베딩 기반 콘텐츠 중심 자동 그룹화
+- **다중 클러스터링 알고리즘**: K-means, DBSCAN, Agglomerative 지원으로 다양한 데이터 분포 대응
+- **자동 클러스터 수 결정**: Elbow method + Silhouette analysis 기반 최적화
+- **Claude Code LLM 통합**: 유료 API 없이 로컬 Claude Code 기반 지능형 요약
+- **계층적 요약**: 개별 문서 → 소그룹 → 전체 그룹 단계별 요약
+- **다양한 요약 스타일**: brief, detailed, technical, conceptual 스타일 지원
+- **학습 리뷰 시스템**: 시간 기반 학습 활동 패턴 분석 및 주제별 진전도 측정
+- **스마트 인사이트**: 취약 영역 식별, 성장세 주제 추천, 학습 습관 분석
+- **새로운 CLI 명령어**: `summarize --clusters N`, `review --period weekly/monthly/quarterly`
+
+### 🎯 향후 개선 사항 (Phase 10+)
 - 웹 인터페이스 (FastAPI + React)
 - 실시간 모니터링 대시보드  
 - 시각적 MOC 그래프 (Mermaid 다이어그램)

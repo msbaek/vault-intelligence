@@ -26,6 +26,8 @@ try:
     from src.features.topic_analyzer import TopicAnalyzer
     from src.features.semantic_tagger import SemanticTagger, TaggingResult
     from src.features.moc_generator import MOCGenerator
+    from src.features.content_clusterer import ContentClusterer
+    from src.features.learning_reviewer import LearningReviewer
     import yaml
     DEPENDENCIES_AVAILABLE = True
 except ImportError as e:
@@ -988,6 +990,380 @@ def display_tagging_result(result: TaggingResult):
         print(f"❌ 실패: {result.error_message}")
 
 
+def run_document_clustering(
+    vault_path: str,
+    config: dict,
+    n_clusters: Optional[int] = None,
+    algorithm: Optional[str] = None,
+    topic: Optional[str] = None,
+    since: Optional[str] = None,
+    max_docs: Optional[int] = None,
+    output_file: Optional[str] = None,
+    sample_size: Optional[int] = None
+):
+    """문서 클러스터링 실행"""
+    try:
+        print("🔍 문서 클러스터링 시작...")
+        
+        # 검색 엔진 초기화
+        cache_dir = str(project_root / "cache")
+        search_engine = AdvancedSearchEngine(vault_path, cache_dir, config)
+        
+        if not search_engine.indexed:
+            print("📚 인덱스 구축 중...")
+            if not search_engine.build_index():
+                print("❌ 인덱스 구축 실패")
+                return False
+        
+        # 문서 로드
+        documents = search_engine.processor.get_all_documents()
+        
+        # 날짜 필터링 (since 옵션)
+        if since:
+            try:
+                from datetime import datetime
+                since_date = datetime.strptime(since, "%Y-%m-%d")
+                original_count = len(documents)
+                documents = [doc for doc in documents if doc.modified_at >= since_date]
+                print(f"📅 날짜 필터링: {original_count}개 → {len(documents)}개 문서")
+            except ValueError:
+                print(f"❌ 날짜 형식 오류: {since} (YYYY-MM-DD 형식이어야 함)")
+                return False
+        
+        # 주제 필터링 (topic 옵션)
+        if topic:
+            print(f"🎯 주제 '{topic}' 관련 문서 필터링...")
+            topic_results = search_engine.semantic_search(topic, top_k=1000, threshold=0.2)
+            topic_paths = {result.document.path for result in topic_results}
+            original_count = len(documents)
+            documents = [doc for doc in documents if doc.path in topic_paths]
+            print(f"🔍 주제 필터링: {original_count}개 → {len(documents)}개 문서")
+        
+        # 샘플링 (성능 최적화)
+        if sample_size and len(documents) > sample_size:
+            import random
+            random.shuffle(documents)
+            documents = documents[:sample_size]
+            print(f"📊 샘플링: {sample_size}개 문서 선택")
+        
+        if len(documents) < 3:
+            print(f"❌ 클러스터링하기에는 문서가 너무 적습니다: {len(documents)}개")
+            return False
+        
+        print(f"📚 총 {len(documents)}개 문서를 클러스터링합니다.")
+        
+        # ContentClusterer 초기화
+        embedding_cache = search_engine.cache
+        clustering_engine = ContentClusterer(
+            search_engine.engine,
+            embedding_cache,
+            config
+        )
+        
+        # 클러스터링 수행
+        clustering_result = clustering_engine.cluster_documents(
+            documents=documents,
+            algorithm=algorithm,
+            n_clusters=n_clusters
+        )
+        
+        # 결과 출력
+        print_clustering_results(clustering_result)
+        
+        # 결과 저장 (요청 시)
+        if output_file:
+            save_clustering_results(clustering_result, output_file, topic)
+            print(f"💾 결과가 {output_file}에 저장되었습니다.")
+        
+        return True
+        
+    except Exception as e:
+        print(f"❌ 문서 클러스터링 실패: {e}")
+        logger.exception("클러스터링 중 상세 오류:")
+        return False
+
+
+def print_clustering_results(clustering_result):
+    """클러스터링 결과 출력"""
+    print(f"\n📊 클러스터링 결과:")
+    print("=" * 60)
+    
+    summary = clustering_result.get_cluster_summary()
+    print(f"알고리즘: {summary['algorithm']}")
+    print(f"총 문서: {summary['total_documents']}개")
+    print(f"클러스터 수: {summary['n_clusters']}개")
+    print(f"실루엣 점수: {summary['silhouette_score']:.3f}")
+    print(f"평균 클러스터 크기: {summary['avg_cluster_size']:.1f}개")
+    
+    print(f"\n📋 클러스터별 상세:")
+    print("-" * 60)
+    
+    for i, cluster in enumerate(clustering_result.clusters, 1):
+        print(f"\n🎯 클러스터 {i}: {cluster.label}")
+        print(f"   문서 수: {cluster.size}개")
+        print(f"   유사도: {cluster.similarity_score:.3f}")
+        
+        if cluster.keywords:
+            keywords = ", ".join(cluster.keywords[:5])
+            print(f"   키워드: {keywords}")
+        
+        if cluster.representative_doc:
+            print(f"   대표 문서: {cluster.representative_doc.title}")
+        
+        # 상위 3개 문서 표시
+        print(f"   주요 문서:")
+        for j, doc in enumerate(cluster.documents[:3], 1):
+            print(f"     {j}. {doc.title}")
+        
+        if cluster.size > 3:
+            print(f"     ... 및 {cluster.size - 3}개 더")
+
+
+def save_clustering_results(clustering_result, output_file: str, topic: Optional[str] = None):
+    """클러스터링 결과를 마크다운 파일로 저장"""
+    from datetime import datetime
+    
+    content = []
+    
+    # 헤더
+    content.append(f"# 문서 클러스터링 결과")
+    if topic:
+        content.append(f"\n**주제**: {topic}")
+    content.append(f"**생성일**: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    
+    # 요약 정보
+    summary = clustering_result.get_cluster_summary()
+    content.append(f"\n## 📊 요약")
+    content.append(f"- **알고리즘**: {summary['algorithm']}")
+    content.append(f"- **총 문서**: {summary['total_documents']}개")
+    content.append(f"- **클러스터 수**: {summary['n_clusters']}개") 
+    content.append(f"- **실루엣 점수**: {summary['silhouette_score']:.3f}")
+    content.append(f"- **평균 클러스터 크기**: {summary['avg_cluster_size']:.1f}개")
+    
+    # 클러스터별 상세
+    content.append(f"\n## 📋 클러스터별 상세")
+    
+    for i, cluster in enumerate(clustering_result.clusters, 1):
+        content.append(f"\n### 🎯 클러스터 {i}: {cluster.label}")
+        content.append(f"- **문서 수**: {cluster.size}개")
+        content.append(f"- **내부 유사도**: {cluster.similarity_score:.3f}")
+        
+        if cluster.keywords:
+            keywords = ", ".join(cluster.keywords)
+            content.append(f"- **키워드**: {keywords}")
+        
+        if cluster.representative_doc:
+            content.append(f"- **대표 문서**: {cluster.representative_doc.title}")
+        
+        content.append(f"\n#### 📚 포함 문서:")
+        for j, doc in enumerate(cluster.documents, 1):
+            # Obsidian 링크 형식으로 저장
+            title = doc.title.replace('[', '').replace(']', '')  # 대괄호 제거
+            content.append(f"{j}. [[{title}]]")
+    
+    # 파일 저장
+    with open(output_file, 'w', encoding='utf-8') as f:
+        f.write('\n'.join(content))
+
+
+def run_learning_review(
+    vault_path: str,
+    config: dict,
+    period: str = "weekly",
+    start_date_str: str = None,
+    end_date_str: str = None,
+    topic_filter: str = None,
+    output_file: str = None
+):
+    """학습 리뷰 실행"""
+    try:
+        print(f"📚 {period} 학습 리뷰 생성 시작...")
+        
+        # 날짜 파싱
+        start_date = None
+        end_date = None
+        
+        if start_date_str:
+            try:
+                start_date = datetime.strptime(start_date_str, "%Y-%m-%d")
+                print(f"📅 시작 날짜: {start_date_str}")
+            except ValueError:
+                print(f"❌ 시작 날짜 형식 오류: {start_date_str} (YYYY-MM-DD 형식이어야 함)")
+                return False
+        
+        if end_date_str:
+            try:
+                end_date = datetime.strptime(end_date_str, "%Y-%m-%d")
+                print(f"📅 종료 날짜: {end_date_str}")
+            except ValueError:
+                print(f"❌ 종료 날짜 형식 오류: {end_date_str} (YYYY-MM-DD 형식이어야 함)")
+                return False
+        
+        # 검색 엔진 초기화
+        cache_dir = str(project_root / "cache")
+        search_engine = AdvancedSearchEngine(vault_path, cache_dir, config)
+        
+        if not search_engine.indexed:
+            print("📚 인덱스 구축 중...")
+            if not search_engine.build_index():
+                print("❌ 인덱스 구축 실패")
+                return False
+        
+        # LearningReviewer 초기화
+        reviewer = LearningReviewer(search_engine, config)
+        
+        # 학습 리뷰 생성
+        review = reviewer.generate_learning_review(
+            period=period,
+            start_date=start_date,
+            end_date=end_date,
+            topic_filter=topic_filter
+        )
+        
+        # 결과 출력
+        print_learning_review(review)
+        
+        # 결과 저장 (요청 시)
+        if output_file:
+            save_learning_review(review, output_file)
+            print(f"💾 학습 리뷰가 {output_file}에 저장되었습니다.")
+        else:
+            # 기본 출력 파일명 생성
+            from datetime import datetime
+            timestamp = datetime.now().strftime("%Y%m%d")
+            default_output = f"learning-review-{period}-{timestamp}.md"
+            save_learning_review(review, default_output)
+            print(f"💾 학습 리뷰가 {default_output}에 저장되었습니다.")
+        
+        return True
+        
+    except Exception as e:
+        print(f"❌ 학습 리뷰 생성 실패: {e}")
+        logger.exception("학습 리뷰 중 상세 오류:")
+        return False
+
+
+def print_learning_review(review):
+    """학습 리뷰 결과 출력"""
+    print(f"\n📊 {review.period.upper()} 학습 리뷰")
+    print("=" * 60)
+    
+    print(f"📅 기간: {review.start_date.strftime('%Y-%m-%d')} ~ {review.end_date.strftime('%Y-%m-%d')}")
+    print(f"📈 총 활동: {review.total_activities}개")
+    print(f"📝 생성 문서: {review.documents_created}개")
+    print(f"✏️ 수정 문서: {review.documents_modified}개")
+    print(f"📆 활동 일수: {review.active_days}일")
+    print(f"⭐ 품질 점수: {review.quality_score:.3f}")
+    
+    if review.topic_progress:
+        print(f"\n🎯 주제별 진전도 (상위 {min(5, len(review.topic_progress))}개):")
+        print("-" * 60)
+        for i, topic in enumerate(review.topic_progress[:5], 1):
+            print(f"{i}. {topic.topic}")
+            print(f"   문서: {topic.documents_count}개, 활동: {topic.activity_count}개")
+            print(f"   진전도: {topic.progress_score:.3f}, 성장률: {topic.growth_rate:.1%}")
+            print(f"   평균 단어 수: {topic.average_word_count:.0f}개")
+    
+    if review.learning_insights:
+        print(f"\n💡 학습 인사이트:")
+        print("-" * 60)
+        for insight in review.learning_insights:
+            icon = {"strength": "💪", "weakness": "⚠️", "trend": "📈", "recommendation": "💡"}.get(insight.insight_type, "📝")
+            print(f"{icon} {insight.title}")
+            print(f"   {insight.description}")
+            if insight.evidence:
+                print(f"   근거: {', '.join(insight.evidence)}")
+    
+    if review.strengths:
+        print(f"\n💪 강점:")
+        for strength in review.strengths:
+            print(f"   • {strength}")
+    
+    if review.weaknesses:
+        print(f"\n⚠️ 개선점:")
+        for weakness in review.weaknesses:
+            print(f"   • {weakness}")
+    
+    if review.recommendations:
+        print(f"\n🎯 권장사항:")
+        for recommendation in review.recommendations:
+            print(f"   • {recommendation}")
+    
+    if review.trending_topics:
+        print(f"\n🔥 트렌딩 주제:")
+        for topic in review.trending_topics:
+            print(f"   • {topic}")
+
+
+def save_learning_review(review, output_file: str):
+    """학습 리뷰를 마크다운 파일로 저장"""
+    content = []
+    
+    # 헤더
+    content.append(f"# {review.period.title()} 학습 리뷰")
+    content.append(f"**생성일**: {review.generated_at.strftime('%Y-%m-%d %H:%M:%S')}")
+    content.append(f"**기간**: {review.start_date.strftime('%Y-%m-%d')} ~ {review.end_date.strftime('%Y-%m-%d')}")
+    
+    # 요약 정보
+    content.append(f"\n## 📊 학습 활동 요약")
+    content.append(f"- **총 활동**: {review.total_activities}개")
+    content.append(f"- **문서 생성**: {review.documents_created}개")
+    content.append(f"- **문서 수정**: {review.documents_modified}개")
+    content.append(f"- **활동 일수**: {review.active_days}일")
+    content.append(f"- **품질 점수**: {review.quality_score:.3f}")
+    
+    # 주제별 진전도
+    if review.topic_progress:
+        content.append(f"\n## 🎯 주제별 학습 진전도")
+        for i, topic in enumerate(review.topic_progress, 1):
+            content.append(f"\n### {i}. {topic.topic}")
+            content.append(f"- **문서 수**: {topic.documents_count}개")
+            content.append(f"- **활동 수**: {topic.activity_count}개")
+            content.append(f"- **진전도 점수**: {topic.progress_score:.3f}")
+            content.append(f"- **성장률**: {topic.growth_rate:.1%}")
+            content.append(f"- **평균 단어 수**: {topic.average_word_count:.0f}개")
+            content.append(f"- **활동 기간**: {topic.first_activity.strftime('%Y-%m-%d')} ~ {topic.last_activity.strftime('%Y-%m-%d')}")
+    
+    # 학습 인사이트
+    if review.learning_insights:
+        content.append(f"\n## 💡 학습 인사이트")
+        for insight in review.learning_insights:
+            content.append(f"\n### {insight.title} ({insight.insight_type.title()})")
+            content.append(f"{insight.description}")
+            if insight.evidence:
+                content.append(f"\n**근거**:")
+                for evidence in insight.evidence:
+                    content.append(f"- {evidence}")
+            content.append(f"\n**신뢰도**: {insight.confidence_score:.3f}")
+    
+    # 강점과 개선점
+    if review.strengths:
+        content.append(f"\n## 💪 강점")
+        for strength in review.strengths:
+            content.append(f"- {strength}")
+    
+    if review.weaknesses:
+        content.append(f"\n## ⚠️ 개선점")
+        for weakness in review.weaknesses:
+            content.append(f"- {weakness}")
+    
+    # 권장사항
+    if review.recommendations:
+        content.append(f"\n## 🎯 권장사항")
+        for recommendation in review.recommendations:
+            content.append(f"- {recommendation}")
+    
+    # 트렌딩 주제
+    if review.trending_topics:
+        content.append(f"\n## 🔥 트렌딩 주제")
+        for topic in review.trending_topics:
+            content.append(f"- {topic}")
+    
+    # 파일 저장
+    with open(output_file, 'w', encoding='utf-8') as f:
+        f.write('\n'.join(content))
+
+
 def run_moc_generation(
     vault_path: str,
     topic: str,
@@ -1070,7 +1446,7 @@ def main():
     
     parser.add_argument(
         "command",
-        choices=["init", "test", "info", "search", "duplicates", "collect", "analyze", "reindex", "related", "analyze-gaps", "tag", "generate-moc"],
+        choices=["init", "test", "info", "search", "duplicates", "collect", "analyze", "reindex", "related", "analyze-gaps", "tag", "generate-moc", "summarize", "review"],
         help="실행할 명령어"
     )
     
@@ -1257,6 +1633,57 @@ def main():
         "--include-orphans",
         action="store_true",
         help="연결되지 않은 문서도 MOC에 포함"
+    )
+    
+    # Phase 9: 문서 클러스터링 및 요약 관련 인자들
+    parser.add_argument(
+        "--clusters",
+        type=int,
+        help="클러스터 수 (지정하지 않으면 자동 결정)"
+    )
+    
+    parser.add_argument(
+        "--algorithm",
+        choices=["kmeans", "dbscan", "agglomerative"],
+        help="클러스터링 알고리즘 (기본값: 설정파일 값)"
+    )
+    
+    parser.add_argument(
+        "--style",
+        choices=["brief", "detailed", "technical", "conceptual"],
+        default="detailed",
+        help="요약 스타일 (기본값: detailed)"
+    )
+    
+    parser.add_argument(
+        "--since",
+        help="특정 날짜 이후 문서만 대상 (YYYY-MM-DD 형식)"
+    )
+    
+    parser.add_argument(
+        "--max-docs",
+        type=int,
+        help="클러스터별 최대 문서 수"
+    )
+    
+    # Phase 9: 학습 리뷰 관련 인자들
+    parser.add_argument(
+        "--period",
+        choices=["weekly", "monthly", "quarterly"],
+        default="weekly",
+        help="리뷰 기간 (기본값: weekly)"
+    )
+    
+    parser.add_argument(
+        "--from",
+        dest="start_date",
+        help="리뷰 시작 날짜 (YYYY-MM-DD 형식)"
+    )
+    
+    parser.add_argument(
+        "--to", 
+        dest="end_date",
+        help="리뷰 종료 날짜 (YYYY-MM-DD 형식)"
     )
     
     args = parser.parse_args()
@@ -1487,6 +1914,71 @@ def main():
             print("✅ MOC 생성 완료!")
         else:
             print("❌ MOC 생성 실패!")
+            sys.exit(1)
+    
+    elif args.command == "summarize":
+        if not check_dependencies():
+            sys.exit(1)
+        
+        # 기본 출력 파일명 생성
+        output_file = args.output
+        if not output_file:
+            from datetime import datetime
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            if args.topic:
+                safe_topic = args.topic.replace(' ', '-').replace('/', '-')
+                output_file = f"clustering-{safe_topic}-{timestamp}.md"
+            else:
+                output_file = f"clustering-result-{timestamp}.md"
+        
+        if run_document_clustering(
+            vault_path=args.vault_path,
+            config=config,
+            n_clusters=args.clusters,
+            algorithm=args.algorithm,
+            topic=args.topic,
+            since=args.since,
+            max_docs=args.max_docs,
+            output_file=output_file,
+            sample_size=args.sample_size
+        ):
+            print("✅ 문서 클러스터링 완료!")
+            print(f"\n📝 사용법 예시:")
+            print("  # 기본 클러스터링")
+            print("  python -m src summarize --clusters 5")
+            print("  # 주제별 클러스터링")
+            print("  python -m src summarize --topic 'TDD' --clusters 3")
+            print("  # 최근 문서만 대상")
+            print("  python -m src summarize --since '2024-01-01' --output recent-clusters.md")
+        else:
+            print("❌ 문서 클러스터링 실패!")
+            sys.exit(1)
+    
+    elif args.command == "review":
+        if not check_dependencies():
+            sys.exit(1)
+        
+        if run_learning_review(
+            vault_path=args.vault_path,
+            config=config,
+            period=args.period,
+            start_date_str=args.start_date,
+            end_date_str=args.end_date,
+            topic_filter=args.topic,
+            output_file=args.output
+        ):
+            print("✅ 학습 리뷰 완료!")
+            print(f"\n📝 사용법 예시:")
+            print("  # 주간 학습 리뷰")
+            print("  python -m src review --period weekly")
+            print("  # 월간 학습 리뷰")
+            print("  python -m src review --period monthly --output monthly-review.md")
+            print("  # 특정 기간 리뷰")
+            print("  python -m src review --from 2024-08-01 --to 2024-08-31")
+            print("  # 주제별 학습 리뷰")
+            print("  python -m src review --topic TDD --period quarterly")
+        else:
+            print("❌ 학습 리뷰 실패!")
             sys.exit(1)
 
 

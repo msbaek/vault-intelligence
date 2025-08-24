@@ -324,6 +324,10 @@ class VaultProcessor:
         logger.info(f"파일 처리 완료: {len(documents)}개 성공")
         return documents
     
+    def get_all_documents(self) -> List[Document]:
+        """모든 문서 가져오기 (process_all_files의 별칭)"""
+        return self.process_all_files()
+    
     def get_vault_statistics(self) -> Dict:
         """Vault 통계 정보"""
         try:

@@ -107,12 +107,92 @@ duplicates:
   min_word_count: 50
   group_threshold: 0.9
 
-# 클러스터링 설정
+# 클러스터링 설정 (Phase 9)
 clustering:
-  default_n_clusters: 15
-  min_cluster_size: 3
-  algorithm: "kmeans" # "kmeans", "dbscan", "hierarchical"
-  random_state: 42
+  default_algorithm: "kmeans"           # 기본 알고리즘 (kmeans, dbscan, agglomerative)
+  auto_k: true                          # 최적 클러스터 수 자동 결정
+  default_n_clusters: 15                # 수동 설정시 기본 클러스터 수
+  min_cluster_size: 2                   # 최소 클러스터 크기
+  max_clusters: 20                      # 최대 클러스터 수
+  silhouette_threshold: 0.5             # 실루엣 점수 최소 임계값
+  random_state: 42                      # 재현성을 위한 랜덤 시드
+  
+  # K-means 설정
+  kmeans:
+    n_init: 10                          # 초기화 횟수
+    max_iter: 300                       # 최대 반복 횟수
+    tol: 1e-4                          # 수렴 허용 오차
+  
+  # DBSCAN 설정  
+  dbscan:
+    eps: 0.5                           # 이웃 반경
+    min_samples: 5                     # 핵심 포인트 최소 샘플 수
+    
+  # Agglomerative 설정
+  agglomerative:
+    linkage: "ward"                    # 연결 기준 (ward, complete, average, single)
+
+# 문서 요약 설정 (Phase 9)
+document_summarization:
+  default_style: "detailed"            # 기본 요약 스타일 (brief, detailed, technical, conceptual)
+  max_documents_per_cluster: 50        # 클러스터당 최대 문서 수
+  max_content_length: 8000             # 요약할 최대 콘텐츠 길이
+  hierarchical_summary: true           # 계층적 요약 활성화
+  include_keywords: true               # 키워드 포함 여부
+  include_representative_doc: true     # 대표 문서 포함 여부
+  
+  # Claude Code LLM 연동 설정
+  claude_code_integration:
+    subagent_type: "general-purpose"   # 사용할 에이전트 타입
+    max_retries: 3                     # 최대 재시도 횟수
+    timeout: 300                       # 타임아웃 (초)
+    chunk_size: 4000                   # 청크 크기
+    overlap_size: 200                  # 청크 간 오버랩 크기
+  
+  # 요약 스타일별 설정
+  styles:
+    brief:
+      max_sentences: 3                 # 최대 문장 수
+      focus: "key_points"             # 핵심 포인트 중심
+    detailed:
+      max_sentences: 10               # 최대 문장 수  
+      focus: "comprehensive"          # 포괄적 요약
+    technical:
+      max_sentences: 8                # 최대 문장 수
+      focus: "technical_details"      # 기술적 세부사항 중심
+    conceptual:
+      max_sentences: 6                # 최대 문장 수
+      focus: "concepts_and_principles" # 개념과 원칙 중심
+
+# 학습 리뷰 설정 (Phase 9)
+learning_review:
+  default_period: "weekly"             # 기본 리뷰 기간 (weekly, monthly, quarterly)
+  include_activity_stats: true        # 활동 통계 포함
+  include_topic_analysis: true        # 주제별 분석 포함
+  include_progress_tracking: true     # 진전도 추적 포함
+  include_recommendations: true       # 추천사항 포함
+  
+  # 기간별 설정
+  periods:
+    weekly:
+      min_documents: 3                # 최소 문서 수
+      activity_weight: 0.6           # 활동량 가중치
+      growth_weight: 0.4             # 성장률 가중치
+    monthly:
+      min_documents: 10              # 최소 문서 수
+      activity_weight: 0.4           # 활동량 가중치
+      growth_weight: 0.6             # 성장률 가중치
+    quarterly:
+      min_documents: 30              # 최소 문서 수
+      activity_weight: 0.3           # 활동량 가중치
+      growth_weight: 0.7             # 성장률 가중치
+  
+  # 진전도 측정 설정
+  progress_tracking:
+    min_topic_documents: 5            # 주제별 최소 문서 수
+    growth_calculation_method: "exponential" # 성장률 계산 방법
+    benchmark_period_days: 30         # 벤치마크 기간 (일)
+    significance_threshold: 0.1       # 유의미한 변화 임계값
 
 # 주제 수집 설정
 collection:
