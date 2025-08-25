@@ -16,9 +16,13 @@
       "Bash(git commit:*)",
       "Bash(top:*)",
       "Bash(sqlite3:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Read(//Users/msbaek/DocumentsLocal/msbaek_vault/**)"
     ],
     "deny": [],
-    "ask": []
+    "ask": [],
+    "additionalDirectories": [
+      "/Users/msbaek/DocumentsLocal/msbaek_vault/"
+    ]
   }
 }
