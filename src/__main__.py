@@ -28,6 +28,7 @@ try:
     from src.features.moc_generator import MOCGenerator
     from src.features.content_clusterer import ContentClusterer
     from src.features.learning_reviewer import LearningReviewer
+    from src.utils.output_manager import resolve_output_path
     import yaml
     DEPENDENCIES_AVAILABLE = True
 except ImportError as e:
@@ -424,12 +425,15 @@ def run_topic_collection(vault_path: str, topic: str, top_k: int, threshold: flo
         # 주제 수집기 초기화
         collector = TopicCollector(search_engine, config)
         
+        # 출력 파일 경로 결정 (--output 플래그가 있을 때만)
+        resolved_output = resolve_output_path(vault_path, output_file, "collect", topic)
+
         # 주제별 문서 수집
         collection = collector.collect_topic(
             topic=topic,
             top_k=top_k,
             threshold=threshold,
-            output_file=output_file,
+            output_file=resolved_output,
             use_expansion=use_expansion,
             include_synonyms=include_synonyms,
             include_hyde=include_hyde
@@ -454,8 +458,8 @@ def run_topic_collection(vault_path: str, topic: str, top_k: int, threshold: flo
                                        key=lambda x: x[1], reverse=True)[:10]:
                 print(f"  {dir_path}: {count}개")
         
-        if output_file:
-            print(f"\n💾 결과가 {output_file}에 저장되었습니다.")
+        if resolved_output:
+            print(f"\n💾 결과가 {resolved_output}에 저장되었습니다.")
         
         return True
         
@@ -505,19 +509,22 @@ def run_topic_analysis(vault_path: str, output_file: str, config: dict):
                 if cluster.representative_doc:
                     print(f"  대표 문서: {cluster.representative_doc.title[:50]}")
         
-        # 결과를 파일로 저장 (옵션)
-        if output_file:
+        # 출력 파일 경로 결정 (--output 플래그가 있을 때만)
+        resolved_output = resolve_output_path(vault_path, output_file, "analyze")
+        
+        # 파일이 저장되어야 하는 경우에만 저장
+        if resolved_output:
             # 파일 확장자에 따라 다른 형식으로 저장
-            if output_file.lower().endswith('.md'):
-                if analyzer.export_markdown_report(analysis, output_file):
-                    print(f"\n💾 마크다운 보고서가 {output_file}에 저장되었습니다.")
+            if resolved_output.lower().endswith('.md'):
+                if analyzer.export_markdown_report(analysis, resolved_output):
+                    print(f"\n💾 마크다운 보고서가 {resolved_output}에 저장되었습니다.")
                 else:
-                    print(f"\n❌ 마크다운 보고서 저장 실패: {output_file}")
+                    print(f"\n❌ 마크다운 보고서 저장 실패: {resolved_output}")
             else:
-                if analyzer.export_analysis(analysis, output_file):
-                    print(f"\n💾 JSON 분석 결과가 {output_file}에 저장되었습니다.")
+                if analyzer.export_analysis(analysis, resolved_output):
+                    print(f"\n💾 JSON 분석 결과가 {resolved_output}에 저장되었습니다.")
                 else:
-                    print(f"\n❌ 분석 결과 저장 실패: {output_file}")
+                    print(f"\n❌ 분석 결과 저장 실패: {resolved_output}")
         
         return True
         
@@ -644,13 +651,17 @@ def run_knowledge_gap_analysis(vault_path: str, config: dict, output_file: str =
             for tag, docs in sorted_tags[:10]:
                 print(f"  - {tag}: {len(docs)}개 문서")
         
-        # 결과를 파일로 저장 (옵션)
-        if output_file:
+        # 결과를 파일로 저장 (--output 플래그가 있을 때만)
+        resolved_output = resolve_output_path(vault_path, output_file, "gaps")
+        if resolved_output:
             try:
                 import json
-                with open(output_file, 'w', encoding='utf-8') as f:
+                # 확장자가 없으면 .json 추가
+                if not resolved_output.lower().endswith('.json'):
+                    resolved_output = resolved_output.rsplit('.', 1)[0] + '.json'
+                with open(resolved_output, 'w', encoding='utf-8') as f:
                     json.dump(analysis, f, indent=2, ensure_ascii=False, default=str)
-                print(f"\n💾 분석 결과가 {output_file}에 저장되었습니다.")
+                print(f"\n💾 분석 결과가 {resolved_output}에 저장되었습니다.")
             except Exception as e:
                 print(f"\n❌ 파일 저장 실패: {e}")
         
@@ -1223,17 +1234,12 @@ def run_learning_review(
         # 결과 출력
         print_learning_review(review)
         
-        # 결과 저장 (요청 시)
-        if output_file:
-            save_learning_review(review, output_file)
-            print(f"💾 학습 리뷰가 {output_file}에 저장되었습니다.")
-        else:
-            # 기본 출력 파일명 생성
-            from datetime import datetime
-            timestamp = datetime.now().strftime("%Y%m%d")
-            default_output = f"learning-review-{period}-{timestamp}.md"
-            save_learning_review(review, default_output)
-            print(f"💾 학습 리뷰가 {default_output}에 저장되었습니다.")
+        # 출력 파일 경로 결정 (--output 플래그가 있을 때만)
+        resolved_output = resolve_output_path(vault_path, output_file, f"review-{period}")
+        
+        if resolved_output:
+            save_learning_review(review, resolved_output)
+            print(f"💾 학습 리뷰가 {resolved_output}에 저장되었습니다.")
         
         return True
         
@@ -1391,10 +1397,8 @@ def run_moc_generation(
         # MOC 생성기 초기화
         moc_generator = MOCGenerator(search_engine, config)
         
-        # 출력 파일명 자동 생성 (지정되지 않은 경우)
-        if not output_file:
-            safe_topic = topic.replace(' ', '-').replace('/', '-')
-            output_file = f"MOC-{safe_topic}.md"
+        # 출력 파일 경로 결정 (--output 플래그가 있을 때만)
+        resolved_output = resolve_output_path(vault_path, output_file, "moc", topic)
         
         # MOC 생성
         moc_data = moc_generator.generate_moc(
@@ -1403,7 +1407,7 @@ def run_moc_generation(
             threshold=threshold,
             include_orphans=include_orphans,
             use_expansion=use_expansion,
-            output_file=output_file
+            output_file=resolved_output
         )
         
         print(f"\n📊 MOC 생성 결과:")
@@ -1427,8 +1431,8 @@ def run_moc_generation(
             for step in moc_data.learning_path:
                 print(f"  {step.step}. {step.title} ({step.difficulty_level}) - {len(step.documents)}개 문서")
         
-        if output_file:
-            print(f"\n💾 MOC 파일이 {output_file}에 저장되었습니다.")
+        if resolved_output:
+            print(f"\n💾 MOC 파일이 {resolved_output}에 저장되었습니다.")
             
         return True
         
@@ -1452,8 +1456,7 @@ def main():
     
     parser.add_argument(
         "--vault-path",
-        default="/Users/msbaek/DocumentsLocal/msbaek_vault",
-        help="Vault 경로 (기본값: /Users/msbaek/DocumentsLocal/msbaek_vault)"
+        help="Vault 경로 (지정하지 않으면 설정 파일에서 읽음)"
     )
     
     parser.add_argument(
@@ -1525,7 +1528,9 @@ def main():
     
     parser.add_argument(
         "--output",
-        help="출력 파일 경로"
+        nargs='?',  # 옵션 인자 (플래그만 있어도 되고, 값도 받을 수 있음)
+        const="",   # 플래그만 제공되었을 때의 기본값
+        help="출력 파일 저장 (--output만 사용하면 기본 파일명으로 저장, --output filename.md로 파일명 지정 가능)"
     )
     
     parser.add_argument(
@@ -1694,6 +1699,19 @@ def main():
     # 설정 로딩
     config = load_config(args.config)
     
+    # Vault 경로 결정 (CLI 인자가 우선, 없으면 설정 파일에서 읽기)
+    vault_path = args.vault_path
+    if not vault_path:
+        vault_path = config.get('vault', {}).get('path')
+        if not vault_path:
+            print("❌ Vault 경로가 지정되지 않았습니다.")
+            print("다음 중 하나를 수행하세요:")
+            print("1. --vault-path 인자 사용: python -m src <command> --vault-path /path/to/vault")
+            print("2. config/settings.yaml의 vault.path 설정")
+            sys.exit(1)
+    
+    print(f"📁 사용 중인 Vault 경로: {vault_path}")
+    
     # 명령어 실행
     if args.command == "info":
         show_system_info()
@@ -1712,7 +1730,7 @@ def main():
         if not check_dependencies():
             sys.exit(1)
         
-        if initialize_system(args.vault_path, config):
+        if initialize_system(vault_path, config):
             print("\n🎉 Vault Intelligence System V2 초기화 완료!")
             print("\n다음 단계:")
             print("1. python -m src search --query 'TDD'     # 검색 테스트")
@@ -1733,7 +1751,7 @@ def main():
             sys.exit(1)
         
         if run_search(
-            args.vault_path, 
+            vault_path, 
             args.query, 
             args.top_k, 
             args.threshold, 
@@ -1756,7 +1774,7 @@ def main():
         if not check_dependencies():
             sys.exit(1)
         
-        if run_duplicate_detection(args.vault_path, config):
+        if run_duplicate_detection(vault_path, config):
             print("✅ 중복 감지 완료!")
         else:
             print("❌ 중복 감지 실패!")
@@ -1771,7 +1789,7 @@ def main():
             sys.exit(1)
         
         if run_topic_collection(
-            args.vault_path, 
+            vault_path, 
             args.topic, 
             args.top_k, 
             args.threshold, 
@@ -1790,7 +1808,7 @@ def main():
         if not check_dependencies():
             sys.exit(1)
         
-        if run_topic_analysis(args.vault_path, args.output, config):
+        if run_topic_analysis(vault_path, args.output, config):
             print("✅ 주제 분석 완료!")
         else:
             print("❌ 주제 분석 실패!")
@@ -1800,7 +1818,7 @@ def main():
         if not check_dependencies():
             sys.exit(1)
         
-        if run_reindex(args.vault_path, args.force, config, 
+        if run_reindex(vault_path, args.force, config, 
                       getattr(args, 'sample_size', None),
                       getattr(args, 'include_folders', None),
                       getattr(args, 'exclude_folders', None),
@@ -1820,7 +1838,7 @@ def main():
             sys.exit(1)
         
         if run_related_documents(
-            args.vault_path,
+            vault_path,
             args.file,
             args.top_k,
             config,
@@ -1837,7 +1855,7 @@ def main():
             sys.exit(1)
         
         if run_knowledge_gap_analysis(
-            args.vault_path,
+            vault_path,
             config,
             output_file=args.output,
             similarity_threshold=args.similarity_threshold,
@@ -1876,7 +1894,7 @@ def main():
             sys.exit(1)
         
         if run_tagging(
-            vault_path=args.vault_path,
+            vault_path=vault_path,
             target=target_path,
             recursive=args.recursive,
             dry_run=args.dry_run,
@@ -1902,7 +1920,7 @@ def main():
             sys.exit(1)
         
         if run_moc_generation(
-            vault_path=args.vault_path,
+            vault_path=vault_path,
             topic=args.topic,
             top_k=args.top_k,
             threshold=args.threshold,
@@ -1920,19 +1938,11 @@ def main():
         if not check_dependencies():
             sys.exit(1)
         
-        # 기본 출력 파일명 생성
-        output_file = args.output
-        if not output_file:
-            from datetime import datetime
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            if args.topic:
-                safe_topic = args.topic.replace(' ', '-').replace('/', '-')
-                output_file = f"clustering-{safe_topic}-{timestamp}.md"
-            else:
-                output_file = f"clustering-result-{timestamp}.md"
+        # 출력 파일 경로 결정 (--output 플래그가 있을 때만)
+        output_file = resolve_output_path(vault_path, args.output, "summarize", args.topic)
         
         if run_document_clustering(
-            vault_path=args.vault_path,
+            vault_path=vault_path,
             config=config,
             n_clusters=args.clusters,
             algorithm=args.algorithm,
@@ -1959,7 +1969,7 @@ def main():
             sys.exit(1)
         
         if run_learning_review(
-            vault_path=args.vault_path,
+            vault_path=vault_path,
             config=config,
             period=args.period,
             start_date_str=args.start_date,

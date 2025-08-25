@@ -4,12 +4,12 @@
 model:
   name: "BAAI/bge-m3"
   dimension: 1024
-  batch_size: 8 # 안정적이고 효율적인 배치 크기
+  batch_size: 2 # 낮은 부하로 조정 - 다른 작업 동시 가능
   cache_folder: "models/"
   device: "auto" # 자동 감지 (GPU 사용 가능시 GPU, 없으면 CPU)
   use_fp16: false # 호환성을 위해 FP16 비활성화 (필요시 true로 변경)
   max_length: 4096 # 정확도 향상을 위한 긴 문맥 지원
-  num_workers: 6 # 최적 성능을 위한 워커 수 (시스템에 맞게 조정 가능)
+  num_workers: 2 # 낮은 부하로 조정 - 다른 작업 동시 가능
 
 # 캐시 설정
 cache:
@@ -20,6 +20,7 @@ cache:
 
 # Vault 설정
 vault:
+  path: "/Users/msbaek/DocumentsLocal/msbaek_vault"  # 기본 vault 경로
   excluded_dirs:
     - ".DS_Store"
     - ".claude"
@@ -75,7 +76,7 @@ reranker:
   use_fp16: true
   cache_folder: "models/"
   device: "mps" # M1 Pro Metal Performance Shaders 가속
-  batch_size: 4
+  batch_size: 2
   initial_candidates_multiplier: 3 # 초기 검색에서 final_k * 3개 후보 검색
 
 # ColBERT 설정 (Phase 5.2 + 증분 인덱싱)
@@ -85,7 +86,7 @@ colbert:
   cache_folder: "models/"
   device: "mps" # M1 Pro Metal Performance Shaders 가속
   max_length: 4096
-  batch_size: 8 # 캐싱으로 배치 크기 증가 가능
+  batch_size: 2 # 낮은 부하로 조정
   max_documents: null # 전체 문서 대상 (제한 없음)
   enable_cache: true # ColBERT 캐싱 활성화
   incremental_indexing: true # 증분 인덱싱 활성화
@@ -210,8 +211,8 @@ logging:
 # 성능 설정
 performance:
   enable_gpu: true
-  num_workers: 8 # 워커 수 증가
-  chunk_size: 200 # 청크 크기 감소로 더 세밀한 처리
+  num_workers: 2 # 낮은 부하로 조정 - 다른 작업 동시 가능
+  chunk_size: 50 # 작은 청크로 부하 분산
   progress_bar: true
 
 # 지식 그래프 설정 (Phase 6)
@@ -242,7 +243,7 @@ semantic_tagging:
   model_name: "BAAI/bge-m3"
   device: "mps"                 # M1 Pro Metal Performance Shaders 가속
   use_fp16: true
-  batch_size: 4                 # 태깅 배치 크기
+  batch_size: 2                 # 낮은 부하로 조정
   max_length: 4096              # 최대 토큰 길이
   
   # 태그 생성 규칙
@@ -271,7 +272,7 @@ semantic_tagging:
   
   # 배치 처리 설정
   enable_recursive: true        # 재귀 처리 기본값
-  default_batch_size: 10        # 기본 배치 크기
+  default_batch_size: 3         # 낮은 부하로 조정
   show_progress: true           # 진행률 표시
   enable_dry_run: false         # 드라이런 모드 기본값
   
