@@ -382,7 +382,7 @@ class EmbeddingCache:
         """ColBERT 임베딩 저장"""
         try:
             # 파일 정보 추출
-            file_hash = self._compute_file_hash(file_path)
+            file_hash = self._calculate_file_hash(file_path)
             file_size = os.path.getsize(file_path)
             
             # 임베딩 직렬화

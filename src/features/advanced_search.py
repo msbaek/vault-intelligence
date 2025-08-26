@@ -68,6 +68,7 @@ class AdvancedSearchEngine:
             config: 검색 설정
         """
         self.vault_path = Path(vault_path)
+        self.cache_dir = cache_dir
         self.config = config or {}
         
         # 핵심 컴포넌트 초기화 (성능 최적화 설정)

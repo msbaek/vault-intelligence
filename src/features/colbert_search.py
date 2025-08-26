@@ -178,7 +178,7 @@ class ColBERTSearchEngine:
                 for idx, doc in enumerate(batch_docs):
                     if self.cache and not force_rebuild and hasattr(doc, 'path') and doc.path:
                         # 파일 해시 계산
-                        file_hash = self.cache._compute_file_hash(doc.path)
+                        file_hash = self.cache._calculate_file_hash(doc.path)
                         cached = self.cache.get_colbert_embedding(doc.path, file_hash)
                         
                         if cached:
