@@ -170,6 +170,25 @@ class EmbeddingCache:
             logger.debug(f"임베딩 역직렬화 실패 (차원 불일치): {e}")  # ERROR에서 DEBUG로 변경
             return np.zeros(dimension)
     
+    def _deserialize_colbert_embedding(self, data: bytes, num_tokens: int, embedding_dim: int) -> np.ndarray:
+        """ColBERT 임베딩 전용 역직렬화 (2차원 복원)"""
+        try:
+            # 바이트 데이터를 float32 배열로 변환
+            flat_array = np.frombuffer(data, dtype=np.float32)
+            
+            # 예상 크기 검증
+            expected_size = num_tokens * embedding_dim
+            if len(flat_array) != expected_size:
+                logger.warning(f"ColBERT 배열 크기 불일치: {len(flat_array)} != {expected_size}")
+                return np.zeros((num_tokens, embedding_dim), dtype=np.float32)
+            
+            # 2차원으로 reshape
+            return flat_array.reshape(num_tokens, embedding_dim)
+            
+        except Exception as e:
+            logger.error(f"ColBERT 임베딩 역직렬화 실패: {e}")
+            return np.zeros((num_tokens, embedding_dim), dtype=np.float32)
+    
     def store_embedding(
         self, 
         file_path: str, 
@@ -392,6 +411,10 @@ class EmbeddingCache:
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
                 
+                # 실제 임베딩 차원 정보 추출
+                actual_num_tokens = colbert_embedding.shape[0] if len(colbert_embedding.shape) > 1 else 1
+                embedding_dimension = colbert_embedding.shape[-1] if len(colbert_embedding.shape) > 1 else colbert_embedding.shape[0]
+                
                 # 기존 임베딩 교체
                 cursor.execute("""
                     INSERT OR REPLACE INTO colbert_embeddings 
@@ -400,8 +423,7 @@ class EmbeddingCache:
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """, (
                     file_path, file_hash, colbert_data, token_data, model_name,
-                    datetime.now().isoformat(), file_size, num_tokens,
-                    colbert_embedding.shape[-1] if len(colbert_embedding.shape) > 1 else colbert_embedding.shape[0]
+                    datetime.now().isoformat(), file_size, actual_num_tokens, embedding_dimension
                 ))
                 
                 conn.commit()
@@ -435,9 +457,9 @@ class EmbeddingCache:
                     logger.debug(f"파일이 변경됨 (ColBERT): {file_path}")
                     return None
                 
-                # 임베딩 복원
-                colbert_embedding = self._deserialize_embedding(colbert_data, dimension)
-                token_embeddings = self._deserialize_embedding(token_data, dimension) if token_data else None
+                # 임베딩 복원 - ColBERT 전용 메서드 사용
+                colbert_embedding = self._deserialize_colbert_embedding(colbert_data, num_tokens, dimension)
+                token_embeddings = self._deserialize_colbert_embedding(token_data, num_tokens, dimension) if token_data else None
                 
                 return {
                     "file_path": file_path,

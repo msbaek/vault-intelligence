@@ -47,7 +47,52 @@ python -m src search --query "SOLID principles" --top-k 3
 python -m src search --query "마이크로서비스 도메인 주도 설계" --threshold 0.5
 ```
 
-### 예제 4: 정확도 조절
+### 예제 4: ColBERT 정밀 검색
+```bash
+# 긴 문장을 사용한 ColBERT 검색 (권장)
+python -m src search --query "test driven development refactoring clean code practices" --search-method colbert --top-k 5
+
+# 복합 개념 검색
+python -m src search --query "dependency injection inversion of control spring framework" --search-method colbert
+```
+**사용 팁:** ColBERT는 단일 키워드보다 긴 문장에서 성능이 우수합니다.
+
+### 예제 5: 재순위화로 정확도 향상
+```bash
+# 하이브리드 + 재순위화 (최고 정확도)
+python -m src search --query "clean architecture principles" --search-method hybrid --rerank --top-k 3
+
+# 의미적 검색 + 재순위화  
+python -m src search --query "design patterns strategy factory" --search-method semantic --rerank
+```
+**기대 효과:** 정확도 15-25% 향상, 처리 시간 2-3배 증가
+
+### 예제 6: 검색 방법별 비교 테스트
+```bash
+# 같은 쿼리로 각 방법 비교
+query="SOLID principles object oriented design"
+
+python -m src search --query "$query" --search-method semantic   # 의미적
+python -m src search --query "$query" --search-method keyword    # 키워드  
+python -m src search --query "$query" --search-method hybrid     # 하이브리드 (추천)
+python -m src search --query "$query" --search-method colbert    # ColBERT
+
+# 재순위화 비교
+python -m src search --query "$query" --search-method hybrid             # 기본
+python -m src search --query "$query" --search-method hybrid --rerank   # 재순위화
+```
+
+### 예제 7: 단일 키워드 최적 검색법
+```bash
+# 단일 약어/키워드는 ColBERT보다 하이브리드가 효과적
+python -m src search --query "YAGNI" --search-method hybrid           # ✅ 추천
+python -m src search --query "TDD" --search-method hybrid --rerank   # ✅ 더 정확
+
+# ColBERT용으로 쿼리 확장
+python -m src search --query "YAGNI You Aren't Going to Need It agile principle" --search-method colbert
+```
+
+### 예제 8: 정확도 조절
 ```bash
 # 낮은 임계값 - 더 많은 결과
 python -m src search --query "리팩토링" --threshold 0.2 --top-k 20

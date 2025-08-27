@@ -30,10 +30,16 @@ pip install -r requirements.txt
 python -m src init --vault-path /path/to/your/vault
 ```
 
-### 3. 기본 검색
+### 3. 기본 사용법
 ```bash
-# 의미적 검색
-python -m src search --query "TDD"
+# 하이브리드 검색 (Dense + BM25, 추천)
+python -m src search --query "TDD 테스트 주도 개발" --search-method hybrid
+
+# 고정밀 재순위화 검색 (BGE Reranker V2-M3)
+python -m src search --query "clean architecture principles" --rerank
+
+# ColBERT 토큰 수준 검색 (긴 문장에 최적화)
+python -m src search --query "refactoring clean code practices" --search-method colbert
 
 # 주제별 문서 수집
 python -m src collect --topic "리팩토링"
@@ -41,7 +47,7 @@ python -m src collect --topic "리팩토링"
 # 문서 클러스터링 및 요약 (Phase 9)
 python -m src summarize --clusters 5
 
-# 학습 리뷰 생성
+# 학습 리뷰 생성  
 python -m src review --period weekly
 ```
 
@@ -57,7 +63,9 @@ python -m src review --period weekly
 
 | 기능 | 설명 | 명령어 |
 |------|------|--------|
-| **검색** | 하이브리드 의미적 검색 | `search --query "검색어"` |
+| **하이브리드 검색** | Dense + Sparse 결합 검색 (추천) | `search --query "검색어" --search-method hybrid` |
+| **ColBERT 검색** | 토큰 수준 정밀 매칭 | `search --query "긴 문장" --search-method colbert` |
+| **재순위화** | Cross-encoder로 정확도 향상 | `search --query "검색어" --rerank` ✨ |
 | **태깅** | 자동 태그 생성 | `tag "문서경로"` |
 | **수집** | 주제별 문서 수집 | `collect --topic "주제"` |
 | **요약** | 다중 문서 요약 | `summarize --clusters N` |

@@ -356,12 +356,21 @@ class ColBERTSearchEngine:
         doc_tokens: List[str]
     ) -> Tuple[float, List[Tuple[str, str, float]], List[float]]:
         """
-        ColBERT late interaction 계산
+        ColBERT late interaction 계산 (차원 검증 포함)
         
         Returns:
             (전체_점수, 토큰_유사도_쌍, 쿼리토큰별_최대유사도)
         """
         try:
+            # 차원 검증
+            if query_embeddings.ndim != 2 or doc_embeddings.ndim != 2:
+                raise ValueError(f"임베딩 차원 오류: query={query_embeddings.shape}, doc={doc_embeddings.shape}")
+            
+            if query_embeddings.shape[1] != doc_embeddings.shape[1]:
+                raise ValueError(f"임베딩 크기 불일치: {query_embeddings.shape[1]} != {doc_embeddings.shape[1]}")
+            
+            logger.debug(f"Late interaction: query{query_embeddings.shape} × doc{doc_embeddings.shape}")
+            
             # 코사인 유사도 행렬 계산 (query_tokens x doc_tokens)
             similarities = np.dot(query_embeddings, doc_embeddings.T)
             

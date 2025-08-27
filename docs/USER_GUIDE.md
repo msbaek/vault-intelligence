@@ -114,7 +114,28 @@ python -m src search --query "TDD" --expand --no-synonyms
 # 개념적 유사성 포착
 ```
 
-#### 5️⃣ **최고 성능 모드** (`--rerank --expand`)
+#### 5️⃣ **ColBERT 토큰 수준 검색** (`--search-method colbert`)
+```bash
+python -m src search --query "test driven development refactoring" --search-method colbert
+
+# ColBERT 토큰 레벨 late interaction
+# 긴 문장과 복합 개념에 최적화
+# 정밀한 토큰 매칭, 2-4초 소요
+```
+
+#### 6️⃣ **재순위화 모드** (`--rerank`)
+```bash
+# 하이브리드 + 재순위화 (추천)
+python -m src search --query "clean architecture" --search-method hybrid --rerank
+
+# ColBERT + 재순위화 (정밀 검색)
+python -m src search --query "SOLID principles" --search-method colbert --rerank
+
+# 의미적 + 재순위화
+python -m src search --query "design patterns" --search-method semantic --rerank
+```
+
+#### 7️⃣ **최고 성능 모드** (`--rerank --expand`)
 ```bash
 python -m src search --query "TDD" --rerank --expand
 
@@ -122,7 +143,7 @@ python -m src search --query "TDD" --rerank --expand
 # 1. 쿼리 확장 (동의어 + HyDE)
 # 2. 다중 검색 및 통합
 # 3. Cross-encoder 재순위화
-# 최고 품질, 3-5초 소요
+# 최고 품질, 5-8초 소요
 ```
 
 ### 검색 옵션 조합
@@ -155,15 +176,30 @@ python -m src search \
 ```
 
 #### 검색 타입 설명
-- **`semantic`**: 의미적 검색 (개념 기반)
-- **`keyword`**: 키워드 검색 (정확한 단어 매칭)
-- **`hybrid`**: 하이브리드 검색 (의미적 + 키워드)
-- **`colbert`**: ColBERT 토큰 수준 검색
-- **`*_reranked`**: Cross-encoder로 재순위화된 결과
+- **`semantic`**: 의미적 검색 (개념 기반, Dense embedding)
+- **`keyword`**: 키워드 검색 (정확한 단어 매칭, BM25 기반)
+- **`hybrid`**: 하이브리드 검색 (의미적 + 키워드 결합, 추천 ⭐)
+- **`colbert`**: ColBERT 토큰 수준 검색 (late interaction, 정밀 매칭)
+- **`*_reranked`**: Cross-encoder(BGE Reranker V2-M3)로 재순위화된 결과 (정확도 향상)
 - **`*_expanded_*`**: 쿼리 확장이 적용된 결과
-  - `*_original`**: 원본 쿼리 결과
-  - `*_synonym`**: 동의어 확장 결과  
-  - `*_hyde`**: HyDE 가상 문서 결과
+  - **`*_original`**: 원본 쿼리 결과
+  - **`*_synonym`**: 동의어 확장 결과  
+  - **`*_hyde`**: HyDE 가상 문서 결과
+
+#### 검색 방법 선택 가이드
+| 검색 유형 | 적합한 상황 | 특징 | 속도 |
+|-----------|-------------|------|------|
+| **Hybrid** | 일반적인 모든 검색 | Dense + BM25 결합, 균형 잡힌 성능 | 빠름 ⚡ |
+| **Semantic** | 개념적, 의미적 검색 | 유사한 개념 문서 발견 | 빠름 ⚡ |
+| **ColBERT** | 긴 문장, 복합 개념 | 토큰 레벨 정밀 매칭 | 보통 🐌 |
+| **Keyword** | 정확한 용어 검색 | 명시적 키워드 매칭 | 빠름 ⚡ |
+
+#### 재순위화(--rerank) 사용 권장
+- ✅ **전문 지식 검색** (기술 문서, 학술 자료)
+- ✅ **정밀도가 중요한 검색** (소수의 정확한 결과 필요)
+- ✅ **복합 개념 검색** (여러 키워드 조합)
+- ❌ **단순 키워드 검색** (단일 용어)
+- ❌ **실시간 검색** (응답 속도 중시)
 
 ## 🕸️ 지식 그래프 기능 (Phase 6)
 

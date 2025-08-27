@@ -791,6 +791,8 @@ class AdvancedSearchEngine:
             return self.semantic_search(query, top_k=final_k, threshold=threshold, **search_kwargs)
         elif search_method == "keyword":
             return self.keyword_search(query, top_k=final_k, **search_kwargs)
+        elif search_method == "colbert":
+            return self.colbert_search(query, top_k=final_k, threshold=threshold, **search_kwargs)
         elif search_method == "hybrid":
             return self.hybrid_search(query, top_k=final_k, threshold=threshold, **search_kwargs)
         else:

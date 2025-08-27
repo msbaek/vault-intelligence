@@ -177,10 +177,14 @@ results = engine.hybrid_search("query", top_k=10)
 results = engine.semantic_search("query", top_k=5)  
 results = engine.colbert_search("query", top_k=10)
 
-# 재순위화 적용
-from src.features.reranker import Reranker
-reranker = Reranker(config)
-reranked = reranker.rerank(results, "query")
+# 재순위화를 포함한 고급 검색 (권장)
+results = engine.search_with_reranking(
+    query="test driven development",
+    search_method="hybrid",  # semantic, keyword, colbert, hybrid
+    initial_k=30,           # 1차 검색 후보 수
+    final_k=10,             # 최종 반환 수
+    use_reranker=True       # BGE Reranker V2-M3 활용
+)
 ```
 
 ### 2. 문서 클러스터링 (Phase 9)
@@ -286,6 +290,8 @@ logger.error("오류 메시지")
 - **검색 결과 없음**: similarity_threshold 조정 (기본: 0.3)  
 - **인덱싱 실패**: 캐시 디렉토리 권한 확인, 강제 재인덱싱
 - **모델 로딩 실패**: 네트워크 연결 확인, HuggingFace 캐시 확인
+- **ColBERT 경고 메시지**: 캐시 초기화 후 재인덱싱 (`rm -rf cache/ && python -m src reindex --with-colbert`)
+- **ColBERT 재순위화 오류**: 2025-08-27 수정 완료, 모든 검색 방법에서 --rerank 옵션 지원
 
 ### 성능 프로파일링
 ```python
@@ -304,13 +310,14 @@ stats.print_stats(10)
 
 ## 🔄 최신 개발 현황
 
-### ✅ 완료된 Phase들 (Phase 1-9)
+### ✅ 완료된 Phase들 (Phase 1-9 + 긴급 수정)
 - **Phase 1-4**: 기본 BGE-M3 검색 시스템
 - **Phase 5**: 고급 검색 (Reranking, ColBERT, 쿼리 확장)
 - **Phase 6**: 지식 그래프 및 관련성 분석  
 - **Phase 7**: 자동 태깅 시스템
 - **Phase 8**: MOC 자동 생성
 - **Phase 9**: 다중 문서 요약 시스템 ✨
+- **긴급 수정 (2025-08-27)**: ColBERT 메타데이터 무결성 완전 해결 🔧
 
 ### 🎯 향후 개발 방향 (Phase 10+)
 - 웹 인터페이스 (FastAPI + React)

@@ -173,6 +173,65 @@ logging.basicConfig(level=logging.DEBUG)
 "
 ```
 
+## ColBERT 관련 문제
+
+### ColBERT 배열 크기 불일치 경고
+
+**증상**: ColBERT 검색 시 다음과 같은 경고 메시지 대량 발생
+```
+WARNING:src.core.embedding_cache:ColBERT 배열 크기 불일치: 2444288 != 524288
+```
+
+**원인**: 이전 버전에서 생성된 ColBERT 캐시의 메타데이터 불일치
+
+**해결 방법**: ✅ **2025-08-27 완전 수정됨**
+```bash
+# 캐시 완전 초기화 후 재인덱싱
+rm -rf cache/
+python -m src reindex --with-colbert --force
+
+# 수정된 코드로 새로 생성되는 모든 임베딩은 정상
+```
+
+### ColBERT + 재순위화 오류
+
+**증상**: `--rerank` 옵션과 ColBERT 함께 사용 시 오류
+```
+❌ 지원하지 않는 검색 방법: colbert
+❌ 검색 실패!
+```
+
+**해결 방법**: ✅ **2025-08-27 수정 완료**
+```bash
+# 이제 모든 검색 방법에서 재순위화 지원
+python -m src search --query "TDD" --search-method colbert --rerank ✅
+python -m src search --query "TDD" --search-method hybrid --rerank ✅ 
+python -m src search --query "TDD" --search-method semantic --rerank ✅
+```
+
+### ColBERT 검색 결과 품질 문제
+
+**증상**: 단일 키워드(예: "YAGNI") 검색 시 관련 없는 결과 많이 반환
+
+**원인**: ColBERT의 토큰 레벨 매칭 특성상 단일 약어는 많은 무관한 토큰과 유사도 매칭
+
+**해결 방법**:
+```bash
+# 1. 하이브리드 검색 사용 (권장)
+python -m src search --query "YAGNI" --search-method hybrid
+
+# 2. 확장된 쿼리 사용  
+python -m src search --query "YAGNI You Aren't Going to Need It principle" --search-method colbert
+
+# 3. 재순위화 적용
+python -m src search --query "YAGNI" --search-method hybrid --rerank
+```
+
+**ColBERT 적합한 사용 케이스**:
+- ✅ 긴 문장: "test driven development best practices"
+- ✅ 복합 개념: "clean architecture dependency inversion"  
+- ❌ 단일 약어: "TDD", "YAGNI", "DDD"
+
 ## 자주 묻는 질문
 
 ### Q: 시각화가 너무 오래 걸려요
@@ -180,6 +239,20 @@ logging.basicConfig(level=logging.DEBUG)
 ```python
 engine.build_index(sample_size=50)  # 50개 문서만 사용
 ```
+
+### Q: 어떤 검색 방법을 언제 사용해야 하나요?
+**A**: 
+- **일반 검색**: `--search-method hybrid` (기본값, 추천)
+- **개념 검색**: `--search-method semantic` 
+- **정확한 용어**: `--search-method keyword`
+- **긴 문장**: `--search-method colbert`
+- **고품질 검색**: `--rerank` 추가 (모든 방법과 조합 가능)
+
+### Q: 재순위화(--rerank)는 언제 사용하나요?
+**A**: 
+- ✅ 전문 지식 검색 (기술 문서, 학술 자료)
+- ✅ 정밀도가 중요한 경우 (소수의 정확한 결과)
+- ❌ 단순 키워드나 실시간 검색 (속도 중시)
 
 ### Q: 한글 외에 다른 언어도 지원하나요?
 **A**: BGE-M3는 다국어를 지원하지만, 시각화 폰트는 별도 설정이 필요합니다.
