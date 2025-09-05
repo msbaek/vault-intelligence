@@ -1370,6 +1370,244 @@ def save_learning_review(review, output_file: str):
         f.write('\n'.join(content))
 
 
+def _resolve_file_path(file_path: str, vault_path: str) -> Optional[str]:
+    """
+    파일 경로를 해결합니다. 다음 순서로 시도:
+    1. 절대 경로인 경우 직접 확인
+    2. vault 기준 상대 경로로 확인
+    3. 파일명만 있는 경우 vault 전체에서 재귀 검색
+    
+    Args:
+        file_path: 입력된 파일 경로
+        vault_path: vault 루트 경로
+        
+    Returns:
+        해결된 절대 파일 경로 또는 None
+    """
+    vault_base = Path(vault_path)
+    
+    # 1. 절대 경로인 경우
+    if Path(file_path).is_absolute():
+        target_path = Path(file_path)
+        if target_path.exists() and target_path.suffix.lower() in ['.md', '.markdown']:
+            return str(target_path)
+        return None
+    
+    # 2. vault 기준 상대 경로인 경우
+    if "/" in file_path or "\\" in file_path:
+        candidate_path = vault_base / file_path
+        if candidate_path.exists() and candidate_path.suffix.lower() in ['.md', '.markdown']:
+            return str(candidate_path)
+        return None
+    
+    # 3. 파일명만 제공된 경우 - vault 전체에서 재귀 검색
+    print(f"🔍 '{file_path}' 파일을 vault에서 검색 중...")
+    
+    # 검색 패턴 준비
+    search_patterns = [file_path]
+    if not file_path.endswith('.md') and not file_path.endswith('.markdown'):
+        search_patterns.append(f"{file_path}.md")
+        search_patterns.append(f"{file_path}.markdown")
+    
+    found_files = []
+    
+    for pattern in search_patterns:
+        # vault 전체에서 파일명 검색 (대소문자 구분 없음)
+        for md_file in vault_base.rglob("*.md"):
+            if md_file.name.lower() == pattern.lower():
+                found_files.append(md_file)
+        
+        # 부분 매치도 시도 (정확한 매치가 없을 경우)
+        if not found_files:
+            for md_file in vault_base.rglob("*.md"):
+                if pattern.lower() in md_file.name.lower():
+                    found_files.append(md_file)
+    
+    # 중복 제거
+    found_files = list(set(found_files))
+    
+    if not found_files:
+        return None
+    elif len(found_files) == 1:
+        rel_path = found_files[0].relative_to(vault_base)
+        print(f"✅ 파일 발견: {rel_path}")
+        return str(found_files[0])
+    else:
+        print(f"📋 '{file_path}' 관련 파일이 {len(found_files)}개 발견되었습니다:")
+        for i, file_path_found in enumerate(found_files[:10], 1):  # 최대 10개만 표시
+            rel_path = file_path_found.relative_to(vault_base)
+            print(f"  {i}. {rel_path}")
+        
+        if len(found_files) > 10:
+            print(f"   ... 및 {len(found_files) - 10}개 더")
+        
+        # 가장 정확한 매치 선택 (파일명이 정확히 일치하는 것 우선)
+        exact_matches = [f for f in found_files if f.stem.lower() == Path(file_path).stem.lower()]
+        if exact_matches:
+            selected_file = exact_matches[0]
+        else:
+            selected_file = found_files[0]
+        
+        rel_path = selected_file.relative_to(vault_base)
+        print(f"🎯 가장 적합한 파일을 선택: {rel_path}")
+        return str(selected_file)
+
+
+def run_relate_docs_update(
+    vault_path: str,
+    config: dict,
+    file_path: str = None,
+    batch: bool = False,
+    pattern: str = None,
+    top_k: int = 5,
+    threshold: float = 0.3,
+    update_existing: bool = True,
+    backup: bool = False,
+    dry_run: bool = False,
+    format_style: str = "detailed"
+):
+    """관련 문서 섹션 추가/업데이트 실행"""
+    try:
+        print("🔗 관련 문서 섹션 업데이트 시작...")
+        
+        # 검색 엔진 초기화
+        cache_dir = str(project_root / "cache")
+        search_engine = AdvancedSearchEngine(vault_path, cache_dir, config)
+        
+        if not search_engine.indexed:
+            print("📚 인덱스 구축 중...")
+            if not search_engine.build_index():
+                print("❌ 인덱스 구축 실패")
+                return False
+        
+        # RelatedDocsFinder 초기화
+        finder_config = {
+            'related_docs': {
+                'default_top_k': top_k,
+                'default_threshold': threshold,
+                'section_title': '## 관련 문서',
+                'show_similarity': format_style == "detailed",
+                'show_snippet': False
+            }
+        }
+        finder_config.update(config)
+        
+        from src.features.related_docs_finder import RelatedDocsFinder
+        finder = RelatedDocsFinder(search_engine, finder_config)
+        
+        if batch:
+            # 배치 처리 모드
+            if not pattern:
+                pattern = "*.md"  # 기본 패턴
+            
+            print(f"📁 배치 처리 모드: 패턴 '{pattern}'")
+            if dry_run:
+                print("🔍 드라이런 모드: 실제 변경 없이 미리보기만 수행합니다.")
+            
+            results = finder.batch_process(
+                file_patterns=[pattern],
+                top_k=top_k,
+                threshold=threshold,
+                update_existing=update_existing,
+                backup=backup,
+                dry_run=dry_run
+            )
+            
+            if not results:
+                print("❌ 처리할 파일이 없습니다.")
+                return False
+            
+            # 배치 처리 결과 출력
+            successful = sum(1 for r in results if r.success)
+            total = len(results)
+            
+            print(f"\n📊 배치 처리 결과:")
+            print("-" * 60)
+            print(f"처리된 파일: {total}개")
+            print(f"성공: {successful}개")
+            print(f"실패: {total - successful}개")
+            print(f"성공률: {successful/total*100:.1f}%")
+            
+            # 상세 결과 (최대 10개)
+            if results:
+                print(f"\n📋 상세 결과 (상위 {min(10, len(results))}개):")
+                for i, result in enumerate(results[:10]):
+                    status = "✅" if result.success else "❌"
+                    file_name = Path(result.target_file_path).name
+                    print(f"{i+1}. {status} {file_name}")
+                    
+                    if result.success:
+                        related_count = len(result.related_docs)
+                        if result.section_added:
+                            print(f"   📄 새 섹션 추가 ({related_count}개 관련 문서)")
+                        elif result.existing_section_updated:
+                            print(f"   🔄 기존 섹션 업데이트 ({related_count}개 관련 문서)")
+                        print(f"   ⏱️ 처리 시간: {result.processing_time:.2f}초")
+                    else:
+                        print(f"   ❌ 오류: {result.error_message}")
+                        
+            return successful == total
+        
+        else:
+            # 단일 파일 처리 모드
+            if not file_path:
+                print("❌ 파일 경로가 필요합니다. --file 옵션을 사용하세요.")
+                return False
+            
+            # 파일 경로 해결 (vault 내에서 검색 포함)
+            resolved_file_path = _resolve_file_path(file_path, vault_path)
+            if not resolved_file_path:
+                print(f"❌ 파일을 찾을 수 없습니다: {file_path}")
+                return False
+            
+            print(f"📄 단일 파일 처리: {Path(resolved_file_path).name}")
+            vault_relative_path = Path(resolved_file_path).relative_to(Path(vault_path))
+            print(f"📁 경로: {vault_relative_path}")
+            
+            if dry_run:
+                print("🔍 드라이런 모드: 실제 변경 없이 미리보기만 수행합니다.")
+            
+            result = finder.update_document(
+                file_path=resolved_file_path,
+                top_k=top_k,
+                threshold=threshold,
+                update_existing=update_existing,
+                backup=backup,
+                dry_run=dry_run
+            )
+            
+            # 단일 파일 처리 결과 출력
+            print(f"\n📄 처리 결과: {Path(result.target_file_path).name}")
+            print("-" * 50)
+            
+            if result.success:
+                print(f"✅ 성공 (처리시간: {result.processing_time:.2f}초)")
+                print(f"관련 문서: {len(result.related_docs)}개")
+                
+                if result.section_added:
+                    print("📄 새로운 관련 문서 섹션을 추가했습니다.")
+                elif result.existing_section_updated:
+                    print("🔄 기존 관련 문서 섹션을 업데이트했습니다.")
+                else:
+                    print("ℹ️ 변경 사항이 없습니다.")
+                
+                # 관련 문서 목록 표시 (상위 3개만)
+                if result.related_docs:
+                    print(f"\n🔗 발견된 관련 문서 (상위 {min(3, len(result.related_docs))}개):")
+                    for i, related in enumerate(result.related_docs[:3], 1):
+                        print(f"  {i}. {related.document.title} (유사도: {related.similarity_score:.3f})")
+                
+            else:
+                print(f"❌ 실패: {result.error_message}")
+                
+            return result.success
+        
+    except Exception as e:
+        print(f"❌ 관련 문서 섹션 업데이트 실패: {e}")
+        logger.exception("관련 문서 업데이트 중 상세 오류:")
+        return False
+
+
 def run_moc_generation(
     vault_path: str,
     topic: str,
@@ -1450,7 +1688,7 @@ def main():
     
     parser.add_argument(
         "command",
-        choices=["init", "test", "info", "search", "duplicates", "collect", "analyze", "reindex", "related", "analyze-gaps", "tag", "generate-moc", "summarize", "review"],
+        choices=["init", "test", "info", "search", "duplicates", "collect", "analyze", "reindex", "related", "analyze-gaps", "tag", "generate-moc", "summarize", "review", "add-related-docs"],
         help="실행할 명령어"
     )
     
@@ -1689,6 +1927,45 @@ def main():
         "--to", 
         dest="end_date",
         help="리뷰 종료 날짜 (YYYY-MM-DD 형식)"
+    )
+    
+    # relate-docs-update 명령어 관련 인자들
+    parser.add_argument(
+        "--batch",
+        action="store_true",
+        help="배치 처리 모드 (여러 파일 일괄 처리)"
+    )
+    
+    parser.add_argument(
+        "--pattern",
+        help="배치 처리용 파일 패턴 (예: '*.md', '000-SLIPBOX/*.md')"
+    )
+    
+    parser.add_argument(
+        "--backup",
+        action="store_true",
+        help="원본 파일 백업 생성"
+    )
+    
+    parser.add_argument(
+        "--update-existing",
+        action="store_true",
+        default=True,
+        help="기존 관련 문서 섹션 업데이트 허용"
+    )
+    
+    parser.add_argument(
+        "--no-update-existing",
+        dest="update_existing",
+        action="store_false",
+        help="기존 관련 문서 섹션이 있으면 스킵"
+    )
+    
+    parser.add_argument(
+        "--format-style",
+        choices=["simple", "detailed"],
+        default="detailed",
+        help="관련 문서 섹션 포맷 스타일"
     )
     
     args = parser.parse_args()
@@ -1989,6 +2266,48 @@ def main():
             print("  python -m src review --topic TDD --period quarterly")
         else:
             print("❌ 학습 리뷰 실패!")
+            sys.exit(1)
+    
+    elif args.command == "add-related-docs":
+        if not check_dependencies():
+            sys.exit(1)
+        
+        # 단일 파일 vs 배치 처리 모드 결정
+        if args.batch:
+            if not args.pattern:
+                print("❌ 배치 모드에서는 --pattern 옵션이 필요합니다.")
+                print("📝 사용법 예시:")
+                print("  # 모든 마크다운 파일")
+                print("  python -m src add-related-docs --batch --pattern '*.md'")
+                print("  # 특정 폴더의 파일들")
+                print("  python -m src add-related-docs --batch --pattern '000-SLIPBOX/*.md'")
+                sys.exit(1)
+        else:
+            if not args.file:
+                print("❌ 단일 파일 모드에서는 --file 옵션이 필요합니다.")
+                print("📝 사용법 예시:")
+                print("  # 단일 파일 처리 (파일명만으로 검색)")
+                print("  python -m src add-related-docs --file 'tdd-basics.md'")
+                print("  # 드라이런으로 미리보기")
+                print("  python -m src add-related-docs --file 'tdd-basics.md' --dry-run")
+                sys.exit(1)
+        
+        if run_relate_docs_update(
+            vault_path=vault_path,
+            config=config,
+            file_path=args.file,
+            batch=args.batch,
+            pattern=args.pattern,
+            top_k=args.top_k,
+            threshold=args.threshold,
+            update_existing=args.update_existing,
+            backup=args.backup,
+            dry_run=args.dry_run,
+            format_style=args.format_style
+        ):
+            print("✅ 관련 문서 섹션 업데이트 완료!")
+        else:
+            print("❌ 관련 문서 섹션 업데이트 실패!")
             sys.exit(1)
 
 
