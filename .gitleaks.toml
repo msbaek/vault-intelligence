@@ -1,0 +1,248 @@
+# Gitleaks 설정 파일 - vault-intelligence 프로젝트
+# 민감한 정보 감지 및 보안 스캔
+
+[extend]
+# 기본 규칙을 확장하여 사용
+useDefault = true
+
+[[rules]]
+id = "openai-api-key"
+description = "OpenAI API Key"
+regex = '''sk-[a-zA-Z0-9]{32,}'''
+tags = ["api-key", "openai"]
+
+[[rules]]
+id = "google-api-key"
+description = "Google API Key"
+regex = '''AIza[a-zA-Z0-9_-]{35}'''
+tags = ["api-key", "google"]
+
+[[rules]]
+id = "anthropic-api-key"
+description = "Anthropic API Key"
+regex = '''sk-ant-[a-zA-Z0-9_-]{95,}'''
+tags = ["api-key", "anthropic"]
+
+[[rules]]
+id = "naver-client-id"
+description = "Naver Client ID"
+regex = '''['\"]?NAVER_CLIENT_ID['\"]?\s*[:=]\s*['\"]?[a-zA-Z0-9]{20}['\"]?'''
+tags = ["api-key", "naver"]
+
+[[rules]]
+id = "naver-client-secret"
+description = "Naver Client Secret"
+regex = '''['\"]?NAVER_CLIENT_SECRET['\"]?\s*[:=]\s*['\"]?[a-zA-Z0-9_-]{10,}['\"]?'''
+tags = ["api-key", "naver"]
+
+[[rules]]
+id = "slack-bot-token"
+description = "Slack Bot Token"
+regex = '''xoxb-[a-zA-Z0-9]+-[a-zA-Z0-9]+-[a-zA-Z0-9]+'''
+tags = ["api-key", "slack"]
+
+[[rules]]
+id = "slack-user-token"
+description = "Slack User Token"
+regex = '''xoxp-[a-zA-Z0-9]+-[a-zA-Z0-9]+-[a-zA-Z0-9]+-[a-zA-Z0-9]+'''
+tags = ["api-key", "slack"]
+
+[[rules]]
+id = "github-pat"
+description = "GitHub Personal Access Token"
+regex = '''ghp_[a-zA-Z0-9]{36}'''
+tags = ["api-key", "github"]
+
+[[rules]]
+id = "github-oauth-token"
+description = "GitHub OAuth Token"
+regex = '''gho_[a-zA-Z0-9]{36}'''
+tags = ["api-key", "github"]
+
+[[rules]]
+id = "aws-access-key"
+description = "AWS Access Key ID"
+regex = '''AKIA[0-9A-Z]{16}'''
+tags = ["aws", "api-key"]
+
+[[rules]]
+id = "jwt-token"
+description = "JWT Token"
+regex = '''eyJ[a-zA-Z0-9_-]*\.[a-zA-Z0-9_-]*\.[a-zA-Z0-9_-]*'''
+tags = ["jwt", "token"]
+
+[[rules]]
+id = "generic-api-key"
+description = "Generic API Key"
+regex = '''['\"]?api_key['\"]?\s*[:=]\s*['\"][^'\"]{16,}['\"]'''
+tags = ["api-key", "generic"]
+
+[[rules]]
+id = "generic-secret"
+description = "Generic Secret"
+regex = '''['\"]?secret['\"]?\s*[:=]\s*['\"][^'\"]{8,}['\"]'''
+tags = ["secret", "generic"]
+
+[[rules]]
+id = "generic-password"
+description = "Generic Password"
+regex = '''['\"]?password['\"]?\s*[:=]\s*['\"][^'\"]{8,}['\"]'''
+tags = ["password", "generic"]
+
+[[rules]]
+id = "generic-token"
+description = "Generic Token"
+regex = '''['\"]?token['\"]?\s*[:=]\s*['\"][^'\"]{16,}['\"]'''
+tags = ["token", "generic"]
+
+[[rules]]
+id = "discord-bot-token"
+description = "Discord Bot Token"
+regex = '''[MN][A-Za-z\d]{23}\.[\w-]{6}\.[\w-]{27}'''
+tags = ["api-key", "discord"]
+
+[[rules]]
+id = "telegram-bot-token"
+description = "Telegram Bot Token"
+regex = '''\d{8,10}:[a-zA-Z0-9_-]{35}'''
+tags = ["api-key", "telegram"]
+
+[[rules]]
+id = "stripe-api-key"
+description = "Stripe API Key"
+regex = '''sk_(test_|live_)?[0-9a-zA-Z]{24}'''
+tags = ["api-key", "stripe"]
+
+[[rules]]
+id = "twilio-api-key"
+description = "Twilio API Key"
+regex = '''SK[0-9a-fA-F]{32}'''
+tags = ["api-key", "twilio"]
+
+[[rules]]
+id = "sendgrid-api-key"
+description = "SendGrid API Key"
+regex = '''SG\.[a-zA-Z0-9_-]{22}\.[a-zA-Z0-9_-]{43}'''
+tags = ["api-key", "sendgrid"]
+
+[[rules]]
+id = "mailgun-api-key"
+description = "Mailgun API Key"
+regex = '''key-[0-9a-zA-Z]{32}'''
+tags = ["api-key", "mailgun"]
+
+[[rules]]
+id = "firebase-private-key"
+description = "Firebase Private Key"
+regex = '''-----BEGIN PRIVATE KEY-----[a-zA-Z0-9/+=\s]+-----END PRIVATE KEY-----'''
+tags = ["private-key", "firebase"]
+
+[[rules]]
+id = "ssh-private-key"
+description = "SSH Private Key"
+regex = '''-----BEGIN (RSA |OPENSSH |DSA |EC |PGP )?PRIVATE KEY-----'''
+tags = ["private-key", "ssh"]
+
+[[rules]]
+id = "pgp-private-key"
+description = "PGP Private Key"
+regex = '''-----BEGIN PGP PRIVATE KEY BLOCK-----'''
+tags = ["private-key", "pgp"]
+
+# 한국 서비스 API 키 패턴
+[[rules]]
+id = "kakao-api-key"
+description = "Kakao API Key"
+regex = '''['\"]?kakao[_-]?api[_-]?key['\"]?\s*[:=]\s*['\"][a-zA-Z0-9]{32}['\"]'''
+tags = ["api-key", "kakao", "korean-service"]
+
+[[rules]]
+id = "kakao-rest-api-key"
+description = "Kakao REST API Key"
+regex = '''['\"]?REST_API_KEY['\"]?\s*[:=]\s*['\"][a-zA-Z0-9]{32}['\"]'''
+tags = ["api-key", "kakao", "korean-service"]
+
+[[rules]]
+id = "line-channel-token"
+description = "LINE Channel Access Token"
+regex = '''LINE_CHANNEL_ACCESS_TOKEN\s*[:=]\s*['\"]?[a-zA-Z0-9+/]{40,}={0,2}['\"]?'''
+tags = ["api-key", "line", "korean-service"]
+
+# 암호화폐 지갑 주소
+[[rules]]
+id = "bitcoin-address"
+description = "Bitcoin Address"
+regex = '''[13][a-km-zA-HJ-NP-Z1-9]{25,34}'''
+tags = ["crypto", "bitcoin"]
+
+[[rules]]
+id = "ethereum-address"
+description = "Ethereum Address"
+regex = '''0x[a-fA-F0-9]{40}'''
+tags = ["crypto", "ethereum"]
+
+# 한국 은행 계좌번호 패턴 (보안상 중요)
+[[rules]]
+id = "korean-bank-account"
+description = "Korean Bank Account Number"
+regex = '''\d{3}-\d{6}-\d{2}-\d{3}|\d{3}-\d{2}-\d{6}|\d{6}-\d{2}-\d{6}'''
+tags = ["bank-account", "korean-finance"]
+
+# 주민등록번호 패턴 (절대 노출 금지)
+[[rules]]
+id = "korean-social-security"
+description = "Korean Social Security Number"
+regex = '''\d{6}-[1-4]\d{6}'''
+tags = ["ssn", "korean-personal-info"]
+
+# 신용카드 번호 패턴
+[[rules]]
+id = "credit-card-number"
+description = "Credit Card Number"
+regex = '''\b(?:4\d{3}|5[1-5]\d{2}|6011)[-\s]?\d{4}[-\s]?\d{4}[-\s]?\d{4}\b'''
+tags = ["credit-card", "financial"]
+
+[allowlist]
+# 허용할 파일 및 경로들
+paths = [
+    ".gitleaks.toml",
+    "README.md", 
+    "SECURITY.md",
+    "docs/",
+    "samples/",
+    "knowledge_graph.json",
+    "test_driven_design.md",
+    "cache/"
+]
+
+# 허용할 커밋 (예: 초기 설정 커밋)
+commits = []
+
+# 허용할 정규식 패턴
+regexes = [
+    '''your_api_key_here''',
+    '''your_.*_key_here''',
+    '''example_.*_key''',
+    '''test_.*_key''',
+    '''dummy_.*_key''',
+    '''placeholder''',
+    '''<YOUR_.*_KEY>''',
+    '''\*\*\*MASKED\*\*\*''',
+    '''sk-.*example.*''',
+    '''AIza.*example.*''',
+    '''Bearer\s+token''',  # 문서화용 예제
+    '''Authorization:\s*Bearer\s*<token>''',  # 문서화용 예제
+]
+
+# 전역 허용 패턴 (false positive 방지)
+stopwords = [
+    "example",
+    "test",
+    "demo", 
+    "dummy",
+    "placeholder",
+    "template",
+    "sample",
+    "mock",
+    "fake"
+]

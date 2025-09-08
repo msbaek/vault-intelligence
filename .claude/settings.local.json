@@ -17,7 +17,9 @@
       "Bash(top:*)",
       "Bash(sqlite3:*)",
       "Bash(grep:*)",
-      "Read(//Users/msbaek/DocumentsLocal/msbaek_vault/**)"
+      "Read(//Users/msbaek/DocumentsLocal/msbaek_vault/**)",
+      "Read(//Users/msbaek/dotfiles/**)",
+      "Bash(git check-ignore:*)"
     ],
     "deny": [],
     "ask": [],
