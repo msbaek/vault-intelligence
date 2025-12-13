@@ -19,7 +19,15 @@
       "Bash(grep:*)",
       "Read(//Users/msbaek/DocumentsLocal/msbaek_vault/**)",
       "Read(//Users/msbaek/dotfiles/**)",
-      "Bash(git check-ignore:*)"
+      "Bash(git check-ignore:*)",
+      "mcp__obsidian__search-vault",
+      "mcp__playwright__browser_navigate",
+      "mcp__playwright__browser_snapshot",
+      "mcp__playwright__browser_click",
+      "mcp__playwright__browser_navigate_back",
+      "mcp__fetch__fetch",
+      "Read(//Users/msbaek/git/kt4u/coffee-time/**)",
+      "Bash(cat:*)"
     ],
     "deny": [],
     "ask": [],
