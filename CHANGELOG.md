@@ -1,146 +1,135 @@
-# 📝 Vault Intelligence System V2 - 변경 로그
+# Changelog
 
-## [긴급 수정] 2025-08-27
+All notable changes to this project will be documented in this file.
 
-### 🔧 주요 버그 수정
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-#### ColBERT 메타데이터 무결성 문제 완전 해결
-- **문제**: ColBERT 검색 시 "배열 크기 불일치" 경고 메시지 대량 발생
-- **원인**: `store_colbert_embedding` 메서드에서 실제 배열 크기 대신 파라미터 값 저장
-- **해결**: 
-  - `src/core/embedding_cache.py:415-426` 수정
-  - 실제 임베딩 차원을 배열에서 직접 추출: `actual_num_tokens = colbert_embedding.shape[0]`
-  - 모든 새로운 ColBERT 임베딩의 메타데이터 100% 정확성 보장
+## [Unreleased]
 
-```python
-# 수정 전 (문제 코드)
-num_tokens,  # 파라미터 값 직접 사용
+## [2026-01-12]
 
-# 수정 후 (해결 코드)  
-actual_num_tokens = colbert_embedding.shape[0] if len(colbert_embedding.shape) > 1 else 1
-embedding_dimension = colbert_embedding.shape[-1] if len(colbert_embedding.shape) > 1 else colbert_embedding.shape[0]
-```
+### Changed
+- 문서 재구조화 계획 수립 및 진행
 
-#### ColBERT 재순위화 지원 추가
-- **문제**: `--rerank` 옵션이 ColBERT 검색 방법을 지원하지 않음
-- **오류**: `❌ 지원하지 않는 검색 방법: colbert`
-- **해결**:
-  - `src/features/advanced_search.py:794` ColBERT 검색 방법 추가
-  - `src/features/reranker.py:330` RerankerPipeline에서 ColBERT 지원 추가
-  - 모든 검색 방법(semantic, keyword, colbert, hybrid)에서 재순위화 지원
+## [2025-12-13]
 
-### 🚀 성능 및 안정성 향상
+### Added
+- CLI 빠른 참조 가이드 (CLAUDE.md)
+- 문서 감사 보고서 (DOCUMENTATION_AUDIT_REPORT.md)
 
-#### 전체 Vault 재인덱싱 완료
-- **규모**: 2,316개 문서 완전 색인
-- **ColBERT 임베딩**: 2,303개 (100% 정상 메타데이터)
-- **Dense 임베딩**: 2,304개
-- **캐시 크기**: 12GB+ 안정적 처리
-- **캐시 효율성**: 99%+ (2,301개 캐시 활용, 15개만 신규 생성)
+## [2025-09-08]
 
-#### 검색 성능 검증
-- **하이브리드 검색**: Dense + Sparse 결합으로 균형 잡힌 성능
-- **ColBERT 검색**: 토큰 레벨 정밀 매칭, 긴 문장에 최적화
-- **재순위화**: BGE Reranker V2-M3로 15-25% 정확도 향상
-- **처리 속도**: 모든 검색 방법 2-8초 내 응답
+### Added
+- 포괄적인 보안 시스템 구현 (SECURITY.md)
+- 취약점 보고 절차 문서화
 
-### 📚 문서 업데이트
+## [2025-09-05]
 
-#### CLAUDE.md (개발자 가이드)
-- ColBERT + 재순위화 API 사용법 추가
-- 문제 해결 섹션에 ColBERT 관련 내용 보강
-- 최신 개발 현황에 긴급 수정 사항 반영
+### Added
+- 관련 문서 찾기 기능 (`python -m src related`)
 
-#### docs/USER_GUIDE.md
-- ColBERT 검색 방법 상세 설명
-- 재순위화 옵션 사용법 및 권장사항
-- 검색 방법별 선택 가이드 테이블 추가
-- 성능 vs 정확도 비교 정보 제공
+### Changed
+- `__pycache__` 파일 정리
 
-#### docs/TROUBLESHOOTING.md
-- ColBERT 관련 문제 해결 섹션 신설
-- 배열 크기 불일치 경고 해결법
-- 재순위화 오류 해결법
-- ColBERT 적합한 사용 케이스 안내
+## [2025-08-27]
 
-#### docs/EXAMPLES.md
-- ColBERT 정밀 검색 예제
-- 재순위화 활용 예제
-- 검색 방법별 비교 테스트 예제
-- 단일 키워드 최적 검색법 예제
+### Fixed
+- ColBERT 메타데이터 무결성 문제 완전 해결
+  - `store_colbert_embedding`에서 실제 배열 크기 추출로 수정
+  - 100% 정확한 메타데이터 저장 보장
+- ColBERT 재순위화 지원 추가
+  - 모든 검색 방법(semantic, keyword, colbert, hybrid)에서 `--rerank` 옵션 지원
 
-#### README.md
-- 주요 기능 테이블에 ColBERT, 재순위화 추가
-- 기본 사용법 예제를 최신 권장사항으로 업데이트
-- 하이브리드 검색을 기본 추천 방법으로 설정
+### Changed
+- 전체 Vault 재인덱싱 완료 (2,316개 문서)
+- 캐시 효율성 99%+ 달성
 
-### 🎯 사용 권장사항
+## [2025-08-26]
 
-#### 검색 방법 선택 가이드
-| 상황 | 권장 방법 | 명령어 |
-|------|-----------|--------|
-| **일반적인 모든 검색** | 하이브리드 | `--search-method hybrid` |
-| **고정밀 검색** | 하이브리드 + 재순위화 | `--search-method hybrid --rerank` |
-| **긴 문장, 복합 개념** | ColBERT | `--search-method colbert` |
-| **단일 키워드/약어** | 하이브리드 (ColBERT 비추천) | `--search-method hybrid` |
+### Added
+- ColBERT 버그 수정 계획 문서
 
-#### ColBERT 사용 팁
-- ✅ **적합**: "test driven development refactoring practices"
-- ✅ **적합**: "dependency injection inversion of control"
-- ❌ **부적합**: "TDD", "YAGNI", "DDD" (단일 약어)
+## [2025-08-25]
 
-#### 재순위화 사용 권장
-- ✅ **전문 지식 검색** (기술 문서, 학술 자료)
-- ✅ **정밀도 중시** (소수의 정확한 결과)
-- ✅ **복합 개념 검색**
-- ❌ **단순 키워드 검색**
-- ❌ **실시간 검색** (속도 중시)
+### Added
+- 폴더별 재인덱싱 자동화 스크립트
 
-### 🔍 검증 결과
+### Changed
+- 동시 처리를 위한 시스템 성능 최적화
+- claude 설정에서 vault 접근 권한 확장
 
-#### 기능 검증 완료
-- [x] 모든 검색 방법 정상 동작
-- [x] ColBERT + 재순위화 오류 수정
-- [x] 메타데이터 무결성 100% 달성
-- [x] 대규모 vault (2,300+ 문서) 안정적 처리
-- [x] 캐시 효율성 99%+ 달성
+## [2025-08-24] - Phase 9
 
-#### 성능 테스트 결과
-- **"test driven development best practices"** 쿼리 테스트:
-  - 하이브리드: 관련성 높은 결과 반환
-  - 하이브리드 + 재순위화: 정확도 크게 향상 (TDD 전문 문서 1위)
-  - ColBERT: 토큰 레벨 정밀 매칭 정상 동작
+### Added
+- 다중 문서 요약 시스템 (`document_summarizer.py`)
+- 문서 클러스터링 기능 (`content_clusterer.py`)
+  - K-means, DBSCAN, Agglomerative 알고리즘 지원
+- 학습 리뷰 시스템 (`learning_reviewer.py`)
+  - 주간/월간/분기별 학습 활동 분석
+- Claude Code LLM 통합 모듈 (`claude_code_integration.py`)
 
-#### 문제 해결 확인
-- **ColBERT 경고 메시지**: ✅ 완전 해결 (새 캐시 생성 시 0개 경고)
-- **재순위화 오류**: ✅ 모든 검색 방법 지원
-- **검색 품질**: ✅ 각 방법별 특성에 맞는 최적화 완료
+### Changed
+- 오픈소스 공개 준비 완료
+- 문서 중복 제거
 
----
+## [2025-08-23] - Phase 8
 
-## 이전 버전 히스토리
+### Added
+- MOC(Map of Content) 자동 생성 시스템 (`moc_generator.py`)
+- ColBERT 증분 캐싱 시스템으로 전체 vault 검색 지원
 
-### Phase 9 (2025-08-26)
-- 다중 문서 요약 시스템 구현
-- 문서 클러스터링 기능
-- 학습 리뷰 시스템
+### Changed
+- README.md에 MOC 기능 문서화
 
-### Phase 8 (2025-08-25)  
-- MOC 자동 생성 기능
-- 주제별 문서 수집 개선
+## [2025-08-22]
 
-### Phase 7 (2025-08-24)
-- 자동 태깅 시스템 구현
-- 의미적 태그 생성
+### Added
+- 지식 그래프 시각화 시스템 (`knowledge_graph.py`)
+- 한글 폰트 지원 (시각화)
 
-### Phase 1-6 (2025-08)
-- BGE-M3 임베딩 엔진 구축
-- 다층 검색 시스템 (Dense, Sparse, ColBERT)
-- Cross-encoder 재순위화
-- 지식 그래프 분석
-- 쿼리 확장 (동의어 + HyDE)
-- 중복 문서 감지
+## [2025-08-21] - Phase 5, 6, 7
+
+### Added
+- Phase 7: BGE-M3 기반 자동 태깅 시스템 (`semantic_tagger.py`)
+- Phase 6: 지식 그래프 분석 시스템
+- Phase 5: 검색 품질 향상 시스템
+  - Cross-encoder 재순위화 (`reranker.py`) - BGE Reranker V2-M3
+  - ColBERT 토큰 레벨 검색 (`colbert_search.py`)
+  - 쿼리 확장 (`query_expansion.py`) - 동의어 + HyDE
+- Phase 4: 성능 최적화 (25-40배 향상)
+- 주제별 문서 수집에 쿼리 확장 지원
+
+### Fixed
+- 캐시 활용 검색 시스템 완전 복구
+- 점진적 인덱싱 구현
+
+## [2025-08-20] - Phase 1, 2, 3
+
+### Added
+- Phase 3: BGE-M3 기반 하이브리드 검색 시스템
+  - Dense 임베딩 (의미적 검색)
+  - Sparse 임베딩 (키워드 검색, BM25)
+- Phase 2: 다층 검색 엔진 (`advanced_search.py`)
+- Phase 1: Sentence Transformers 기반 임베딩 엔진 (`sentence_transformer_engine.py`)
+- 폴더별 점진적 색인 기능
+- SQLite 기반 임베딩 캐시 시스템 (`embedding_cache.py`)
+- Vault 파일 처리기 (`vault_processor.py`)
+
+### Changed
+- 성능 최대화 설정 옵션 문서화
 
 ---
 
-**✨ 이번 업데이트로 Vault Intelligence System V2가 프로덕션 레디 상태로 완성되었습니다!**
+## Summary by Phase
+
+| Phase | Date | Features |
+|-------|------|----------|
+| 1 | 2025-08-20 | Sentence Transformers 임베딩 엔진 |
+| 2-3 | 2025-08-20 | BGE-M3 하이브리드 검색 (Dense + Sparse) |
+| 4 | 2025-08-21 | 성능 최적화 (25-40배 향상) |
+| 5 | 2025-08-21 | Reranking, ColBERT, 쿼리 확장 |
+| 6 | 2025-08-21 | 지식 그래프 분석 |
+| 7 | 2025-08-21 | 자동 태깅 시스템 |
+| 8 | 2025-08-23 | MOC 자동 생성 |
+| 9 | 2025-08-24 | 다중 문서 요약 시스템 |

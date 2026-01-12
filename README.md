@@ -51,13 +51,31 @@ python -m src summarize --clusters 5
 python -m src review --period weekly
 ```
 
-## 📖 문서 가이드
+## 📖 문서 인덱스
 
-- [📚 사용자 가이드](docs/USER_GUIDE.md) - 완전한 사용법 매뉴얼
-- [💡 실전 예제](docs/EXAMPLES.md) - 다양한 활용 사례
-- [🔧 문제 해결](docs/TROUBLESHOOTING.md) - 기술 지원 가이드
-- [⚙️ 개발자 가이드](CLAUDE.md) - 개발 및 확장 정보
-- [📊 샘플 결과](samples/) - 기능별 샘플 출력
+### 빠른 시작
+- [5분 빠른 시작](docs/user/QUICK_START.md) - 빠르게 시작하기
+- [설치 및 설정](#1-설치) - 위 섹션 참조
+
+### 상세 가이드
+- [전체 사용자 가이드](docs/user/USER_GUIDE.md) - 1,672라인 완전 매뉴얼
+- [실전 예제](docs/user/EXAMPLES.md) - 워크플로우 및 활용 사례
+- [문제 해결](docs/user/TROUBLESHOOTING.md) - 기술 지원 가이드
+
+### 개발자 참고
+- [개발자 가이드](CLAUDE.md) - CLI 빠른 참조 (AI 최적화)
+- [개발 히스토리](DEVELOPMENT.md) - Phase 1-9 개발 과정
+- [변경 이력](CHANGELOG.md) - 상세 변경 로그
+- [기여 가이드](CONTRIBUTING.md) - 기여 방법
+- [보안 정책](SECURITY.md) - 보안 가이드라인
+
+### 산출물
+- [AI Practice 요약](docs/AI-PRACTICE-SUMMARY.md) - 1,403개 AI 기법 요약
+- [상세 결과](archive/ai-practice/) - 배치별 결과 아카이브
+
+### 설계 문서
+- [설계 문서 모음](docs/dev/) - PRD, 구현 계획 등
+- [문서 감사 리포트](docs/DOCUMENTATION_AUDIT_REPORT.md) - 문서 품질 검토
 
 ## 🎯 주요 기능
 

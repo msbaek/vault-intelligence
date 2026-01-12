@@ -1,7 +1,7 @@
 # 🎯 Vault Intelligence System V2 실전 예제 모음
 
 ## 📖 문서 내비게이션
-- [🏠 프로젝트 홈](../README.md) | [🚀 빠른 시작](QUICK_START.md) | [📚 사용자 가이드](USER_GUIDE.md) | **💡 실전 예제** | [🔧 문제 해결](TROUBLESHOOTING.md) | [⚙️ 개발자 가이드](../CLAUDE.md)
+- [🏠 프로젝트 홈](../../README.md) | [🚀 빠른 시작](QUICK_START.md) | [📚 사용자 가이드](USER_GUIDE.md) | **💡 실전 예제** | [🔧 문제 해결](TROUBLESHOOTING.md) | [⚙️ 개발자 가이드](../../CLAUDE.md)
 
 ---
 
@@ -17,6 +17,7 @@
 6. [프로그래밍 API 예제](#-프로그래밍-api-예제)
 7. [배치 처리 예제](#-배치-처리-예제)
 8. [문제 해결 예제](#-문제-해결-예제)
+9. [실제 활용 사례](#-실제-활용-사례) 🆕
 
 ---
 
@@ -1404,7 +1405,129 @@ def search_by_project():
 
 ---
 
-**마지막 업데이트**: 2025-08-19  
-**문서 버전**: V2.1
+---
+
+## 🌟 실제 활용 사례
+
+vault-intelligence를 활용한 실제 프로젝트 사례들입니다.
+
+### 사례 1: AI Practice 기법 수집 프로젝트
+
+286개의 AI 관련 문서에서 실용적인 기법들을 체계적으로 추출한 대규모 분석 프로젝트입니다.
+
+**프로젝트 개요**:
+- 기간: 2025-01-03 ~ 2026-01-04 (약 1개월)
+- 대상: vault의 003-RESOURCES/AI 폴더 286개 문서
+- 결과: **1,403개 AI 기법** 추출 (6개 카테고리)
+
+**사용된 워크플로우**:
+```bash
+# 1. 주제별 문서 검색
+python -m src search --query "AI 활용 기법" --search-method hybrid --top-k 30
+
+# 2. 배치 처리를 위한 문서 목록 생성
+python -m src collect --topic "AI coding" --top-k 50 --output batch-input.md
+
+# 3. 카테고리별 MOC 생성
+python -m src generate-moc --topic "Prompt Engineering" --top-k 30
+python -m src generate-moc --topic "AI Agent" --top-k 30
+```
+
+**핵심 성과**:
+- 10개 문서 단위 배치 처리로 토큰 효율성 극대화
+- 27개 세션에 걸쳐 체계적 진행
+- 6개 카테고리로 분류 (AI-Assisted Development, Prompt Engineering, Agent & Workflow 등)
+
+상세: [AI Practice 요약](../AI-PRACTICE-SUMMARY.md)
+
+---
+
+### 사례 2: AI 한계 분석 MOC 작성
+
+AI의 한계에 대한 종합 분석 MOC 문서를 vault-intelligence로 작성한 사례입니다.
+
+**프로젝트 목표**: AI 기술의 한계점을 체계적으로 분류하고, 대응 전략 도출
+
+**사용된 워크플로우**:
+```bash
+# 1. 관련 문서 검색
+python -m src search --query "AI 한계 limitations" --search-method hybrid --rerank --top-k 30
+
+# 2. 주제별 수집
+python -m src collect --topic "AI 환각 hallucination" --top-k 15
+python -m src collect --topic "AI 비결정성 non-deterministic" --top-k 15
+
+# 3. MOC 자동 생성
+python -m src generate-moc --topic "AI limitations" --top-k 50 --output AI-한계-MOC.md
+```
+
+**발견된 8가지 한계 영역**:
+1. 비결정적 특성 (Non-deterministic)
+2. 프롬프트 모호성
+3. 내적 동기 부재
+4. 환각(Hallucination) 현상
+5. 본질적 복잡성 처리 불가
+6. 컨텍스트 윈도우 한계
+7. 코드 품질 문제
+8. 창의성/예술적 한계
+
+**결과물**: vault에 저장된 체계적인 MOC 문서, 관련 문서 30+ 개 연결
+
+---
+
+### 사례 3: 브런치 글 작성 지원
+
+기술 블로그 글 작성을 vault-intelligence로 지원한 사례입니다.
+
+**프로젝트 목표**: "AI 시대, 신입 개발자가 살아남는 법" 브런치 글 작성 지원
+
+**사용된 워크플로우**:
+```bash
+# 1. 관련 자료 검색
+python -m src search --query "AI 시대 개발자 역할" --rerank --expand --top-k 20
+
+# 2. MOC로 구조화
+python -m src generate-moc --topic "주니어 개발자 생존" --top-k 30
+
+# 3. 핵심 인용 자료 수집
+python -m src collect --topic "Specification Translation Verification" --top-k 15
+```
+
+**워크플로우 특징**:
+- **Seed (씨앗)**: 초안 분석 + vault 검색으로 참고자료 제안
+- **Skeleton (뼈대)**: MOC로 3-5개 섹션 구조 제안
+- **Flesh (살)**: 각 섹션별 체크리스트 + 유도 질문
+- **Polish (다듬기)**: 스타일 체크 (1인칭, 구어체, AI 표현 회피)
+- **Publish (발행)**: 제목 후보 제안 + 포맷 정리
+
+**결과물**: 체계적인 글 구조와 풍부한 참고자료를 기반으로 작성된 브런치 글
+
+---
+
+### 사례 4: 학습 리뷰 생성
+
+주간/월간 학습 패턴을 분석하고 인사이트를 도출한 사례입니다.
+
+```bash
+# 주간 학습 리뷰
+python -m src review --period weekly --output weekly-review.md
+
+# 월간 학습 리뷰 (더 포괄적)
+python -m src review --period monthly --output monthly-review.md
+
+# 특정 주제 집중 리뷰
+python -m src review --period weekly --topic "TDD"
+```
+
+**생성되는 인사이트**:
+- 가장 많이 다룬 주제
+- 학습 패턴 (집중 영역, 공백 영역)
+- 관련 문서 클러스터
+- 추천 학습 경로
+
+---
+
+**마지막 업데이트**: 2026-01-12
+**문서 버전**: V2.2
 
 이 예제들을 참고하여 여러분의 vault에 맞는 최적의 사용법을 찾아보세요! 🚀
