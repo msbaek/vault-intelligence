@@ -31,6 +31,20 @@ python -m src init --vault-path /path/to/your/vault
 ```
 
 ### 3. 기본 사용법
+
+#### 💬 Claude Code에서 사용 (권장)
+
+Claude Code 세션에서 자연어로 요청하세요:
+
+- "TDD 관련 문서 찾아줘"
+- "리팩토링 MOC 만들어줘"
+- "최근 학습 내용 요약해줘"
+- "이 문서와 관련된 다른 문서 찾아줘"
+
+Claude가 vault-intelligence를 자동으로 활용하여 결과를 제공합니다.
+
+#### 🖥️ CLI 직접 사용
+
 ```bash
 # 하이브리드 검색 (Dense + BM25, 추천)
 python -m src search --query "TDD 테스트 주도 개발" --search-method hybrid
@@ -47,7 +61,7 @@ python -m src collect --topic "리팩토링"
 # 문서 클러스터링 및 요약 (Phase 9)
 python -m src summarize --clusters 5
 
-# 학습 리뷰 생성  
+# 학습 리뷰 생성
 python -m src review --period weekly
 ```
 
