@@ -101,3 +101,6 @@ htmlcov/
 .env.local
 
 .claude/settings.local.json
+.claude/tasks/
+.serena/
+docs/plans/
