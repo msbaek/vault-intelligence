@@ -4,7 +4,7 @@
 
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![BGE-M3](https://img.shields.io/badge/BGE--M3-1024dim-green.svg)](https://huggingface.co/BAAI/bge-m3)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![License: PolyForm Noncommercial](https://img.shields.io/badge/License-PolyForm%20Noncommercial-blue.svg)](https://polyformproject.org/licenses/noncommercial/1.0.0/)
 
 ## ✨ 주요 특징
 
@@ -179,7 +179,10 @@ cp .env.example .env
 
 ## 📄 라이센스
 
-이 프로젝트는 [MIT License](LICENSE) 하에 배포됩니다.
+이 프로젝트는 [PolyForm Noncommercial License 1.0.0](LICENSE) 하에 배포됩니다.
+
+- **비영리 목적**: 자유롭게 사용 가능 (연구, 교육, 개인 학습, 취미 등)
+- **영리 목적**: 별도 상업 라이센스 필요 (문의 요망)
 
 ## 🙏 감사
 
