@@ -1264,16 +1264,19 @@ class AdvancedSearchEngine:
         Returns:
             중심성 점수가 반영된 검색 결과
         """
+        # threshold는 semantic/colbert만 지원
+        threshold = search_kwargs.pop('threshold', 0.0)
+
         try:
             # 기본 검색 수행
             if search_method == "semantic":
-                results = self.semantic_search(query, top_k * 2, **search_kwargs)
+                results = self.semantic_search(query, top_k * 2, threshold=threshold, **search_kwargs)
             elif search_method == "keyword":
                 results = self.keyword_search(query, top_k * 2, **search_kwargs)
             elif search_method == "hybrid":
                 results = self.hybrid_search(query, top_k * 2, **search_kwargs)
             elif search_method == "colbert":
-                results = self.colbert_search(query, top_k * 2, **search_kwargs)
+                results = self.colbert_search(query, top_k * 2, threshold=threshold, **search_kwargs)
             else:
                 raise ValueError(f"지원하지 않는 검색 방법: {search_method}")
             
@@ -1333,13 +1336,13 @@ class AdvancedSearchEngine:
             logger.error(f"중심성 부스팅 검색 실패: {e}")
             # 폴백: 일반 검색 결과 반환
             if search_method == "semantic":
-                return self.semantic_search(query, top_k, **search_kwargs)
+                return self.semantic_search(query, top_k, threshold=threshold, **search_kwargs)
             elif search_method == "keyword":
                 return self.keyword_search(query, top_k, **search_kwargs)
             elif search_method == "hybrid":
                 return self.hybrid_search(query, top_k, **search_kwargs)
             elif search_method == "colbert":
-                return self.colbert_search(query, top_k, **search_kwargs)
+                return self.colbert_search(query, top_k, threshold=threshold, **search_kwargs)
             else:
                 return []
     
