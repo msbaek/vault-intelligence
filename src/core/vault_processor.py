@@ -40,13 +40,14 @@ class VaultProcessor:
     """Vault 파일 처리기"""
     
     def __init__(
-        self, 
+        self,
         vault_path: str,
         excluded_dirs: Optional[List[str]] = None,
         excluded_files: Optional[List[str]] = None,
         file_extensions: Optional[List[str]] = None,
         include_folders: Optional[List[str]] = None,
-        exclude_folders: Optional[List[str]] = None
+        exclude_folders: Optional[List[str]] = None,
+        min_word_count: int = 10
     ):
         """
         Args:
@@ -72,6 +73,7 @@ class VaultProcessor:
         self.file_extensions = file_extensions or [".md", ".markdown"]
         self.include_folders = include_folders  # 포함할 폴더 목록
         self.exclude_folders = exclude_folders  # 추가로 제외할 폴더 목록
+        self.min_word_count = min_word_count    # 최소 단어 수 필터
         
         logger.info(f"Vault 프로세서 초기화: {self.vault_path}")
         logger.info(f"제외 디렉토리: {self.excluded_dirs}")
@@ -277,7 +279,12 @@ class VaultProcessor:
             tags = self._extract_tags(frontmatter, main_content)
             word_count = self._count_words(main_content)
             char_count = len(main_content)
-            
+
+            # 최소 단어 수 필터링
+            if word_count < self.min_word_count:
+                logger.debug(f"최소 단어 수 미달로 제외: {file_path} ({word_count}단어 < {self.min_word_count})")
+                return None
+
             # 콘텐츠 정리
             clean_content = self._clean_content(main_content)
             

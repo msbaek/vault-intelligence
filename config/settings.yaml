@@ -60,6 +60,7 @@ vault:
   file_extensions:
     - ".md"
     - ".markdown"
+  min_word_count: 10  # 최소 단어 수 (미달 문서는 인덱싱 제외)
   max_file_size_mb: 10
 
 # 검색 설정

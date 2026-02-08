@@ -90,7 +90,8 @@ class AdvancedSearchEngine:
             excluded_files=self.config.get('vault', {}).get('excluded_files'),
             file_extensions=self.config.get('vault', {}).get('file_extensions'),
             include_folders=self.config.get('vault', {}).get('include_folders'),
-            exclude_folders=self.config.get('vault', {}).get('exclude_folders')
+            exclude_folders=self.config.get('vault', {}).get('exclude_folders'),
+            min_word_count=self.config.get('vault', {}).get('min_word_count', 10)
         )
         
         # 문서 및 임베딩 캐시
