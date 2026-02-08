@@ -300,7 +300,7 @@ class AdvancedSearchEngine:
             cached_docs = []
             
             for doc in self.documents:
-                cached = self.cache.get_embedding(doc.path)
+                cached = self.cache.get_embedding(doc.path, doc.file_hash)
                 if cached is None:
                     missing_docs.append(doc)
                 else:

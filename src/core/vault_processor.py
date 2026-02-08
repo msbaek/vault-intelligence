@@ -87,7 +87,7 @@ class VaultProcessor:
         files = []
         
         try:
-            for root, dirs, file_names in os.walk(self.vault_path):
+            for root, dirs, file_names in os.walk(self.vault_path, followlinks=True):
                 # 제외 디렉토리 필터링
                 dirs[:] = [d for d in dirs if d not in self.excluded_dirs]
                 
