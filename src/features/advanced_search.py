@@ -1469,6 +1469,84 @@ class AdvancedSearchEngine:
             logger.error(f"지식 공백 분석 실패: {e}")
             return {}
 
+    def clean_isolated_tags(self, dry_run: bool = True, top_k: int = 50) -> Dict[str, any]:
+        """
+        고립 태그(1개 문서에만 존재하는 태그)를 정리합니다.
+
+        Args:
+            dry_run: True이면 미리보기만, False이면 실제 제거
+            top_k: 표시할 최대 결과 수
+
+        Returns:
+            정리 결과 통계
+        """
+        try:
+            if not self.indexed:
+                logger.warning("인덱스가 구축되지 않았습니다.")
+                return {}
+
+            # 태그별 문서 분포 분석
+            tag_distribution = {}
+            for doc in self.documents:
+                if doc.tags:
+                    for tag in doc.tags:
+                        if tag not in tag_distribution:
+                            tag_distribution[tag] = []
+                        tag_distribution[tag].append(doc)
+
+            # 고립 태그: 1개 문서에만 존재하는 태그
+            isolated_tags = {
+                tag: docs for tag, docs in tag_distribution.items()
+                if len(docs) == 1
+            }
+
+            if not isolated_tags:
+                return {'total_isolated': 0, 'files_affected': 0, 'tags_removed': 0}
+
+            # 파일별로 제거할 태그 그룹핑
+            file_tags_map = {}  # {file_path: [tag1, tag2, ...]}
+            for tag, docs in isolated_tags.items():
+                doc = docs[0]
+                abs_path = str(self.vault_path / doc.path)
+                if abs_path not in file_tags_map:
+                    file_tags_map[abs_path] = []
+                file_tags_map[abs_path].append(tag)
+
+            total_tags = len(isolated_tags)
+            files_affected = len(file_tags_map)
+            tags_removed = 0
+
+            if dry_run:
+                # 미리보기: 파일별 제거 대상 태그 출력
+                shown = 0
+                for file_path, tags in sorted(file_tags_map.items()):
+                    if shown >= top_k:
+                        break
+                    rel_path = str(Path(file_path).relative_to(self.vault_path))
+                    print(f"  {rel_path}")
+                    for tag in sorted(tags):
+                        print(f"    - {tag}")
+                    shown += 1
+
+                if files_affected > top_k:
+                    print(f"\n  ... 외 {files_affected - top_k}개 파일")
+            else:
+                # 실제 태그 제거
+                for file_path, tags in file_tags_map.items():
+                    if self.processor.remove_tags_from_file(file_path, tags):
+                        tags_removed += len(tags)
+
+            return {
+                'total_isolated': total_tags,
+                'files_affected': files_affected,
+                'tags_removed': tags_removed,
+                'dry_run': dry_run
+            }
+
+        except Exception as e:
+            logger.error(f"고립 태그 정리 실패: {e}")
+            return {}
+
 
 def test_search_engine():
     """검색 엔진 테스트"""

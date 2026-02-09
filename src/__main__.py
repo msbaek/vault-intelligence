@@ -672,7 +672,49 @@ def run_knowledge_gap_analysis(vault_path: str, config: dict, output_file: str =
         return False
 
 
-def run_reindex(vault_path: str, force: bool, config: dict, sample_size: Optional[int] = None, 
+def run_clean_tags(vault_path: str, config: dict, dry_run: bool = True, top_k: int = 50):
+    """고립 태그 정리 실행"""
+    try:
+        mode = "미리보기" if dry_run else "실행"
+        print(f"🏷️ 고립 태그 정리 ({mode}) 시작...")
+
+        cache_dir = str(project_root / "cache")
+        search_engine = AdvancedSearchEngine(vault_path, cache_dir, config)
+
+        if not search_engine.indexed:
+            print("📚 인덱스 구축 중...")
+            if not search_engine.build_index():
+                print("❌ 인덱스 구축 실패")
+                return False
+
+        result = search_engine.clean_isolated_tags(dry_run=dry_run, top_k=top_k)
+
+        if not result:
+            print("❌ 고립 태그 정리 결과가 없습니다.")
+            return False
+
+        total = result.get('total_isolated', 0)
+        files = result.get('files_affected', 0)
+
+        print(f"\n📊 고립 태그 정리 결과:")
+        print(f"  고립 태그 수: {total}개")
+        print(f"  영향받는 파일: {files}개")
+
+        if dry_run:
+            print(f"\n💡 실제 제거하려면 --dry-run 없이 실행하세요:")
+            print(f"  python -m src clean-tags")
+        else:
+            removed = result.get('tags_removed', 0)
+            print(f"  제거된 태그: {removed}개")
+
+        return True
+
+    except Exception as e:
+        print(f"❌ 고립 태그 정리 실패: {e}")
+        return False
+
+
+def run_reindex(vault_path: str, force: bool, config: dict, sample_size: Optional[int] = None,
                 include_folders: Optional[list] = None, exclude_folders: Optional[list] = None,
                 with_colbert: bool = False, colbert_only: bool = False):
     """전체 재인덱싱 실행 (ColBERT 지원)"""
@@ -1688,7 +1730,7 @@ def main():
     
     parser.add_argument(
         "command",
-        choices=["init", "test", "info", "search", "duplicates", "collect", "analyze", "reindex", "related", "analyze-gaps", "tag", "generate-moc", "summarize", "review", "add-related-docs"],
+        choices=["init", "test", "info", "search", "duplicates", "collect", "analyze", "reindex", "related", "analyze-gaps", "clean-tags", "tag", "generate-moc", "summarize", "review", "add-related-docs"],
         help="실행할 명령어"
     )
     
@@ -2142,7 +2184,22 @@ def main():
         else:
             print("❌ 지식 공백 분석 실패!")
             sys.exit(1)
-    
+
+    elif args.command == "clean-tags":
+        if not check_dependencies():
+            sys.exit(1)
+
+        if run_clean_tags(
+            vault_path,
+            config,
+            dry_run=args.dry_run,
+            top_k=args.top_k
+        ):
+            print("✅ 고립 태그 정리 완료!")
+        else:
+            print("❌ 고립 태그 정리 실패!")
+            sys.exit(1)
+
     elif args.command == "tag":
         if not check_dependencies():
             sys.exit(1)

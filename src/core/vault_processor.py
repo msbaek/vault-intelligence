@@ -412,6 +412,72 @@ class VaultProcessor:
         
         return results
 
+    def remove_tags_from_file(self, file_path: str, tags_to_remove: List[str]) -> bool:
+        """
+        파일의 frontmatter에서 지정된 태그만 제거합니다.
+
+        Args:
+            file_path: 대상 파일의 절대 경로
+            tags_to_remove: 제거할 태그 목록
+
+        Returns:
+            변경이 있었으면 True, 없었으면 False
+        """
+        try:
+            path = Path(file_path)
+            if not path.exists() or not path.suffix == '.md':
+                return False
+
+            content = path.read_text(encoding='utf-8')
+
+            # frontmatter 매칭
+            frontmatter_pattern = r'^---\s*\n(.*?)\n---\s*\n'
+            match = re.match(frontmatter_pattern, content, re.DOTALL)
+            if not match:
+                return False
+
+            yaml_content = match.group(1)
+            try:
+                frontmatter = yaml.safe_load(yaml_content) or {}
+            except yaml.YAMLError:
+                return False
+
+            if 'tags' not in frontmatter:
+                return False
+
+            fm_tags = frontmatter['tags']
+            if not isinstance(fm_tags, list):
+                fm_tags = [fm_tags] if fm_tags else []
+
+            # # prefix를 제거한 비교용 세트
+            remove_set = set()
+            for tag in tags_to_remove:
+                remove_set.add(tag.lstrip('#'))
+
+            # 태그 필터링
+            new_tags = [t for t in fm_tags if str(t).lstrip('#') not in remove_set]
+
+            if len(new_tags) == len(fm_tags):
+                return False  # 변경 없음
+
+            # frontmatter 업데이트
+            if new_tags:
+                frontmatter['tags'] = new_tags
+            else:
+                del frontmatter['tags']
+
+            # YAML 직렬화 및 파일 재작성
+            new_yaml = yaml.dump(frontmatter, allow_unicode=True, default_flow_style=False, sort_keys=False)
+            rest_of_content = content[match.end():]
+            new_content = f"---\n{new_yaml}---\n{rest_of_content}"
+
+            path.write_text(new_content, encoding='utf-8')
+            return True
+
+        except Exception as e:
+            logger.error(f"태그 제거 실패 ({file_path}): {e}")
+            return False
+
 
 def test_processor():
     """프로세서 테스트"""
