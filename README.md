@@ -78,29 +78,75 @@ vault-intel review --period weekly
 
 ## 📖 문서 인덱스
 
-### 빠른 시작
-- [5분 빠른 시작](docs/user/QUICK_START.md) - 빠르게 시작하기
-- [설치 및 설정](#1-설치) - 위 섹션 참조
+### 사용자 가이드
 
-### 상세 가이드
-- [전체 사용자 가이드](docs/user/USER_GUIDE.md) - 1,672라인 완전 매뉴얼
-- [실전 예제](docs/user/EXAMPLES.md) - 워크플로우 및 활용 사례
-- [문제 해결](docs/user/TROUBLESHOOTING.md) - 기술 지원 가이드
+- **[5분 빠른 시작](docs/user/QUICK_START.md)**
+  pipx 설치부터 첫 검색까지 5분 안에 시작하는 최소 가이드.
+  설치, 초기화, 검색 실행, 주요 옵션 맛보기를 단계별로 안내.
+
+- **[전체 사용자 가이드](docs/user/USER_GUIDE.md)**
+  모든 기능을 상세히 설명하는 완전한 매뉴얼(1,672라인).
+  기본/고급 검색, 재순위화, 쿼리 확장, 태깅, MOC 생성, 클러스터링 등 전 기능 커버.
+
+- **[실전 예제](docs/user/EXAMPLES.md)**
+  Claude Code 대화형 사용과 CLI 직접 사용의 구체적 예제 모음.
+  문서 검색, MOC 생성, 분석/리뷰, 글쓰기 지원 등 실제 워크플로우 시나리오 제공.
+
+- **[문제 해결](docs/user/TROUBLESHOOTING.md)**
+  사용 중 발생 가능한 문제와 해결 방법을 정리한 기술 지원 가이드.
+  한글 폰트 깨짐, 임베딩 캐시 오류, 메모리 부족, 느린 처리 속도 등의 해결책 제공.
 
 ### 개발자 참고
-- [개발자 가이드](CLAUDE.md) - CLI 빠른 참조 (AI 최적화)
-- [개발 히스토리](DEVELOPMENT.md) - Phase 1-9 개발 과정
-- [변경 이력](CHANGELOG.md) - 상세 변경 로그
-- [기여 가이드](CONTRIBUTING.md) - 기여 방법
-- [보안 정책](SECURITY.md) - 보안 가이드라인
 
-### 산출물
-- [AI Practice 요약](docs/AI-PRACTICE-SUMMARY.md) - 1,403개 AI 기법 요약
-- [상세 결과](archive/ai-practice/) - 배치별 결과 아카이브
+- **[개발자 가이드 (CLAUDE.md)](CLAUDE.md)**
+  Claude Code가 참조하는 CLI 빠른 참조 및 시스템 아키텍처 문서.
+  모듈 구조, 주요 API, 확장 가이드, 디버깅 방법, 성능 튜닝 가이드 포함.
+
+- **[개발 히스토리](DEVELOPMENT.md)**
+  Phase 1(Sentence Transformers 도입)부터 Phase 9(다중 문서 요약)까지의 개발 과정 기록.
+  Claude Code 활용 패턴, 실제 활용 사례(AI Practice 기법 수집 등), 핵심 교훈 정리.
+
+- **[변경 이력](CHANGELOG.md)**
+  프로젝트의 모든 변경 사항을 시간순으로 기록한 변경 로그.
+  pipx 설치 지원(2026-02-11)부터 Phase 1-9 개발 과정까지의 상세 업데이트 내역.
+
+- **[기여 가이드](CONTRIBUTING.md)**
+  오픈소스 기여자를 위한 종합 가이드.
+  개발 환경 설정, 코딩 표준, 테스트 가이드, PR 프로세스, 커밋 메시지 규칙 설명.
+
+- **[보안 정책](SECURITY.md)**
+  민감정보 관리 및 보안 가이드라인.
+  환경변수 관리, 자동 보안 검사(pre-commit hook, Gitleaks), 사고 대응 절차 포함.
 
 ### 설계 문서
-- [설계 문서 모음](docs/dev/) - PRD, 구현 계획 등
-- [문서 감사 리포트](docs/DOCUMENTATION_AUDIT_REPORT.md) - 문서 품질 검토
+
+- **[문서 인덱스](docs/README.md)**
+  docs 디렉토리의 전체 문서 목록과 사용 상황별 안내를 제공하는 인덱스 문서.
+
+- **[Phase 9 PRD](docs/dev/multi-document-summarization-prd.md)**
+  다중 문서 요약 시스템의 제품 요구사항 문서.
+  의미적 클러스터링, Claude Code LLM 요약, 학습 리뷰 생성 등의 기능 요구사항 정의.
+
+- **[Phase 9 구현 계획](docs/dev/phase9-implementation-plan.md)**
+  Phase 9의 4단계 상세 구현 계획.
+  문서 클러스터링, LLM 요약, 학습 리뷰 통합, 테스트 최적화 단계별 체크리스트 제공.
+
+- **[임베딩 업그레이드 계획](docs/dev/embedding-upgrade-plan.md)**
+  TF-IDF에서 BGE-M3로의 업그레이드 설계 문서.
+  Hybrid Search(Dense+Sparse+ColBERT) 아키텍처 설계, Reranking Layer 추가 계획 포함.
+
+- **[문서 감사 리포트](docs/DOCUMENTATION_AUDIT_REPORT.md)**
+  33개 마크다운 문서의 품질 감사 결과 리포트.
+  CLI 옵션 정확도 100%, 최신성 완벽 반영 등을 확인하여 5/5점 최상위 평가 부여.
+
+### 산출물
+
+- **[AI Practice 요약](docs/AI-PRACTICE-SUMMARY.md)**
+  vault-intelligence로 286개 AI 문서에서 1,403개 실용 기법을 추출한 프로젝트 요약.
+  AI-Assisted Development(574개), Prompt Engineering(272개) 등 6개 카테고리별 핵심 기법 정리.
+
+- **[배치별 상세 결과](archive/ai-practice/)**
+  AI Practice 수집 프로젝트의 29개 배치별 원본 분석 결과 아카이브.
 
 ## 🎯 주요 기능
 
