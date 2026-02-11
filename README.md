@@ -19,6 +19,14 @@
 ## 🚀 빠른 시작
 
 ### 1. 설치
+
+#### 방법 A: pipx 설치 (권장 - 어디서든 실행 가능)
+```bash
+pipx install -e ~/git/vault-intelligence
+# 이후 어디서든 vault-intel 명령어 사용 가능
+```
+
+#### 방법 B: 소스에서 직접 실행
 ```bash
 git clone https://github.com/your-username/vault-intelligence.git
 cd vault-intelligence
@@ -27,7 +35,8 @@ pip install -r requirements.txt
 
 ### 2. 시스템 초기화
 ```bash
-python -m src init --vault-path /path/to/your/vault
+vault-intel init --vault-path /path/to/your/vault
+# 또는: python -m src init --vault-path /path/to/your/vault
 ```
 
 ### 3. 기본 사용법
@@ -47,23 +56,25 @@ Claude가 vault-intelligence를 자동으로 활용하여 결과를 제공합니
 
 ```bash
 # 하이브리드 검색 (Dense + BM25, 추천)
-python -m src search --query "TDD 테스트 주도 개발" --search-method hybrid
+vault-intel search --query "TDD 테스트 주도 개발" --search-method hybrid
 
 # 고정밀 재순위화 검색 (BGE Reranker V2-M3)
-python -m src search --query "clean architecture principles" --rerank
+vault-intel search --query "clean architecture principles" --rerank
 
 # ColBERT 토큰 수준 검색 (긴 문장에 최적화)
-python -m src search --query "refactoring clean code practices" --search-method colbert
+vault-intel search --query "refactoring clean code practices" --search-method colbert
 
 # 주제별 문서 수집
-python -m src collect --topic "리팩토링"
+vault-intel collect --topic "리팩토링"
 
 # 문서 클러스터링 및 요약 (Phase 9)
-python -m src summarize --clusters 5
+vault-intel summarize --clusters 5
 
 # 학습 리뷰 생성
-python -m src review --period weekly
+vault-intel review --period weekly
 ```
+
+> **참고:** `vault-intel` 대신 기존 `python -m src` 방식도 프로젝트 디렉토리에서 동일하게 사용 가능합니다.
 
 ## 📖 문서 인덱스
 

@@ -10,78 +10,81 @@
 
 ### 기본 검색
 ```bash
-# 기본 하이브리드 검색
-python -m src search --query "TDD"
+# 기본 하이브리드 검색 (vault-intel 또는 python -m src 모두 가능)
+vault-intel search --query "TDD"
 
 # 검색 방법 지정
-python -m src search --query "TDD" --search-method semantic   # 의미적 검색
-python -m src search --query "TDD" --search-method keyword    # 키워드 검색
-python -m src search --query "TDD" --search-method hybrid     # 하이브리드 (기본값)
-python -m src search --query "TDD" --search-method colbert    # ColBERT 토큰 검색
+vault-intel search --query "TDD" --search-method semantic   # 의미적 검색
+vault-intel search --query "TDD" --search-method keyword    # 키워드 검색
+vault-intel search --query "TDD" --search-method hybrid     # 하이브리드 (기본값)
+vault-intel search --query "TDD" --search-method colbert    # ColBERT 토큰 검색
 ```
 
 ### 고급 검색 옵션
 ```bash
 # 재순위화 (정확도 향상)
-python -m src search --query "TDD" --rerank
+vault-intel search --query "TDD" --rerank
 
 # 쿼리 확장 (포괄성 향상)
-python -m src search --query "TDD" --expand                    # 동의어 + HyDE
-python -m src search --query "TDD" --expand --no-hyde         # 동의어만
-python -m src search --query "TDD" --expand --no-synonyms     # HyDE만
+vault-intel search --query "TDD" --expand                    # 동의어 + HyDE
+vault-intel search --query "TDD" --expand --no-hyde         # 동의어만
+vault-intel search --query "TDD" --expand --no-synonyms     # HyDE만
 
 # 최고 품질 검색 (모든 기능 결합)
-python -m src search --query "TDD" --rerank --expand
+vault-intel search --query "TDD" --rerank --expand
 
 # 결과 수 및 임계값 조정
-python -m src search --query "TDD" --top-k 20 --threshold 0.5
+vault-intel search --query "TDD" --top-k 20 --threshold 0.5
 
 # 중심성 점수 반영
-python -m src search --query "TDD" --with-centrality
+vault-intel search --query "TDD" --with-centrality
 
 # 결과 파일 저장
-python -m src search --query "TDD" --output results.md
-python -m src search --query "TDD" --output                    # 기본 파일명으로 저장
+vault-intel search --query "TDD" --output results.md
+vault-intel search --query "TDD" --output                    # 기본 파일명으로 저장
+
+# 데이터 디렉토리 지정 (기본값: ~/git/vault-intelligence)
+vault-intel search --query "TDD" --data-dir /custom/path
 ```
 
 ### 기타 주요 명령어
 ```bash
 # 관련 문서 찾기
-python -m src related --file "문서명.md" --top-k 10
+vault-intel related --file "문서명.md" --top-k 10
 
 # 지식 공백 분석
-python -m src analyze-gaps --top-k 20
+vault-intel analyze-gaps --top-k 20
 
 # 주제별 문서 수집
-python -m src collect --topic "TDD" --output collection.md
+vault-intel collect --topic "TDD" --output collection.md
 
 # MOC 생성
-python -m src generate-moc --topic "TDD" --top-k 50
+vault-intel generate-moc --topic "TDD" --top-k 50
 
 # 자동 태깅
-python -m src tag "문서명.md"
-python -m src tag "폴더명/" --recursive
+vault-intel tag "문서명.md"
+vault-intel tag "폴더명/" --recursive
 
 # 인덱싱
-python -m src reindex                    # 기본 재인덱싱
-python -m src reindex --with-colbert     # ColBERT 포함
-python -m src reindex --force            # 강제 전체 재인덱싱
+vault-intel reindex                    # 기본 재인덱싱
+vault-intel reindex --with-colbert     # ColBERT 포함
+vault-intel reindex --force            # 강제 전체 재인덱싱
 ```
 
 ### ⚠️ 자주 실수하는 옵션들
 ```bash
 # ❌ 잘못된 사용
-python -m src search --query "TDD" --method semantic        # --method (X)
-python -m src search --query "TDD" --k 20                   # --k (X)
-python -m src search --query "TDD" --top 20                 # --top (X)
-python -m src search --query "TDD" --output-file out.md     # --output-file (X)
-python -m src search --query "TDD" --reranking              # --reranking (X)
+vault-intel search --query "TDD" --method semantic        # --method (X)
+vault-intel search --query "TDD" --k 20                   # --k (X)
+vault-intel search --query "TDD" --top 20                 # --top (X)
+vault-intel search --query "TDD" --output-file out.md     # --output-file (X)
+vault-intel search --query "TDD" --reranking              # --reranking (X)
 
 # ✅ 올바른 사용
-python -m src search --query "TDD" --search-method semantic # --search-method (O)
-python -m src search --query "TDD" --top-k 20               # --top-k (O)
-python -m src search --query "TDD" --output out.md          # --output (O)
-python -m src search --query "TDD" --rerank                 # --rerank (O)
+vault-intel search --query "TDD" --search-method semantic # --search-method (O)
+vault-intel search --query "TDD" --top-k 20               # --top-k (O)
+vault-intel search --query "TDD" --output out.md          # --output (O)
+vault-intel search --query "TDD" --rerank                 # --rerank (O)
 ```
 
 ### 검색 방법 선택 가이드
@@ -139,9 +142,13 @@ src/
 
 ## 🚀 개발 환경 설정
 
-### 1. 개발 의존성 설치
+### 1. 설치
 
 ```bash
+# 방법 A: pipx 설치 (권장 - 어디서든 vault-intel 명령어 사용 가능)
+pipx install -e ~/git/vault-intelligence
+
+# 방법 B: 개발 의존성 직접 설치
 pip install -r requirements.txt
 pip install -r requirements-dev.txt  # 개발용 추가 도구들
 ```
@@ -150,13 +157,13 @@ pip install -r requirements-dev.txt  # 개발용 추가 도구들
 
 ```bash
 # 테스트 vault 설정 (개발용)
-python -m src init --vault-path ./test-vault
+vault-intel init --vault-path ./test-vault
 
 # 시스템 상태 확인
-python -m src info
+vault-intel info
 
 # 전체 시스템 테스트
-python -m src test
+vault-intel test
 ```
 
 ### 3. 개발 워크플로우
@@ -176,7 +183,7 @@ python -m src test
 
 ```bash
 # 전체 시스템 테스트
-python -m src test
+vault-intel test
 
 # 개별 모듈 테스트
 python -c "from src.core.sentence_transformer_engine import test_engine; test_engine()"
@@ -187,10 +194,10 @@ python -c "from src.features.advanced_search import test_search_engine; test_sea
 
 ```bash
 # 검색 성능 테스트 (1000개 문서 기준)
-python -m src search --query "test" --benchmark
+vault-intel search --query "test" --benchmark
 
 # 인덱싱 성능 테스트
-time python -m src reindex --force
+time vault-intel reindex --force
 
 # 메모리 사용량 모니터링
 python -c "
@@ -401,7 +408,7 @@ logger.error("오류 메시지")
 - **검색 결과 없음**: similarity_threshold 조정 (기본: 0.3)
 - **인덱싱 실패**: 캐시 디렉토리 권한 확인, 강제 재인덱싱
 - **모델 로딩 실패**: 네트워크 연결 확인, HuggingFace 캐시 확인
-- **ColBERT 경고 메시지**: 캐시 초기화 후 재인덱싱 (`rm -rf cache/ && python -m src reindex --with-colbert`)
+- **ColBERT 경고 메시지**: 캐시 초기화 후 재인덱싱 (`rm -rf cache/ && vault-intel reindex --with-colbert`)
 - **ColBERT 재순위화 오류**: 2025-08-27 수정 완료, 모든 검색 방법에서 --rerank 옵션 지원
 
 ### 성능 프로파일링

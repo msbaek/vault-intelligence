@@ -12,9 +12,22 @@ import logging
 from pathlib import Path
 from typing import Optional
 
-# 프로젝트 루트를 Python path에 추가
-project_root = Path(__file__).parent.parent
-sys.path.insert(0, str(project_root))
+# 데이터 디렉토리 결정 (캐시, 설정, 모델 저장 위치)
+# 우선순위: 환경변수 VAULT_INTELLIGENCE_HOME > 기본값 ~/git/vault-intelligence
+_DEFAULT_DATA_DIR = Path.home() / "git" / "vault-intelligence"
+
+
+def get_data_dir(cli_data_dir: str = None) -> Path:
+    """데이터 디렉토리 결정 (캐시, 설정, 모델 저장 위치)"""
+    if cli_data_dir:
+        return Path(cli_data_dir)
+    env_home = os.environ.get("VAULT_INTELLIGENCE_HOME")
+    if env_home:
+        return Path(env_home)
+    return _DEFAULT_DATA_DIR
+
+
+data_dir = get_data_dir()
 
 try:
     from src.core.sentence_transformer_engine import SentenceTransformerEngine
@@ -43,8 +56,11 @@ logger = logging.getLogger(__name__)
 def load_config(config_path: str = None) -> dict:
     """설정 파일 로딩"""
     if config_path is None:
-        config_path = project_root / "config" / "settings.yaml"
-    
+        config_path = data_dir / "config" / "settings.yaml"
+        if not config_path.exists():
+            # 패키지 내 기본 설정 파일 사용
+            config_path = Path(__file__).parent.parent / "config" / "settings.yaml"
+
     try:
         with open(config_path, 'r', encoding='utf-8') as f:
             config = yaml.safe_load(f)
@@ -108,12 +124,12 @@ def initialize_system(vault_path: str, config: dict) -> bool:
         print(f"📁 Vault 경로: {vault_path}")
         
         # 캐시 디렉토리 생성
-        cache_dir = project_root / "cache"
+        cache_dir = data_dir / "cache"
         cache_dir.mkdir(exist_ok=True)
         print(f"💾 캐시 디렉토리: {cache_dir}")
         
         # 모델 디렉토리 생성
-        models_dir = project_root / "models"
+        models_dir = data_dir / "models"
         models_dir.mkdir(exist_ok=True)
         print(f"🤖 모델 디렉토리: {models_dir}")
         
@@ -208,7 +224,9 @@ def show_system_info():
     """시스템 정보 표시"""
     print("ℹ️ Vault Intelligence System V2")
     print("=" * 50)
-    print(f"프로젝트 경로: {project_root}")
+    print(f"데이터 디렉토리: {data_dir}")
+    print(f"캐시 디렉토리: {data_dir / 'cache'}")
+    print(f"설정 파일: {data_dir / 'config' / 'settings.yaml'}")
     print(f"Python 버전: {sys.version}")
     
     try:
@@ -225,7 +243,7 @@ def show_system_info():
     # 캐시 상태 확인
     try:
         from .core.embedding_cache import EmbeddingCache
-        cache_dir = str(project_root / "cache")
+        cache_dir = str(data_dir / "cache")
         cache = EmbeddingCache(cache_dir)
         
         print("\n💾 캐시 상태:")
@@ -250,14 +268,14 @@ def show_system_info():
     print("- ColBERT 증분 캐싱 시스템 (신규!)")
     print()
     print("⚡ ColBERT 검색 명령어:")
-    print("  python -m src reindex --with-colbert     # ColBERT 포함 인덱싱")
-    print("  python -m src reindex --colbert-only     # ColBERT만 인덱싱")
-    print("  python -m src search --query 'TDD' --search-method colbert")
+    print("  vault-intel reindex --with-colbert     # ColBERT 포함 인덱싱")
+    print("  vault-intel reindex --colbert-only     # ColBERT만 인덱싱")
+    print("  vault-intel search --query 'TDD' --search-method colbert")
     print()
     print("⚡ 기본 명령어:")
-    print("  python -m src search --query 'TDD'")
-    print("  python -m src collect --topic '리팩토링'")
-    print("  python -m src duplicates")
+    print("  vault-intel search --query 'TDD'")
+    print("  vault-intel collect --topic '리팩토링'")
+    print("  vault-intel duplicates")
 
 
 def run_search(vault_path: str, query: str, top_k: int, threshold: float, config: dict, sample_size: Optional[int] = None, use_reranker: bool = False, search_method: str = "hybrid", use_expansion: bool = False, include_synonyms: bool = True, include_hyde: bool = True, use_centrality: bool = False, centrality_weight: float = 0.2):
@@ -280,7 +298,7 @@ def run_search(vault_path: str, query: str, top_k: int, threshold: float, config
             print(f"🎯 중심성 부스팅 활성화 (가중치: {centrality_weight})")
         
         # 검색 엔진 초기화
-        cache_dir = str(project_root / "cache")
+        cache_dir = str(data_dir / "cache")
         search_engine = AdvancedSearchEngine(vault_path, cache_dir, config)
         
         if not search_engine.indexed:
@@ -361,7 +379,7 @@ def run_duplicate_detection(vault_path: str, config: dict):
         print("🔍 중복 문서 감지 시작...")
         
         # 검색 엔진 초기화
-        cache_dir = str(project_root / "cache")
+        cache_dir = str(data_dir / "cache")
         search_engine = AdvancedSearchEngine(vault_path, cache_dir, config)
         
         if not search_engine.indexed:
@@ -413,7 +431,7 @@ def run_topic_collection(vault_path: str, topic: str, top_k: int, threshold: flo
             print(f"📝 쿼리 확장 모드 활성화: {', '.join(expand_features)}")
         
         # 검색 엔진 초기화
-        cache_dir = str(project_root / "cache")
+        cache_dir = str(data_dir / "cache")
         search_engine = AdvancedSearchEngine(vault_path, cache_dir, config)
         
         if not search_engine.indexed:
@@ -474,7 +492,7 @@ def run_topic_analysis(vault_path: str, output_file: str, config: dict):
         print("🔍 주제 분석 시작...")
         
         # 검색 엔진 초기화
-        cache_dir = str(project_root / "cache")
+        cache_dir = str(data_dir / "cache")
         search_engine = AdvancedSearchEngine(vault_path, cache_dir, config)
         
         if not search_engine.indexed:
@@ -540,7 +558,7 @@ def run_related_documents(vault_path: str, file_path: str, top_k: int, config: d
         print(f"🔗 '{file_path}' 관련 문서 찾기...")
         
         # 검색 엔진 초기화
-        cache_dir = str(project_root / "cache")
+        cache_dir = str(data_dir / "cache")
         search_engine = AdvancedSearchEngine(vault_path, cache_dir, config)
         
         if not search_engine.indexed:
@@ -589,7 +607,7 @@ def run_knowledge_gap_analysis(vault_path: str, config: dict, output_file: str =
         print("🔍 지식 공백 분석 시작...")
         
         # 검색 엔진 초기화
-        cache_dir = str(project_root / "cache")
+        cache_dir = str(data_dir / "cache")
         search_engine = AdvancedSearchEngine(vault_path, cache_dir, config)
         
         if not search_engine.indexed:
@@ -678,7 +696,7 @@ def run_clean_tags(vault_path: str, config: dict, dry_run: bool = True, top_k: i
         mode = "미리보기" if dry_run else "실행"
         print(f"🏷️ 고립 태그 정리 ({mode}) 시작...")
 
-        cache_dir = str(project_root / "cache")
+        cache_dir = str(data_dir / "cache")
         search_engine = AdvancedSearchEngine(vault_path, cache_dir, config)
 
         if not search_engine.indexed:
@@ -702,7 +720,7 @@ def run_clean_tags(vault_path: str, config: dict, dry_run: bool = True, top_k: i
 
         if dry_run:
             print(f"\n💡 실제 제거하려면 --dry-run 없이 실행하세요:")
-            print(f"  python -m src clean-tags")
+            print(f"  vault-intel clean-tags")
         else:
             removed = result.get('tags_removed', 0)
             print(f"  제거된 태그: {removed}개")
@@ -734,7 +752,7 @@ def run_reindex(vault_path: str, force: bool, config: dict, sample_size: Optiona
             print("🎯 ColBERT만 재인덱싱 (Dense 임베딩 제외)")
         
         # 검색 엔진 초기화 (폴더 필터링 설정)
-        cache_dir = str(project_root / "cache")
+        cache_dir = str(data_dir / "cache")
         
         # 임시로 vault 설정에 폴더 필터 추가
         temp_config = config.copy()
@@ -1059,7 +1077,7 @@ def run_document_clustering(
         print("🔍 문서 클러스터링 시작...")
         
         # 검색 엔진 초기화
-        cache_dir = str(project_root / "cache")
+        cache_dir = str(data_dir / "cache")
         search_engine = AdvancedSearchEngine(vault_path, cache_dir, config)
         
         if not search_engine.indexed:
@@ -1253,7 +1271,7 @@ def run_learning_review(
                 return False
         
         # 검색 엔진 초기화
-        cache_dir = str(project_root / "cache")
+        cache_dir = str(data_dir / "cache")
         search_engine = AdvancedSearchEngine(vault_path, cache_dir, config)
         
         if not search_engine.indexed:
@@ -1513,7 +1531,7 @@ def run_relate_docs_update(
         print("🔗 관련 문서 섹션 업데이트 시작...")
         
         # 검색 엔진 초기화
-        cache_dir = str(project_root / "cache")
+        cache_dir = str(data_dir / "cache")
         search_engine = AdvancedSearchEngine(vault_path, cache_dir, config)
         
         if not search_engine.indexed:
@@ -1665,7 +1683,7 @@ def run_moc_generation(
         print(f"📚 '{topic}' MOC 생성 시작...")
         
         # 검색 엔진 초기화
-        cache_dir = str(project_root / "cache")
+        cache_dir = str(data_dir / "cache")
         search_engine = AdvancedSearchEngine(vault_path, cache_dir, config)
         
         if not search_engine.indexed:
@@ -1735,15 +1753,20 @@ def main():
     )
     
     parser.add_argument(
+        "--data-dir",
+        help="데이터 디렉토리 경로 (캐시, 설정, 모델 저장 위치. 기본값: ~/git/vault-intelligence)"
+    )
+
+    parser.add_argument(
         "--vault-path",
         help="Vault 경로 (지정하지 않으면 설정 파일에서 읽음)"
     )
-    
+
     parser.add_argument(
         "--config",
         help="설정 파일 경로"
     )
-    
+
     parser.add_argument(
         "--verbose",
         action="store_true",
@@ -2011,10 +2034,14 @@ def main():
     )
     
     args = parser.parse_args()
-    
+
+    # --data-dir이 지정되면 전역 data_dir 업데이트
+    global data_dir
+    data_dir = get_data_dir(args.data_dir)
+
     if args.verbose:
         logging.getLogger().setLevel(logging.DEBUG)
-    
+
     # 설정 로딩
     config = load_config(args.config)
     
@@ -2025,7 +2052,7 @@ def main():
         if not vault_path:
             print("❌ Vault 경로가 지정되지 않았습니다.")
             print("다음 중 하나를 수행하세요:")
-            print("1. --vault-path 인자 사용: python -m src <command> --vault-path /path/to/vault")
+            print("1. --vault-path 인자 사용: vault-intel <command> --vault-path /path/to/vault")
             print("2. config/settings.yaml의 vault.path 설정")
             sys.exit(1)
     
@@ -2052,10 +2079,10 @@ def main():
         if initialize_system(vault_path, config):
             print("\n🎉 Vault Intelligence System V2 초기화 완료!")
             print("\n다음 단계:")
-            print("1. python -m src search --query 'TDD'     # 검색 테스트")
-            print("2. python -m src duplicates               # 중복 감지")  
-            print("3. python -m src collect --topic 'TDD'   # 주제 수집")
-            print("4. python -m src analyze                  # 주제 분석")
+            print("1. vault-intel search --query 'TDD'     # 검색 테스트")
+            print("2. vault-intel duplicates               # 중복 감지")  
+            print("3. vault-intel collect --topic 'TDD'   # 주제 수집")
+            print("4. vault-intel analyze                  # 주제 분석")
         else:
             print("❌ 초기화 실패!")
             sys.exit(1)
@@ -2213,18 +2240,18 @@ def main():
             print("❌ 태깅 대상이 필요합니다.")
             print("사용법:")
             print("  # 파일명으로 검색하여 태깅")
-            print("  python -m src tag --target spring-tdd")
-            print("  python -m src tag --target my-file.md")
+            print("  vault-intel tag --target spring-tdd")
+            print("  vault-intel tag --target my-file.md")
             print("")
             print("  # vault 상대 경로로 태깅")
-            print("  python -m src tag --target 003-RESOURCES/books/clean-code.md")
-            print("  python -m src tag --target 003-RESOURCES/ --recursive")
+            print("  vault-intel tag --target 003-RESOURCES/books/clean-code.md")
+            print("  vault-intel tag --target 003-RESOURCES/ --recursive")
             print("")
             print("  # 전체 vault 태깅 (주의!)")
-            print("  python -m src tag --target . --recursive --dry-run")
+            print("  vault-intel tag --target . --recursive --dry-run")
             print("")
             print("  # 강제 재태깅")
-            print("  python -m src tag --target my-file --tag-force")
+            print("  vault-intel tag --target my-file --tag-force")
             sys.exit(1)
         
         if run_tagging(
@@ -2248,9 +2275,9 @@ def main():
         if not args.topic:
             print("❌ MOC 생성할 주제가 필요합니다. --topic 옵션을 사용하세요.")
             print("사용법:")
-            print("  python -m src generate-moc --topic 'TDD'")
-            print("  python -m src generate-moc --topic 'TDD' --output 'TDD-MOC.md'")
-            print("  python -m src generate-moc --topic 'TDD' --top-k 50 --include-orphans")
+            print("  vault-intel generate-moc --topic 'TDD'")
+            print("  vault-intel generate-moc --topic 'TDD' --output 'TDD-MOC.md'")
+            print("  vault-intel generate-moc --topic 'TDD' --top-k 50 --include-orphans")
             sys.exit(1)
         
         if run_moc_generation(
@@ -2289,11 +2316,11 @@ def main():
             print("✅ 문서 클러스터링 완료!")
             print(f"\n📝 사용법 예시:")
             print("  # 기본 클러스터링")
-            print("  python -m src summarize --clusters 5")
+            print("  vault-intel summarize --clusters 5")
             print("  # 주제별 클러스터링")
-            print("  python -m src summarize --topic 'TDD' --clusters 3")
+            print("  vault-intel summarize --topic 'TDD' --clusters 3")
             print("  # 최근 문서만 대상")
-            print("  python -m src summarize --since '2024-01-01' --output recent-clusters.md")
+            print("  vault-intel summarize --since '2024-01-01' --output recent-clusters.md")
         else:
             print("❌ 문서 클러스터링 실패!")
             sys.exit(1)
@@ -2314,13 +2341,13 @@ def main():
             print("✅ 학습 리뷰 완료!")
             print(f"\n📝 사용법 예시:")
             print("  # 주간 학습 리뷰")
-            print("  python -m src review --period weekly")
+            print("  vault-intel review --period weekly")
             print("  # 월간 학습 리뷰")
-            print("  python -m src review --period monthly --output monthly-review.md")
+            print("  vault-intel review --period monthly --output monthly-review.md")
             print("  # 특정 기간 리뷰")
-            print("  python -m src review --from 2024-08-01 --to 2024-08-31")
+            print("  vault-intel review --from 2024-08-01 --to 2024-08-31")
             print("  # 주제별 학습 리뷰")
-            print("  python -m src review --topic TDD --period quarterly")
+            print("  vault-intel review --topic TDD --period quarterly")
         else:
             print("❌ 학습 리뷰 실패!")
             sys.exit(1)
@@ -2335,18 +2362,18 @@ def main():
                 print("❌ 배치 모드에서는 --pattern 옵션이 필요합니다.")
                 print("📝 사용법 예시:")
                 print("  # 모든 마크다운 파일")
-                print("  python -m src add-related-docs --batch --pattern '*.md'")
+                print("  vault-intel add-related-docs --batch --pattern '*.md'")
                 print("  # 특정 폴더의 파일들")
-                print("  python -m src add-related-docs --batch --pattern '000-SLIPBOX/*.md'")
+                print("  vault-intel add-related-docs --batch --pattern '000-SLIPBOX/*.md'")
                 sys.exit(1)
         else:
             if not args.file:
                 print("❌ 단일 파일 모드에서는 --file 옵션이 필요합니다.")
                 print("📝 사용법 예시:")
                 print("  # 단일 파일 처리 (파일명만으로 검색)")
-                print("  python -m src add-related-docs --file 'tdd-basics.md'")
+                print("  vault-intel add-related-docs --file 'tdd-basics.md'")
                 print("  # 드라이런으로 미리보기")
-                print("  python -m src add-related-docs --file 'tdd-basics.md' --dry-run")
+                print("  vault-intel add-related-docs --file 'tdd-basics.md' --dry-run")
                 sys.exit(1)
         
         if run_relate_docs_update(

@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2026-02-11]
+
+### Added
+- pipx 설치 지원 (`pipx install -e ~/git/vault-intelligence`)
+- `vault-intel` CLI 명령어 (어디서든 실행 가능)
+- `--data-dir` 옵션 및 `VAULT_INTELLIGENCE_HOME` 환경변수 지원
+- `pyproject.toml` 패키지 설정 파일
+
+### Changed
+- `src/__main__.py`의 `project_root`를 `data_dir`로 변경하여 설치 위치 독립적 실행 지원
+
 ## [2026-01-12]
 
 ### Changed
