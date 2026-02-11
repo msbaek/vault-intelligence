@@ -23,7 +23,7 @@
 #### 방법 A: pipx 설치 (권장 - 어디서든 실행 가능)
 ```bash
 pipx install -e ~/git/vault-intelligence
-# 이후 어디서든 vault-intel 명령어 사용 가능
+# 이후 어디서든 vault-intel 또는 vis (vault-intelligence system) 명령어 사용 가능
 ```
 
 #### 방법 B: 소스에서 직접 실행
@@ -74,7 +74,7 @@ vault-intel summarize --clusters 5
 vault-intel review --period weekly
 ```
 
-> **참고:** `vault-intel` 대신 기존 `python -m src` 방식도 프로젝트 디렉토리에서 동일하게 사용 가능합니다.
+> **참고:** 단축 명령어 `vis` (vault-intelligence system)도 사용 가능합니다. 기존 `python -m src` 방식도 프로젝트 디렉토리에서 동일하게 동작합니다.
 
 ## 📖 문서 인덱스
 

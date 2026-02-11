@@ -8,9 +8,11 @@
 
 **⚠️ 중요: 아래 옵션을 정확히 사용하세요. 자주 실수하는 옵션들을 주의하세요!**
 
+> `vault-intel` 대신 단축 명령어 `vis` (vault-intelligence system)도 사용 가능합니다.
+
 ### 기본 검색
 ```bash
-# 기본 하이브리드 검색 (vault-intel 또는 python -m src 모두 가능)
+# 기본 하이브리드 검색 (vault-intel 또는 vis 모두 가능)
 vault-intel search --query "TDD"
 
 # 검색 방법 지정

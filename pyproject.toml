@@ -27,6 +27,7 @@ dependencies = [
 
 [project.scripts]
 vault-intel = "src.__main__:main"
+vis = "src.__main__:main"  # vault-intelligence system (단축 명령어)
 
 [tool.setuptools.packages.find]
 include = ["src*"]

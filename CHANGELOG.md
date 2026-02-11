@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - pipx 설치 지원 (`pipx install -e ~/git/vault-intelligence`)
 - `vault-intel` CLI 명령어 (어디서든 실행 가능)
+- `vis` 단축 명령어 (vault-intelligence system)
 - `--data-dir` 옵션 및 `VAULT_INTELLIGENCE_HOME` 환경변수 지원
 - `pyproject.toml` 패키지 설정 파일
 
