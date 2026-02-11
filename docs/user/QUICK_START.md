@@ -14,7 +14,7 @@ Vault Intelligence System V2를 빠르게 시작하여 첫 검색까지 실행�
 
 #### 방법 A: pipx 설치 (권장)
 ```bash
-# pipx로 설치하면 어디서든 vault-intel 명령어 사용 가능
+# pipx로 설치하면 어디서든 vis 명령어 사용 가능
 pipx install -e ~/git/vault-intelligence
 ```
 
@@ -28,29 +28,29 @@ pip install -r requirements.txt
 ### 2단계: 시스템 초기화
 ```bash
 # pipx 설치 시
-vault-intel init --vault-path /path/to/your/vault
+vis init --vault-path /path/to/your/vault
 
 # 소스 실행 시
-vault-intel init --vault-path /path/to/your/vault
+vis init --vault-path /path/to/your/vault
 ```
 
 ### 3단계: 첫 검색 실행
 ```bash
 # 기본 검색
-vault-intel search --query "관심 주제"
+vis search --query "관심 주제"
 
 # 예시: TDD 관련 검색
-vault-intel search --query "TDD"
+vis search --query "TDD"
 ```
 
 ## ✅ 설치 확인
 
 ```bash
 # 시스템 정보 확인
-vault-intel info
+vis info
 
 # 간단한 테스트
-vault-intel test
+vis test
 ```
 
 **예상 출력:**
@@ -65,32 +65,32 @@ vault-intel test
 
 ### 1. 의미적 검색
 ```bash
-vault-intel search --query "리팩토링" --top-k 5
+vis search --query "리팩토링" --top-k 5
 ```
 
 ### 2. 주제별 문서 수집
 ```bash
-vault-intel collect --topic "클린코드" --top-k 10
+vis collect --topic "클린코드" --top-k 10
 ```
 
 ### 3. 자동 태깅
 ```bash
-vault-intel tag "문서경로.md" --dry-run
+vis tag "문서경로.md" --dry-run
 ```
 
 ### 4. MOC 자동 생성 (체계적 목차)
 ```bash
-vault-intel generate-moc --topic "TDD"
+vis generate-moc --topic "TDD"
 ```
 
 ### 5. 문서 클러스터링 및 요약 (Phase 9)
 ```bash
-vault-intel summarize --clusters 3
+vis summarize --clusters 3
 ```
 
 ### 6. 학습 리뷰 생성
 ```bash
-vault-intel review --period weekly
+vis review --period weekly
 ```
 
 ## 🎛️ 주요 옵션들
@@ -98,22 +98,22 @@ vault-intel review --period weekly
 ### 검색 고급화
 ```bash
 # 재순위화 (최고 품질)
-vault-intel search --query "TDD" --rerank
+vis search --query "TDD" --rerank
 
 # 쿼리 확장 (최대 포괄성)  
-vault-intel search --query "TDD" --expand
+vis search --query "TDD" --expand
 
 # ColBERT 토큰 검색
-vault-intel search --query "TDD" --search-method colbert
+vis search --query "TDD" --search-method colbert
 ```
 
 ### 유사도 임계값 조정
 ```bash
 # 더 넓은 결과
-vault-intel search --query "TDD" --threshold 0.1
+vis search --query "TDD" --threshold 0.1
 
 # 더 정확한 결과
-vault-intel search --query "TDD" --threshold 0.5
+vis search --query "TDD" --threshold 0.5
 ```
 
 ## 🔧 문제 해결
@@ -129,16 +129,16 @@ model:
 ### 검색 결과가 없을 때
 ```bash
 # 임계값 낮추기
-vault-intel search --query "검색어" --threshold 0.1
+vis search --query "검색어" --threshold 0.1
 
 # 강제 재인덱싱
-vault-intel reindex --force
+vis reindex --force
 ```
 
 ### 느린 처리 속도
 ```bash
 # 샘플링 모드로 빠른 테스트
-vault-intel search --query "검색어" --sample-size 100
+vis search --query "검색어" --sample-size 100
 ```
 
 ## 📚 다음 단계

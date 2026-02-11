@@ -268,14 +268,14 @@ def show_system_info():
     print("- ColBERT 증분 캐싱 시스템 (신규!)")
     print()
     print("⚡ ColBERT 검색 명령어:")
-    print("  vault-intel reindex --with-colbert     # ColBERT 포함 인덱싱")
-    print("  vault-intel reindex --colbert-only     # ColBERT만 인덱싱")
-    print("  vault-intel search --query 'TDD' --search-method colbert")
+    print("  vis reindex --with-colbert     # ColBERT 포함 인덱싱")
+    print("  vis reindex --colbert-only     # ColBERT만 인덱싱")
+    print("  vis search --query 'TDD' --search-method colbert")
     print()
     print("⚡ 기본 명령어:")
-    print("  vault-intel search --query 'TDD'")
-    print("  vault-intel collect --topic '리팩토링'")
-    print("  vault-intel duplicates")
+    print("  vis search --query 'TDD'")
+    print("  vis collect --topic '리팩토링'")
+    print("  vis duplicates")
 
 
 def run_search(vault_path: str, query: str, top_k: int, threshold: float, config: dict, sample_size: Optional[int] = None, use_reranker: bool = False, search_method: str = "hybrid", use_expansion: bool = False, include_synonyms: bool = True, include_hyde: bool = True, use_centrality: bool = False, centrality_weight: float = 0.2):
@@ -720,7 +720,7 @@ def run_clean_tags(vault_path: str, config: dict, dry_run: bool = True, top_k: i
 
         if dry_run:
             print(f"\n💡 실제 제거하려면 --dry-run 없이 실행하세요:")
-            print(f"  vault-intel clean-tags")
+            print(f"  vis clean-tags")
         else:
             removed = result.get('tags_removed', 0)
             print(f"  제거된 태그: {removed}개")
@@ -1743,6 +1743,7 @@ def run_moc_generation(
 def main():
     """메인 함수"""
     parser = argparse.ArgumentParser(
+        prog="vis",
         description="Vault Intelligence System V2 - Sentence Transformers 기반 지능형 검색 시스템"
     )
     
@@ -2052,7 +2053,7 @@ def main():
         if not vault_path:
             print("❌ Vault 경로가 지정되지 않았습니다.")
             print("다음 중 하나를 수행하세요:")
-            print("1. --vault-path 인자 사용: vault-intel <command> --vault-path /path/to/vault")
+            print("1. --vault-path 인자 사용: vis <command> --vault-path /path/to/vault")
             print("2. config/settings.yaml의 vault.path 설정")
             sys.exit(1)
     
@@ -2079,10 +2080,10 @@ def main():
         if initialize_system(vault_path, config):
             print("\n🎉 Vault Intelligence System V2 초기화 완료!")
             print("\n다음 단계:")
-            print("1. vault-intel search --query 'TDD'     # 검색 테스트")
-            print("2. vault-intel duplicates               # 중복 감지")  
-            print("3. vault-intel collect --topic 'TDD'   # 주제 수집")
-            print("4. vault-intel analyze                  # 주제 분석")
+            print("1. vis search --query 'TDD'     # 검색 테스트")
+            print("2. vis duplicates               # 중복 감지")  
+            print("3. vis collect --topic 'TDD'   # 주제 수집")
+            print("4. vis analyze                  # 주제 분석")
         else:
             print("❌ 초기화 실패!")
             sys.exit(1)
@@ -2240,18 +2241,18 @@ def main():
             print("❌ 태깅 대상이 필요합니다.")
             print("사용법:")
             print("  # 파일명으로 검색하여 태깅")
-            print("  vault-intel tag --target spring-tdd")
-            print("  vault-intel tag --target my-file.md")
+            print("  vis tag --target spring-tdd")
+            print("  vis tag --target my-file.md")
             print("")
             print("  # vault 상대 경로로 태깅")
-            print("  vault-intel tag --target 003-RESOURCES/books/clean-code.md")
-            print("  vault-intel tag --target 003-RESOURCES/ --recursive")
+            print("  vis tag --target 003-RESOURCES/books/clean-code.md")
+            print("  vis tag --target 003-RESOURCES/ --recursive")
             print("")
             print("  # 전체 vault 태깅 (주의!)")
-            print("  vault-intel tag --target . --recursive --dry-run")
+            print("  vis tag --target . --recursive --dry-run")
             print("")
             print("  # 강제 재태깅")
-            print("  vault-intel tag --target my-file --tag-force")
+            print("  vis tag --target my-file --tag-force")
             sys.exit(1)
         
         if run_tagging(
@@ -2275,9 +2276,9 @@ def main():
         if not args.topic:
             print("❌ MOC 생성할 주제가 필요합니다. --topic 옵션을 사용하세요.")
             print("사용법:")
-            print("  vault-intel generate-moc --topic 'TDD'")
-            print("  vault-intel generate-moc --topic 'TDD' --output 'TDD-MOC.md'")
-            print("  vault-intel generate-moc --topic 'TDD' --top-k 50 --include-orphans")
+            print("  vis generate-moc --topic 'TDD'")
+            print("  vis generate-moc --topic 'TDD' --output 'TDD-MOC.md'")
+            print("  vis generate-moc --topic 'TDD' --top-k 50 --include-orphans")
             sys.exit(1)
         
         if run_moc_generation(
@@ -2316,11 +2317,11 @@ def main():
             print("✅ 문서 클러스터링 완료!")
             print(f"\n📝 사용법 예시:")
             print("  # 기본 클러스터링")
-            print("  vault-intel summarize --clusters 5")
+            print("  vis summarize --clusters 5")
             print("  # 주제별 클러스터링")
-            print("  vault-intel summarize --topic 'TDD' --clusters 3")
+            print("  vis summarize --topic 'TDD' --clusters 3")
             print("  # 최근 문서만 대상")
-            print("  vault-intel summarize --since '2024-01-01' --output recent-clusters.md")
+            print("  vis summarize --since '2024-01-01' --output recent-clusters.md")
         else:
             print("❌ 문서 클러스터링 실패!")
             sys.exit(1)
@@ -2341,13 +2342,13 @@ def main():
             print("✅ 학습 리뷰 완료!")
             print(f"\n📝 사용법 예시:")
             print("  # 주간 학습 리뷰")
-            print("  vault-intel review --period weekly")
+            print("  vis review --period weekly")
             print("  # 월간 학습 리뷰")
-            print("  vault-intel review --period monthly --output monthly-review.md")
+            print("  vis review --period monthly --output monthly-review.md")
             print("  # 특정 기간 리뷰")
-            print("  vault-intel review --from 2024-08-01 --to 2024-08-31")
+            print("  vis review --from 2024-08-01 --to 2024-08-31")
             print("  # 주제별 학습 리뷰")
-            print("  vault-intel review --topic TDD --period quarterly")
+            print("  vis review --topic TDD --period quarterly")
         else:
             print("❌ 학습 리뷰 실패!")
             sys.exit(1)
@@ -2362,18 +2363,18 @@ def main():
                 print("❌ 배치 모드에서는 --pattern 옵션이 필요합니다.")
                 print("📝 사용법 예시:")
                 print("  # 모든 마크다운 파일")
-                print("  vault-intel add-related-docs --batch --pattern '*.md'")
+                print("  vis add-related-docs --batch --pattern '*.md'")
                 print("  # 특정 폴더의 파일들")
-                print("  vault-intel add-related-docs --batch --pattern '000-SLIPBOX/*.md'")
+                print("  vis add-related-docs --batch --pattern '000-SLIPBOX/*.md'")
                 sys.exit(1)
         else:
             if not args.file:
                 print("❌ 단일 파일 모드에서는 --file 옵션이 필요합니다.")
                 print("📝 사용법 예시:")
                 print("  # 단일 파일 처리 (파일명만으로 검색)")
-                print("  vault-intel add-related-docs --file 'tdd-basics.md'")
+                print("  vis add-related-docs --file 'tdd-basics.md'")
                 print("  # 드라이런으로 미리보기")
-                print("  vault-intel add-related-docs --file 'tdd-basics.md' --dry-run")
+                print("  vis add-related-docs --file 'tdd-basics.md' --dry-run")
                 sys.exit(1)
         
         if run_relate_docs_update(

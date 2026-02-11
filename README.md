@@ -23,7 +23,7 @@
 #### 방법 A: pipx 설치 (권장 - 어디서든 실행 가능)
 ```bash
 pipx install -e ~/git/vault-intelligence
-# 이후 어디서든 vault-intel 또는 vis (vault-intelligence system) 명령어 사용 가능
+# 이후 어디서든 vis (vault-intelligence system) 명령어 사용 가능
 ```
 
 #### 방법 B: 소스에서 직접 실행
@@ -35,7 +35,7 @@ pip install -r requirements.txt
 
 ### 2. 시스템 초기화
 ```bash
-vault-intel init --vault-path /path/to/your/vault
+vis init --vault-path /path/to/your/vault
 # 또는: python -m src init --vault-path /path/to/your/vault
 ```
 
@@ -56,25 +56,25 @@ Claude가 vault-intelligence를 자동으로 활용하여 결과를 제공합니
 
 ```bash
 # 하이브리드 검색 (Dense + BM25, 추천)
-vault-intel search --query "TDD 테스트 주도 개발" --search-method hybrid
+vis search --query "TDD 테스트 주도 개발" --search-method hybrid
 
 # 고정밀 재순위화 검색 (BGE Reranker V2-M3)
-vault-intel search --query "clean architecture principles" --rerank
+vis search --query "clean architecture principles" --rerank
 
 # ColBERT 토큰 수준 검색 (긴 문장에 최적화)
-vault-intel search --query "refactoring clean code practices" --search-method colbert
+vis search --query "refactoring clean code practices" --search-method colbert
 
 # 주제별 문서 수집
-vault-intel collect --topic "리팩토링"
+vis collect --topic "리팩토링"
 
 # 문서 클러스터링 및 요약 (Phase 9)
-vault-intel summarize --clusters 5
+vis summarize --clusters 5
 
 # 학습 리뷰 생성
-vault-intel review --period weekly
+vis review --period weekly
 ```
 
-> **참고:** 단축 명령어 `vis` (vault-intelligence system)도 사용 가능합니다. 기존 `python -m src` 방식도 프로젝트 디렉토리에서 동일하게 동작합니다.
+> **참고:** 주 명령어 `vis` (vault-intelligence system)를 사용합니다. 기존 `python -m src` 방식도 프로젝트 디렉토리에서 동일하게 동작합니다.
 
 ## 📖 문서 인덱스
 

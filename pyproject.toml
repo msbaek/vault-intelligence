@@ -26,8 +26,8 @@ dependencies = [
 ]
 
 [project.scripts]
-vault-intel = "src.__main__:main"
-vis = "src.__main__:main"  # vault-intelligence system (단축 명령어)
+vis = "src.__main__:main"  # vault-intelligence system (메인 명령어)
+vault-intel = "src.__main__:main"  # 하위 호환 alias
 
 [tool.setuptools.packages.find]
 include = ["src*"]
