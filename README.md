@@ -20,17 +20,15 @@
 
 ### 1. 설치
 
-#### 방법 A: pipx 설치 (권장 - 어디서든 실행 가능)
 ```bash
-pipx install -e ~/git/vault-intelligence
-# 이후 어디서든 vis (vault-intelligence system) 명령어 사용 가능
+git clone https://github.com/msbaek/vault-intelligence.git ~/git/vault-intelligence
+cd ~/git/vault-intelligence
+pip install -r requirements.txt
 ```
 
-#### 방법 B: 소스에서 직접 실행
+#### pipx 전역 설치 (권장 - 어디서든 `vis` 명령어 사용 가능)
 ```bash
-git clone https://github.com/your-username/vault-intelligence.git
-cd vault-intelligence
-pip install -r requirements.txt
+pipx install -e ~/git/vault-intelligence
 ```
 
 ### 2. 시스템 초기화

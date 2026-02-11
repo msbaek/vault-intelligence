@@ -12,17 +12,15 @@ Vault Intelligence System V2를 빠르게 시작하여 첫 검색까지 실행�
 
 ### 1단계: 설치
 
-#### 방법 A: pipx 설치 (권장)
 ```bash
-# pipx로 설치하면 어디서든 vis 명령어 사용 가능
-pipx install -e ~/git/vault-intelligence
+git clone https://github.com/msbaek/vault-intelligence.git ~/git/vault-intelligence
+cd ~/git/vault-intelligence
+pip install -r requirements.txt
 ```
 
-#### 방법 B: 소스에서 직접 실행
+#### pipx 전역 설치 (권장 - 어디서든 `vis` 명령어 사용 가능)
 ```bash
-git clone https://github.com/your-username/vault-intelligence.git
-cd vault-intelligence
-pip install -r requirements.txt
+pipx install -e ~/git/vault-intelligence
 ```
 
 ### 2단계: 시스템 초기화

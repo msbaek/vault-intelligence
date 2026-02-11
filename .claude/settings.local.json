@@ -28,7 +28,8 @@
       "mcp__fetch__fetch",
       "Read(//Users/msbaek/git/kt4u/coffee-time/**)",
       "Bash(cat:*)",
-      "Bash(vis search:*)"
+      "Bash(vis search:*)",
+      "Bash(git push:*)"
     ],
     "deny": [],
     "ask": [],
