@@ -37,10 +37,10 @@ vis init --vault-path /path/to/your/vault
 ### 3단계: 첫 검색 실행
 ```bash
 # 기본 검색
-vis search --query "관심 주제"
+vis search "관심 주제"
 
 # 예시: TDD 관련 검색
-vis search --query "TDD"
+vis search "TDD"
 ```
 
 ## ✅ 설치 확인
@@ -65,12 +65,12 @@ vis test
 
 ### 1. 의미적 검색
 ```bash
-vis search --query "리팩토링" --top-k 5
+vis search "리팩토링" --top-k 5
 ```
 
 ### 2. 주제별 문서 수집
 ```bash
-vis collect --topic "클린코드" --top-k 10
+vis collect "클린코드" --top-k 10
 ```
 
 ### 3. 자동 태깅
@@ -80,7 +80,7 @@ vis tag "문서경로.md" --dry-run
 
 ### 4. MOC 자동 생성 (체계적 목차)
 ```bash
-vis generate-moc --topic "TDD"
+vis generate-moc "TDD"
 ```
 
 ### 5. 문서 클러스터링 및 요약 (Phase 9)
@@ -98,22 +98,22 @@ vis review --period weekly
 ### 검색 고급화
 ```bash
 # 재순위화 (최고 품질)
-vis search --query "TDD" --rerank
+vis search "TDD" --rerank
 
 # 쿼리 확장 (최대 포괄성)  
-vis search --query "TDD" --expand
+vis search "TDD" --expand
 
 # ColBERT 토큰 검색
-vis search --query "TDD" --search-method colbert
+vis search "TDD" --search-method colbert
 ```
 
 ### 유사도 임계값 조정
 ```bash
 # 더 넓은 결과
-vis search --query "TDD" --threshold 0.1
+vis search "TDD" --threshold 0.1
 
 # 더 정확한 결과
-vis search --query "TDD" --threshold 0.5
+vis search "TDD" --threshold 0.5
 ```
 
 ## 🔧 문제 해결
@@ -129,7 +129,7 @@ model:
 ### 검색 결과가 없을 때
 ```bash
 # 임계값 낮추기
-vis search --query "검색어" --threshold 0.1
+vis search "검색어" --threshold 0.1
 
 # 강제 재인덱싱
 vis reindex --force
@@ -138,7 +138,7 @@ vis reindex --force
 ### 느린 처리 속도
 ```bash
 # 샘플링 모드로 빠른 테스트
-vis search --query "검색어" --sample-size 100
+vis search "검색어" --sample-size 100
 ```
 
 ## 📚 다음 단계

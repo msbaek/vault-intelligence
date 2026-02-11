@@ -27,7 +27,8 @@
       "mcp__playwright__browser_navigate_back",
       "mcp__fetch__fetch",
       "Read(//Users/msbaek/git/kt4u/coffee-time/**)",
-      "Bash(cat:*)"
+      "Bash(cat:*)",
+      "Bash(vis search:*)"
     ],
     "deny": [],
     "ask": [],

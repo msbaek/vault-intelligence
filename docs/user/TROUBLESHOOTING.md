@@ -100,7 +100,7 @@ python -m src init --vault-path /path/to/vault
 **해결 방법**:
 ```bash
 # 샘플링 사용
-python -m src search --query "test" --sample-size 100
+python -m src search "test" --sample-size 100
 
 # 배치 크기 줄이기 (config/settings.yaml)
 model:
@@ -128,7 +128,7 @@ model:
 
 3. **샘플링 사용**:
 ```bash
-python -m src search --query "test" --sample-size 500
+python -m src search "test" --sample-size 500
 ```
 
 ## 설치 문제
@@ -204,9 +204,9 @@ python -m src reindex --with-colbert --force
 **해결 방법**: ✅ **2025-08-27 수정 완료**
 ```bash
 # 이제 모든 검색 방법에서 재순위화 지원
-python -m src search --query "TDD" --search-method colbert --rerank ✅
-python -m src search --query "TDD" --search-method hybrid --rerank ✅ 
-python -m src search --query "TDD" --search-method semantic --rerank ✅
+python -m src search "TDD" --search-method colbert --rerank ✅
+python -m src search "TDD" --search-method hybrid --rerank ✅ 
+python -m src search "TDD" --search-method semantic --rerank ✅
 ```
 
 ### ColBERT 검색 결과 품질 문제
@@ -218,13 +218,13 @@ python -m src search --query "TDD" --search-method semantic --rerank ✅
 **해결 방법**:
 ```bash
 # 1. 하이브리드 검색 사용 (권장)
-python -m src search --query "YAGNI" --search-method hybrid
+python -m src search "YAGNI" --search-method hybrid
 
 # 2. 확장된 쿼리 사용  
-python -m src search --query "YAGNI You Aren't Going to Need It principle" --search-method colbert
+python -m src search "YAGNI You Aren't Going to Need It principle" --search-method colbert
 
 # 3. 재순위화 적용
-python -m src search --query "YAGNI" --search-method hybrid --rerank
+python -m src search "YAGNI" --search-method hybrid --rerank
 ```
 
 **ColBERT 적합한 사용 케이스**:

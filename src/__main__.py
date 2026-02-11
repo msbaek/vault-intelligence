@@ -1744,297 +1744,139 @@ def main():
     """메인 함수"""
     parser = argparse.ArgumentParser(
         prog="vis",
-        description="Vault Intelligence System V2 - Sentence Transformers 기반 지능형 검색 시스템"
-    )
-    
-    parser.add_argument(
-        "command",
-        choices=["init", "test", "info", "search", "duplicates", "collect", "analyze", "reindex", "related", "analyze-gaps", "clean-tags", "tag", "generate-moc", "summarize", "review", "add-related-docs"],
-        help="실행할 명령어"
-    )
-    
-    parser.add_argument(
-        "--data-dir",
-        help="데이터 디렉토리 경로 (캐시, 설정, 모델 저장 위치. 기본값: ~/git/vault-intelligence)"
+        description="Vault Intelligence System - Sentence Transformers 기반 지능형 검색 시스템"
     )
 
-    parser.add_argument(
-        "--vault-path",
-        help="Vault 경로 (지정하지 않으면 설정 파일에서 읽음)"
-    )
+    # 공통 옵션
+    parser.add_argument("--data-dir", help="데이터 디렉토리 경로 (기본값: ~/git/vault-intelligence)")
+    parser.add_argument("--vault-path", help="Vault 경로 (지정하지 않으면 설정 파일에서 읽음)")
+    parser.add_argument("--config", help="설정 파일 경로")
+    parser.add_argument("--verbose", action="store_true", help="상세 로그 출력")
 
-    parser.add_argument(
-        "--config",
-        help="설정 파일 경로"
-    )
+    subparsers = parser.add_subparsers(dest="command", title="commands")
 
-    parser.add_argument(
-        "--verbose",
-        action="store_true",
-        help="상세 로그 출력"
-    )
-    
-    # Phase 2 기능 관련 인자들
-    parser.add_argument(
-        "--query",
-        help="검색 쿼리"
-    )
-    
-    parser.add_argument(
-        "--top-k",
-        type=int,
-        default=10,
-        help="상위 K개 결과 (기본값: 10)"
-    )
-    
-    parser.add_argument(
-        "--threshold",
-        type=float,
-        default=0.3,
-        help="유사도 임계값 (기본값: 0.3)"
-    )
-    
-    parser.add_argument(
-        "--rerank",
-        action="store_true",
-        help="재순위화 활성화 (BGE Reranker V2-M3 사용)"
-    )
-    
-    parser.add_argument(
-        "--search-method",
-        choices=["semantic", "keyword", "hybrid", "colbert"],
-        default="hybrid",
-        help="검색 방법 (기본값: hybrid)"
-    )
-    
-    parser.add_argument(
-        "--expand",
-        action="store_true",
-        help="쿼리 확장 활성화 (동의어 + HyDE)"
-    )
-    
-    parser.add_argument(
-        "--no-synonyms",
-        action="store_true",
-        help="동의어 확장 비활성화"
-    )
-    
-    parser.add_argument(
-        "--no-hyde",
-        action="store_true",
-        help="HyDE 확장 비활성화"
-    )
-    
-    parser.add_argument(
-        "--topic",
-        help="수집할 주제"
-    )
-    
-    parser.add_argument(
-        "--output",
-        nargs='?',  # 옵션 인자 (플래그만 있어도 되고, 값도 받을 수 있음)
-        const="",   # 플래그만 제공되었을 때의 기본값
-        help="출력 파일 저장 (--output만 사용하면 기본 파일명으로 저장, --output filename.md로 파일명 지정 가능)"
-    )
-    
-    parser.add_argument(
-        "--force",
-        action="store_true",
-        help="강제 전체 재인덱싱 (기존 캐시 무시)"
-    )
-    
-    parser.add_argument(
-        "--sample-size",
-        type=int,
-        help="샘플링할 문서 수 (대규모 vault 성능 최적화용)"
-    )
-    
-    parser.add_argument(
-        "--include-folders",
-        nargs="+",
-        help="포함할 폴더 목록 (폴더별 점진적 색인)"
-    )
-    
-    parser.add_argument(
-        "--exclude-folders", 
-        nargs="+",
-        help="제외할 폴더 목록"
-    )
-    
-    parser.add_argument(
-        "--file",
-        help="관련 문서를 찾을 기준 파일 (related 명령어용)"
-    )
-    
-    parser.add_argument(
-        "--with-centrality",
-        action="store_true",
-        help="중심성 점수를 검색 랭킹에 반영"
-    )
-    
-    parser.add_argument(
-        "--centrality-weight",
-        type=float,
-        default=0.2,
-        help="중심성 점수 가중치 (0.0-1.0, 기본값: 0.2)"
-    )
-    
-    parser.add_argument(
-        "--similarity-threshold",
-        type=float,
-        default=0.3,
-        help="관련성 판정 유사도 임계값 (기본값: 0.3)"
-    )
-    
-    parser.add_argument(
-        "--min-connections",
-        type=int,
-        default=2,
-        help="최소 연결 수 (이보다 적으면 약한 연결로 판정, 기본값: 2)"
-    )
-    
-    # ColBERT 인덱싱 관련 인자들
-    parser.add_argument(
-        "--with-colbert",
-        action="store_true",
-        help="ColBERT 인덱싱 포함 (reindex 명령어용)"
-    )
-    
-    parser.add_argument(
-        "--colbert-only",
-        action="store_true",
-        help="ColBERT만 재인덱싱 (Dense 임베딩 제외)"
-    )
-    
-    # 태깅 관련 인자들 (Phase 7)
-    parser.add_argument(
-        "--target",
-        help="태깅할 대상 파일 또는 폴더 경로"
-    )
-    
-    parser.add_argument(
-        "--recursive",
-        action="store_true", 
-        help="하위 폴더 포함 (폴더 태깅 시)"
-    )
-    
-    parser.add_argument(
-        "--dry-run",
-        action="store_true",
-        help="실제 변경 없이 미리보기"
-    )
-    
-    parser.add_argument(
-        "--tag-force",
-        action="store_true",
-        help="기존 태그 무시하고 재생성"
-    )
-    
-    parser.add_argument(
-        "--batch-size", 
-        type=int,
-        default=10,
-        help="배치 처리 크기 (기본값: 10)"
-    )
-    
-    # MOC 생성 관련 인자들
-    parser.add_argument(
-        "--include-orphans",
-        action="store_true",
-        help="연결되지 않은 문서도 MOC에 포함"
-    )
-    
-    # Phase 9: 문서 클러스터링 및 요약 관련 인자들
-    parser.add_argument(
-        "--clusters",
-        type=int,
-        help="클러스터 수 (지정하지 않으면 자동 결정)"
-    )
-    
-    parser.add_argument(
-        "--algorithm",
-        choices=["kmeans", "dbscan", "agglomerative"],
-        help="클러스터링 알고리즘 (기본값: 설정파일 값)"
-    )
-    
-    parser.add_argument(
-        "--style",
-        choices=["brief", "detailed", "technical", "conceptual"],
-        default="detailed",
-        help="요약 스타일 (기본값: detailed)"
-    )
-    
-    parser.add_argument(
-        "--since",
-        help="특정 날짜 이후 문서만 대상 (YYYY-MM-DD 형식)"
-    )
-    
-    parser.add_argument(
-        "--max-docs",
-        type=int,
-        help="클러스터별 최대 문서 수"
-    )
-    
-    # Phase 9: 학습 리뷰 관련 인자들
-    parser.add_argument(
-        "--period",
-        choices=["weekly", "monthly", "quarterly"],
-        default="weekly",
-        help="리뷰 기간 (기본값: weekly)"
-    )
-    
-    parser.add_argument(
-        "--from",
-        dest="start_date",
-        help="리뷰 시작 날짜 (YYYY-MM-DD 형식)"
-    )
-    
-    parser.add_argument(
-        "--to", 
-        dest="end_date",
-        help="리뷰 종료 날짜 (YYYY-MM-DD 형식)"
-    )
-    
-    # relate-docs-update 명령어 관련 인자들
-    parser.add_argument(
-        "--batch",
-        action="store_true",
-        help="배치 처리 모드 (여러 파일 일괄 처리)"
-    )
-    
-    parser.add_argument(
-        "--pattern",
-        help="배치 처리용 파일 패턴 (예: '*.md', '000-SLIPBOX/*.md')"
-    )
-    
-    parser.add_argument(
-        "--backup",
-        action="store_true",
-        help="원본 파일 백업 생성"
-    )
-    
-    parser.add_argument(
-        "--update-existing",
-        action="store_true",
-        default=True,
-        help="기존 관련 문서 섹션 업데이트 허용"
-    )
-    
-    parser.add_argument(
-        "--no-update-existing",
-        dest="update_existing",
-        action="store_false",
-        help="기존 관련 문서 섹션이 있으면 스킵"
-    )
-    
-    parser.add_argument(
-        "--format-style",
-        choices=["simple", "detailed"],
-        default="detailed",
-        help="관련 문서 섹션 포맷 스타일"
-    )
-    
+    # --- search ---
+    p = subparsers.add_parser("search", help="하이브리드 검색 (semantic, keyword, colbert)")
+    p.add_argument("query", help="검색 쿼리")
+    p.add_argument("--top-k", type=int, default=10, help="상위 K개 결과 (기본값: 10)")
+    p.add_argument("--threshold", type=float, default=0.3, help="유사도 임계값 (기본값: 0.3)")
+    p.add_argument("--rerank", action="store_true", help="재순위화 활성화 (BGE Reranker V2-M3)")
+    p.add_argument("--search-method", choices=["semantic", "keyword", "hybrid", "colbert"], default="hybrid", help="검색 방법 (기본값: hybrid)")
+    p.add_argument("--expand", action="store_true", help="쿼리 확장 활성화 (동의어 + HyDE)")
+    p.add_argument("--no-synonyms", action="store_true", help="동의어 확장 비활성화")
+    p.add_argument("--no-hyde", action="store_true", help="HyDE 확장 비활성화")
+    p.add_argument("--with-centrality", action="store_true", help="중심성 점수를 검색 랭킹에 반영")
+    p.add_argument("--centrality-weight", type=float, default=0.2, help="중심성 점수 가중치 (0.0-1.0, 기본값: 0.2)")
+    p.add_argument("--sample-size", type=int, help="샘플링할 문서 수 (대규모 vault 성능 최적화용)")
+    p.add_argument("--output", nargs='?', const="", help="출력 파일 저장 (--output만 사용하면 기본 파일명, --output FILE로 지정)")
+
+    # --- related ---
+    p = subparsers.add_parser("related", help="관련 문서 찾기")
+    p.add_argument("file", help="기준 파일 경로")
+    p.add_argument("--top-k", type=int, default=10, help="상위 K개 결과 (기본값: 10)")
+    p.add_argument("--similarity-threshold", type=float, default=0.3, help="유사도 임계값 (기본값: 0.3)")
+
+    # --- collect ---
+    p = subparsers.add_parser("collect", help="주제별 문서 수집")
+    p.add_argument("topic", help="수집할 주제")
+    p.add_argument("--top-k", type=int, default=10, help="상위 K개 결과 (기본값: 10)")
+    p.add_argument("--threshold", type=float, default=0.3, help="유사도 임계값 (기본값: 0.3)")
+    p.add_argument("--output", nargs='?', const="", help="출력 파일 저장")
+    p.add_argument("--expand", action="store_true", help="쿼리 확장 활성화 (동의어 + HyDE)")
+    p.add_argument("--no-synonyms", action="store_true", help="동의어 확장 비활성화")
+    p.add_argument("--no-hyde", action="store_true", help="HyDE 확장 비활성화")
+
+    # --- analyze ---
+    p = subparsers.add_parser("analyze", help="주제 분석")
+    p.add_argument("--output", nargs='?', const="", help="출력 파일 저장")
+
+    # --- analyze-gaps ---
+    p = subparsers.add_parser("analyze-gaps", help="지식 공백 분석")
+    p.add_argument("--top-k", type=int, default=20, help="상위 K개 결과 (기본값: 20)")
+    p.add_argument("--output", nargs='?', const="", help="출력 파일 저장")
+    p.add_argument("--similarity-threshold", type=float, default=0.3, help="유사도 임계값 (기본값: 0.3)")
+    p.add_argument("--min-connections", type=int, default=2, help="최소 연결 수 (기본값: 2)")
+
+    # --- reindex ---
+    p = subparsers.add_parser("reindex", help="인덱스 재구축")
+    p.add_argument("--force", action="store_true", help="강제 전체 재인덱싱 (기존 캐시 무시)")
+    p.add_argument("--sample-size", type=int, help="샘플링할 문서 수")
+    p.add_argument("--include-folders", nargs="+", help="포함할 폴더 목록")
+    p.add_argument("--exclude-folders", nargs="+", help="제외할 폴더 목록")
+    p.add_argument("--with-colbert", action="store_true", help="ColBERT 인덱싱 포함")
+    p.add_argument("--colbert-only", action="store_true", help="ColBERT만 재인덱싱 (Dense 제외)")
+
+    # --- tag ---
+    p = subparsers.add_parser("tag", help="자동 태깅")
+    p.add_argument("target", help="태깅 대상 파일 또는 폴더 경로")
+    p.add_argument("--recursive", action="store_true", help="하위 폴더 포함")
+    p.add_argument("--dry-run", action="store_true", help="실제 변경 없이 미리보기")
+    p.add_argument("--tag-force", action="store_true", help="기존 태그 무시하고 재생성")
+    p.add_argument("--batch-size", type=int, default=10, help="배치 처리 크기 (기본값: 10)")
+
+    # --- clean-tags ---
+    p = subparsers.add_parser("clean-tags", help="고립 태그 정리")
+    p.add_argument("--dry-run", action="store_true", help="실제 변경 없이 미리보기")
+    p.add_argument("--top-k", type=int, default=10, help="상위 K개 결과 (기본값: 10)")
+
+    # --- generate-moc ---
+    p = subparsers.add_parser("generate-moc", help="MOC 자동 생성")
+    p.add_argument("topic", help="MOC 생성할 주제")
+    p.add_argument("--top-k", type=int, default=10, help="상위 K개 결과 (기본값: 10)")
+    p.add_argument("--threshold", type=float, default=0.3, help="유사도 임계값 (기본값: 0.3)")
+    p.add_argument("--output", nargs='?', const="", help="출력 파일 저장")
+    p.add_argument("--include-orphans", action="store_true", help="연결되지 않은 문서도 포함")
+    p.add_argument("--expand", action="store_true", help="쿼리 확장 활성화")
+
+    # --- summarize ---
+    p = subparsers.add_parser("summarize", help="문서 클러스터링 및 요약")
+    p.add_argument("--topic", help="특정 주제 필터링")
+    p.add_argument("--clusters", type=int, help="클러스터 수 (미지정 시 자동 결정)")
+    p.add_argument("--algorithm", choices=["kmeans", "dbscan", "agglomerative"], help="클러스터링 알고리즘")
+    p.add_argument("--style", choices=["brief", "detailed", "technical", "conceptual"], default="detailed", help="요약 스타일 (기본값: detailed)")
+    p.add_argument("--since", help="특정 날짜 이후 문서만 (YYYY-MM-DD)")
+    p.add_argument("--max-docs", type=int, help="클러스터별 최대 문서 수")
+    p.add_argument("--output", nargs='?', const="", help="출력 파일 저장")
+    p.add_argument("--sample-size", type=int, help="샘플링할 문서 수")
+
+    # --- review ---
+    p = subparsers.add_parser("review", help="학습 리뷰")
+    p.add_argument("--period", choices=["weekly", "monthly", "quarterly"], default="weekly", help="리뷰 기간 (기본값: weekly)")
+    p.add_argument("--from", dest="start_date", help="시작 날짜 (YYYY-MM-DD)")
+    p.add_argument("--to", dest="end_date", help="종료 날짜 (YYYY-MM-DD)")
+    p.add_argument("--topic", help="특정 주제 필터링")
+    p.add_argument("--output", nargs='?', const="", help="출력 파일 저장")
+
+    # --- add-related-docs ---
+    p = subparsers.add_parser("add-related-docs", help="관련 문서 섹션 추가/업데이트")
+    p.add_argument("file", nargs='?', help="대상 파일 경로 (배치 모드에서는 생략)")
+    p.add_argument("--batch", action="store_true", help="배치 처리 모드")
+    p.add_argument("--pattern", help="배치 처리용 파일 패턴 (예: '*.md')")
+    p.add_argument("--top-k", type=int, default=10, help="상위 K개 결과 (기본값: 10)")
+    p.add_argument("--threshold", type=float, default=0.3, help="유사도 임계값 (기본값: 0.3)")
+    p.add_argument("--update-existing", action="store_true", default=True, help="기존 섹션 업데이트 허용 (기본값)")
+    p.add_argument("--no-update-existing", dest="update_existing", action="store_false", help="기존 섹션이 있으면 스킵")
+    p.add_argument("--backup", action="store_true", help="원본 파일 백업 생성")
+    p.add_argument("--dry-run", action="store_true", help="실제 변경 없이 미리보기")
+    p.add_argument("--format-style", choices=["simple", "detailed"], default="detailed", help="포맷 스타일")
+
+    # --- duplicates ---
+    subparsers.add_parser("duplicates", help="중복 문서 감지")
+
+    # --- init ---
+    subparsers.add_parser("init", help="시스템 초기화")
+
+    # --- test ---
+    subparsers.add_parser("test", help="시스템 테스트")
+
+    # --- info ---
+    subparsers.add_parser("info", help="시스템 정보 확인")
+
     args = parser.parse_args()
+
+    if not args.command:
+        parser.print_help()
+        sys.exit(1)
 
     # --data-dir이 지정되면 전역 data_dir 업데이트
     global data_dir
@@ -2088,22 +1930,17 @@ def main():
             print("❌ 초기화 실패!")
             sys.exit(1)
     
-    # Phase 2 기능들
     elif args.command == "search":
         if not check_dependencies():
             sys.exit(1)
-        
-        if not args.query:
-            print("❌ 검색 쿼리가 필요합니다. --query 옵션을 사용하세요.")
-            sys.exit(1)
-        
+
         if run_search(
             vault_path, 
             args.query, 
             args.top_k, 
             args.threshold, 
-            config, 
-            getattr(args, 'sample_size', None),
+            config,
+            args.sample_size,
             use_reranker=args.rerank,
             search_method=args.search_method,
             use_expansion=args.expand,
@@ -2130,11 +1967,7 @@ def main():
     elif args.command == "collect":
         if not check_dependencies():
             sys.exit(1)
-        
-        if not args.topic:
-            print("❌ 수집할 주제가 필요합니다. --topic 옵션을 사용하세요.")
-            sys.exit(1)
-        
+
         if run_topic_collection(
             vault_path, 
             args.topic, 
@@ -2165,12 +1998,12 @@ def main():
         if not check_dependencies():
             sys.exit(1)
         
-        if run_reindex(vault_path, args.force, config, 
-                      getattr(args, 'sample_size', None),
-                      getattr(args, 'include_folders', None),
-                      getattr(args, 'exclude_folders', None),
-                      getattr(args, 'with_colbert', False),
-                      getattr(args, 'colbert_only', False)):
+        if run_reindex(vault_path, args.force, config,
+                      args.sample_size,
+                      args.include_folders,
+                      args.exclude_folders,
+                      args.with_colbert,
+                      args.colbert_only):
             print("✅ 재인덱싱 완료!")
         else:
             print("❌ 재인덱싱 실패!")
@@ -2179,11 +2012,7 @@ def main():
     elif args.command == "related":
         if not check_dependencies():
             sys.exit(1)
-        
-        if not args.file:
-            print("❌ 기준 파일이 필요합니다. --file 옵션을 사용하세요.")
-            sys.exit(1)
-        
+
         if run_related_documents(
             vault_path,
             args.file,
@@ -2232,32 +2061,9 @@ def main():
         if not check_dependencies():
             sys.exit(1)
         
-        # 태깅 대상 확인
-        if args.target:
-            target_path = args.target
-        elif args.query:  # 검색 쿼리가 있으면 현재 디렉토리에서 해당 파일 찾기
-            target_path = f"./*{args.query}*.md"
-        else:
-            print("❌ 태깅 대상이 필요합니다.")
-            print("사용법:")
-            print("  # 파일명으로 검색하여 태깅")
-            print("  vis tag --target spring-tdd")
-            print("  vis tag --target my-file.md")
-            print("")
-            print("  # vault 상대 경로로 태깅")
-            print("  vis tag --target 003-RESOURCES/books/clean-code.md")
-            print("  vis tag --target 003-RESOURCES/ --recursive")
-            print("")
-            print("  # 전체 vault 태깅 (주의!)")
-            print("  vis tag --target . --recursive --dry-run")
-            print("")
-            print("  # 강제 재태깅")
-            print("  vis tag --target my-file --tag-force")
-            sys.exit(1)
-        
         if run_tagging(
             vault_path=vault_path,
-            target=target_path,
+            target=args.target,
             recursive=args.recursive,
             dry_run=args.dry_run,
             force=args.tag_force,
@@ -2272,15 +2078,7 @@ def main():
     elif args.command == "generate-moc":
         if not check_dependencies():
             sys.exit(1)
-        
-        if not args.topic:
-            print("❌ MOC 생성할 주제가 필요합니다. --topic 옵션을 사용하세요.")
-            print("사용법:")
-            print("  vis generate-moc --topic 'TDD'")
-            print("  vis generate-moc --topic 'TDD' --output 'TDD-MOC.md'")
-            print("  vis generate-moc --topic 'TDD' --top-k 50 --include-orphans")
-            sys.exit(1)
-        
+
         if run_moc_generation(
             vault_path=vault_path,
             topic=args.topic,
@@ -2361,22 +2159,14 @@ def main():
         if args.batch:
             if not args.pattern:
                 print("❌ 배치 모드에서는 --pattern 옵션이 필요합니다.")
-                print("📝 사용법 예시:")
-                print("  # 모든 마크다운 파일")
-                print("  vis add-related-docs --batch --pattern '*.md'")
-                print("  # 특정 폴더의 파일들")
-                print("  vis add-related-docs --batch --pattern '000-SLIPBOX/*.md'")
+                print("사용법: vis add-related-docs --batch --pattern '*.md'")
                 sys.exit(1)
         else:
             if not args.file:
-                print("❌ 단일 파일 모드에서는 --file 옵션이 필요합니다.")
-                print("📝 사용법 예시:")
-                print("  # 단일 파일 처리 (파일명만으로 검색)")
-                print("  vis add-related-docs --file 'tdd-basics.md'")
-                print("  # 드라이런으로 미리보기")
-                print("  vis add-related-docs --file 'tdd-basics.md' --dry-run")
+                print("❌ 대상 파일이 필요합니다.")
+                print("사용법: vis add-related-docs <파일경로>")
                 sys.exit(1)
-        
+
         if run_relate_docs_update(
             vault_path=vault_path,
             config=config,

@@ -56,7 +56,7 @@ python -c "from src.features.knowledge_graph import test_knowledge_graph; test_k
 
 ### 3. 첫 검색 (자동 인덱싱)
 ```bash
-python -m src search --query "TDD"
+python -m src search "TDD"
 ```
 
 ## 🔍 검색 기능
@@ -64,23 +64,23 @@ python -m src search --query "TDD"
 ### 기본 검색 모드
 ```bash
 # 1. 기본 하이브리드 검색 (빠르고 균형잡힌 결과)
-python -m src search --query "테스트 주도 개발"
+python -m src search "테스트 주도 개발"
 
 # 2. 의미적 검색 (개념 중심)
-python -m src search --query "TDD" --search-method semantic
+python -m src search "TDD" --search-method semantic
 
 # 3. 키워드 검색 (정확한 매칭)
-python -m src search --query "리팩토링" --search-method keyword
+python -m src search "리팩토링" --search-method keyword
 
 # 4. ColBERT 토큰 수준 검색 (세밀한 매칭)
-python -m src search --query "클린 코드" --search-method colbert
+python -m src search "클린 코드" --search-method colbert
 ```
 
 ### 🎯 고급 검색 기능 (Phase 5)
 
 #### 1️⃣ **재순위화 검색** (`--rerank`) - 최고 정확도
 ```bash
-python -m src search --query "TDD" --rerank
+python -m src search "TDD" --rerank
 
 # 작동 방식:
 # 1. 하이브리드 검색으로 상위 30개 후보 추출
@@ -90,7 +90,7 @@ python -m src search --query "TDD" --rerank
 
 #### 2️⃣ **쿼리 확장 검색** (`--expand`) - 최대 포괄성
 ```bash
-python -m src search --query "TDD" --expand
+python -m src search "TDD" --expand
 
 # 작동 방식:
 # 1. 동의어 확장: TDD → "테스트 주도 개발", "Test Driven Development"
@@ -100,7 +100,7 @@ python -m src search --query "TDD" --expand
 
 #### 3️⃣ **동의어만 확장** (`--expand --no-hyde`)
 ```bash
-python -m src search --query "TDD" --expand --no-hyde
+python -m src search "TDD" --expand --no-hyde
 
 # 한국어↔영어 동의어만 사용
 # 빠른 확장 검색, 용어 중심
@@ -108,7 +108,7 @@ python -m src search --query "TDD" --expand --no-hyde
 
 #### 4️⃣ **HyDE만 활용** (`--expand --no-synonyms`)
 ```bash
-python -m src search --query "TDD" --expand --no-synonyms
+python -m src search "TDD" --expand --no-synonyms
 
 # 가상 문서로 맥락 확장
 # 개념적 유사성 포착
@@ -116,7 +116,7 @@ python -m src search --query "TDD" --expand --no-synonyms
 
 #### 5️⃣ **ColBERT 토큰 수준 검색** (`--search-method colbert`)
 ```bash
-python -m src search --query "test driven development refactoring" --search-method colbert
+python -m src search "test driven development refactoring" --search-method colbert
 
 # ColBERT 토큰 레벨 late interaction
 # 긴 문장과 복합 개념에 최적화
@@ -126,18 +126,18 @@ python -m src search --query "test driven development refactoring" --search-meth
 #### 6️⃣ **재순위화 모드** (`--rerank`)
 ```bash
 # 하이브리드 + 재순위화 (추천)
-python -m src search --query "clean architecture" --search-method hybrid --rerank
+python -m src search "clean architecture" --search-method hybrid --rerank
 
 # ColBERT + 재순위화 (정밀 검색)
-python -m src search --query "SOLID principles" --search-method colbert --rerank
+python -m src search "SOLID principles" --search-method colbert --rerank
 
 # 의미적 + 재순위화
-python -m src search --query "design patterns" --search-method semantic --rerank
+python -m src search "design patterns" --search-method semantic --rerank
 ```
 
 #### 7️⃣ **최고 성능 모드** (`--rerank --expand`)
 ```bash
-python -m src search --query "TDD" --rerank --expand
+python -m src search "TDD" --rerank --expand
 
 # 모든 기능 결합:
 # 1. 쿼리 확장 (동의어 + HyDE)
@@ -209,22 +209,22 @@ python -m src search \
 
 ```bash
 # 기본 관련 문서 추천
-python -m src related --file "클린 애자일(Back to Basics)" --top-k 5
+python -m src related "클린 애자일(Back to Basics)" --top-k 5
 
 # 전체 경로로 지정
-python -m src related --file "/full/path/to/document.md" --top-k 10
+python -m src related "/full/path/to/document.md" --top-k 10
 
 # 더 많은 추천 결과
-python -m src related --file "TDD 가이드" --top-k 20
+python -m src related "TDD 가이드" --top-k 20
 
 # 관련성 임계값 조정
-python -m src related --file "클린코드" --similarity-threshold 0.5 --top-k 15
+python -m src related "클린코드" --similarity-threshold 0.5 --top-k 15
 
 # 낮은 임계값으로 포괄적 추천
-python -m src related --file "리팩토링" --similarity-threshold 0.2 --top-k 30
+python -m src related "리팩토링" --similarity-threshold 0.2 --top-k 30
 
 # 상세 로그와 함께
-python -m src related --file "DDD" --verbose --top-k 10
+python -m src related "DDD" --verbose --top-k 10
 ```
 
 #### 관련성 임계값 가이드
@@ -258,10 +258,10 @@ python -m src related --file "DDD" --verbose --top-k 10
 
 ```bash
 # 중심성 점수 반영 검색
-python -m src search --query "TDD" --with-centrality --top-k 10
+python -m src search "TDD" --with-centrality --top-k 10
 
 # 일반 검색과 비교
-python -m src search --query "TDD" --top-k 10
+python -m src search "TDD" --top-k 10
 ```
 
 #### 중심성 점수란?
@@ -366,13 +366,13 @@ python -m src duplicates
 ### 기본 수집
 ```bash
 # 주제별 문서 자동 수집
-python -m src collect --topic "리팩토링"
+python -m src collect "리팩토링"
 
 # 파일로 저장
-python -m src collect --topic "TDD" --output tdd_collection.md
+python -m src collect "TDD" --output tdd_collection.md
 
 # 고품질 문서만 (높은 임계값)
-python -m src collect --topic "클린 코드" --threshold 0.6 --top-k 20
+python -m src collect "클린 코드" --threshold 0.6 --top-k 20
 ```
 
 ### 쿼리 확장 수집 🆕
@@ -381,19 +381,19 @@ python -m src collect --topic "클린 코드" --threshold 0.6 --top-k 20
 
 ```bash
 # 기본 확장 수집 (동의어 + HyDE)
-python -m src collect --topic "TDD" --expand
+python -m src collect "TDD" --expand
 
 # 동의어만 확장 (HyDE 제외)
-python -m src collect --topic "리팩토링" --expand --no-hyde
+python -m src collect "리팩토링" --expand --no-hyde
 
 # HyDE만 활용 (동의어 제외)
-python -m src collect --topic "아키텍처" --expand --no-synonyms
+python -m src collect "아키텍처" --expand --no-synonyms
 
 # 확장 + 낮은 임계값으로 포괄적 수집
-python -m src collect --topic "도메인 모델링" --expand --threshold 0.1 --top-k 30
+python -m src collect "도메인 모델링" --expand --threshold 0.1 --top-k 30
 
 # 확장 + 결과 파일 저장
-python -m src collect --topic "클린 코드" --expand --output clean_code_expanded.md
+python -m src collect "클린 코드" --expand --output clean_code_expanded.md
 ```
 
 #### 확장 검색 비교 예시
@@ -472,7 +472,7 @@ MOC(Map of Content)는 특정 주제에 대한 체계적인 탐색 가이드로,
 
 #### 기본 MOC 생성
 ```bash
-python -m src generate-moc --topic "TDD"
+python -m src generate-moc "TDD"
 ```
 
 **결과 예시:**
@@ -502,16 +502,16 @@ python -m src generate-moc --topic "TDD"
 #### 고급 옵션
 ```bash
 # 사용자 정의 출력 파일
-python -m src generate-moc --topic "TDD" --output "TDD-완전정리.md"
+python -m src generate-moc "TDD" --output "TDD-완전정리.md"
 
 # 더 많은 문서 포함
-python -m src generate-moc --topic "리팩토링" --top-k 50
+python -m src generate-moc "리팩토링" --top-k 50
 
 # 연결되지 않은 문서도 포함
-python -m src generate-moc --topic "아키텍처" --include-orphans
+python -m src generate-moc "아키텍처" --include-orphans
 
 # 임계값 조정 (더 포괄적인 수집)
-python -m src generate-moc --topic "클린코드" --threshold 0.2 --top-k 30
+python -m src generate-moc "클린코드" --threshold 0.2 --top-k 30
 ```
 
 ### MOC 문서 구조
@@ -597,14 +597,14 @@ MOC는 다음 키워드를 기반으로 문서를 자동 분류합니다:
 #### 주제 선택 가이드
 ```bash
 # ✅ 좋은 주제 예시 (구체적이고 명확한 주제)
-python -m src generate-moc --topic "TDD"
-python -m src generate-moc --topic "리팩토링"
-python -m src generate-moc --topic "Spring Boot"
-python -m src generate-moc --topic "도메인 주도 설계"
+python -m src generate-moc "TDD"
+python -m src generate-moc "리팩토링"
+python -m src generate-moc "Spring Boot"
+python -m src generate-moc "도메인 주도 설계"
 
 # ❌ 피해야 할 주제 예시 (너무 광범위하거나 모호한 주제)
-python -m src generate-moc --topic "프로그래밍"  # 너무 광범위
-python -m src generate-moc --topic "공부"        # 너무 모호
+python -m src generate-moc "프로그래밍"  # 너무 광범위
+python -m src generate-moc "공부"        # 너무 모호
 ```
 
 #### 임계값 조정 가이드
@@ -659,13 +659,13 @@ print(f"학습 단계: {len(moc_data.learning_path)}")
 #### MOC 생성이 안 될 때
 ```bash
 # 1. 임계값을 낮춰서 다시 시도
-python -m src generate-moc --topic "TDD" --threshold 0.2
+python -m src generate-moc "TDD" --threshold 0.2
 
 # 2. 더 많은 문서 포함
-python -m src generate-moc --topic "TDD" --top-k 100
+python -m src generate-moc "TDD" --top-k 100
 
 # 3. 연결되지 않은 문서도 포함
-python -m src generate-moc --topic "TDD" --include-orphans
+python -m src generate-moc "TDD" --include-orphans
 ```
 
 #### 문서가 잘못 분류될 때
@@ -675,10 +675,10 @@ python -m src generate-moc --topic "TDD" --include-orphans
 #### MOC가 너무 클 때
 ```bash
 # 임계값 높이기
-python -m src generate-moc --topic "TDD" --threshold 0.4
+python -m src generate-moc "TDD" --threshold 0.4
 
 # 문서 수 제한
-python -m src generate-moc --topic "TDD" --top-k 20
+python -m src generate-moc "TDD" --top-k 20
 ```
 
 ## 🏷️ 자동 태깅 시스템 (Phase 7)
@@ -944,7 +944,7 @@ python -m src tag "folder/" --batch-size 100
 ### 자동 인덱싱 (추천)
 ```bash
 # 첫 검색 시 자동으로 인덱싱됩니다
-python -m src search --query "첫 검색"
+python -m src search "첫 검색"
 ```
 
 ### 수동 재인덱싱
@@ -1026,7 +1026,7 @@ python -m src reindex --exclude-folders "archive" "old"
 python -m src reindex --sample-size 1000
 
 # 검색도 샘플링 모드로
-python -m src search --query "TDD" --sample-size 500
+python -m src search "TDD" --sample-size 500
 ```
 
 **샘플링 모드 특징:**
@@ -1306,7 +1306,7 @@ for topic in topics:
 #### 1. 검색 결과가 부정확할 때
 ```bash
 # 임계값을 높여서 정확도 향상
-python -m src search --query "TDD" --threshold 0.6
+python -m src search "TDD" --threshold 0.6
 
 # 강제 재인덱싱으로 인덱스 새로고침
 python -m src reindex --force
@@ -1348,7 +1348,7 @@ python -m src reindex --force
 #### 모든 명령어에서 Verbose 옵션 사용
 ```bash
 # 검색 시 상세 로그
-python -m src search --query "TDD" --verbose
+python -m src search "TDD" --verbose
 
 # 재인덱싱 시 진행률 상세 표시
 python -m src reindex --force --verbose
@@ -1357,7 +1357,7 @@ python -m src reindex --force --verbose
 python -m src duplicates --verbose
 
 # 관련 문서 찾기 시 계산 과정 표시
-python -m src related --file "문서명" --verbose
+python -m src related "문서명" --verbose
 
 # 지식 공백 분석 시 상세 통계
 python -m src analyze-gaps --verbose
@@ -1369,7 +1369,7 @@ python -m src analyze-gaps --verbose
 python -m src reindex --verbose 2>&1 | tee reindex.log
 
 # 검색 로그 저장
-python -m src search --query "TDD" --rerank --expand --verbose > search.log 2>&1
+python -m src search "TDD" --rerank --expand --verbose > search.log 2>&1
 
 # 시스템 테스트 로그 저장
 python -m src test --verbose > test_results.log 2>&1
@@ -1451,13 +1451,13 @@ colbert:
 **관련 문서 추천 (`related`)**
 ```bash
 # 빠른 추천 (기본 설정)
-python -m src related --file "문서명" --top-k 5
+python -m src related "문서명" --top-k 5
 
 # 정확한 추천 (높은 임계값)
-python -m src related --file "문서명" --similarity-threshold 0.5 --top-k 10
+python -m src related "문서명" --similarity-threshold 0.5 --top-k 10
 
 # 포괄적 추천 (낮은 임계값)
-python -m src related --file "문서명" --similarity-threshold 0.2 --top-k 20
+python -m src related "문서명" --similarity-threshold 0.2 --top-k 20
 ```
 
 **지식 공백 분석 (`analyze-gaps`)**
@@ -1480,16 +1480,16 @@ python -m src analyze-gaps --min-connections 1 --similarity-threshold 0.2
 #### 성능 최적화 팁
 ```bash
 # 빠른 탐색용
-python -m src search --query "TDD"
+python -m src search "TDD"
 
 # 정확도 우선
-python -m src search --query "TDD" --rerank
+python -m src search "TDD" --rerank
 
 # 포괄성 우선  
-python -m src search --query "TDD" --expand --no-hyde
+python -m src search "TDD" --expand --no-hyde
 
 # 최고 품질 (시간 소요)
-python -m src search --query "TDD" --rerank --expand
+python -m src search "TDD" --rerank --expand
 ```
 
 ### 🖥️ 시스템 정보 및 모니터링
@@ -1521,8 +1521,8 @@ GPU 메모리: 24.0GB                   # 통합 메모리
 - 실전 예제: docs/EXAMPLES.md
 
 ⚡ 빠른 시작:
-  python -m src search --query 'TDD'
-  python -m src related --file '클린 애자일'
+  python -m src search 'TDD'
+  python -m src related '클린 애자일'
   python -m src analyze-gaps
 ```
 
@@ -1532,7 +1532,7 @@ GPU 메모리: 24.0GB                   # 통합 메모리
 python -m src info
 
 # 검색 성능 테스트
-time python -m src search --query "performance test"
+time python -m src search "performance test"
 
 # 개별 모듈 테스트
 python -c "from src.features.reranker import test_reranker; test_reranker()"
@@ -1545,8 +1545,8 @@ python -c "from src.features.query_expansion import test_query_expansion; test_q
 ### 1. 책 집필 지원
 ```bash
 # 1. 주제별 자료 수집
-python -m src collect --topic "TDD" --output book/chapter1_tdd.md
-python -m src collect --topic "리팩토링" --output book/chapter2_refactor.md
+python -m src collect "TDD" --output book/chapter1_tdd.md
+python -m src collect "리팩토링" --output book/chapter2_refactor.md
 
 # 2. 중복 내용 확인
 python -m src duplicates
@@ -1564,28 +1564,28 @@ python -m src analyze
 python -m src analyze-gaps --top-k 20
 
 # 3. 주제별 상세 수집
-python -m src collect --topic "아키텍처" --threshold 0.5
+python -m src collect "아키텍처" --threshold 0.5
 
 # 4. 중복 파일 정리
 python -m src duplicates
 
 # 5. 핵심 문서 중심성 분석 (Phase 6)
-python -m src search --query "중요한 개념" --with-centrality --top-k 15
+python -m src search "중요한 개념" --with-centrality --top-k 15
 ```
 
 ### 3. 연구 자료 관리
 ```bash
 # 1. 키워드별 관련 자료 검색
-python -m src search --query "마이크로서비스" --top-k 20
+python -m src search "마이크로서비스" --top-k 20
 
 # 2. 특정 문서 기반 관련 자료 발굴 (Phase 6)
-python -m src related --file "마이크로서비스 아키텍처 패턴" --top-k 15
+python -m src related "마이크로서비스 아키텍처 패턴" --top-k 15
 
 # 3. 시계열 분석을 위한 날짜 필터링 (프로그래밍 방식)
 # SearchQuery로 date_from, date_to 설정
 
 # 4. 주제별 자료집 생성
-python -m src collect --topic "클라우드 아키텍처" --output research/cloud.md
+python -m src collect "클라우드 아키텍처" --output research/cloud.md
 
 # 5. 연구 공백 분석으로 누락 영역 발견 (Phase 6)
 python -m src analyze-gaps --top-k 10
@@ -1598,22 +1598,22 @@ python -m src analyze-gaps --top-k 10
 #### ✅ 좋은 예시
 ```bash
 # 구체적인 개념
-python -m src search --query "테스트 주도 개발"
+python -m src search "테스트 주도 개발"
 
 # 영어/한글 혼용
-python -m src search --query "SOLID principles"
+python -m src search "SOLID principles"
 
 # 복합 개념
-python -m src search --query "마이크로서비스 아키텍처 패턴"
+python -m src search "마이크로서비스 아키텍처 패턴"
 ```
 
 #### ❌ 피해야 할 예시
 ```bash
 # 너무 짧은 쿼리
-python -m src search --query "TDD"  # 대신 "TDD 방법론" 권장
+python -m src search "TDD"  # 대신 "TDD 방법론" 권장
 
 # 너무 일반적인 단어
-python -m src search --query "개발"  # 대신 "소프트웨어 개발" 권장
+python -m src search "개발"  # 대신 "소프트웨어 개발" 권장
 ```
 
 ### 임계값 조정 가이드

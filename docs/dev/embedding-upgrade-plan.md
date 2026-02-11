@@ -335,34 +335,34 @@ model:
 #### 기본 검색 방법들
 ```bash
 # 의미적 검색
-python -m src search --query "TDD" --search-method semantic
+python -m src search "TDD" --search-method semantic
 
 # 키워드 검색  
-python -m src search --query "TDD" --search-method keyword
+python -m src search "TDD" --search-method keyword
 
 # 하이브리드 검색 (기본값)
-python -m src search --query "TDD" --search-method hybrid
+python -m src search "TDD" --search-method hybrid
 
 # ColBERT 토큰 수준 검색
-python -m src search --query "TDD" --search-method colbert
+python -m src search "TDD" --search-method colbert
 ```
 
 #### 고급 검색 기능들
 ```bash
 # 재순위화 포함 검색 (최고 품질)
-python -m src search --query "TDD" --rerank
+python -m src search "TDD" --rerank
 
 # 쿼리 확장 검색 (최대 포괄성)
-python -m src search --query "TDD" --expand
+python -m src search "TDD" --expand
 
 # 동의어만 확장 (HyDE 제외)
-python -m src search --query "TDD" --expand --no-hyde
+python -m src search "TDD" --expand --no-hyde
 
 # HyDE만 활용 (동의어 제외)
-python -m src search --query "TDD" --expand --no-synonyms
+python -m src search "TDD" --expand --no-synonyms
 
 # 모든 기능 결합 (최고 성능)
-python -m src search --query "TDD" --rerank --expand
+python -m src search "TDD" --rerank --expand
 ```
 
 ### 📊 설정 파일 업데이트
@@ -421,7 +421,7 @@ query_expansion:
 - **`analyze_knowledge_gaps()` 메서드**: 체계적인 지식 공백 분석
 
 ### ✅ Phase 6.5: CLI 명령어 확장
-- **`related` 명령어**: `python -m src related --file "파일명" --top-k N`
+- **`related` 명령어**: `python -m src related "파일명" --top-k N`
 - **`analyze-gaps` 명령어**: `python -m src analyze-gaps --top-k N`
 - **`--with-centrality` 옵션**: 기존 search 명령어에 중심성 랭킹 추가
 - **통합 인터페이스**: 모든 지식 그래프 기능을 CLI에서 직접 사용 가능

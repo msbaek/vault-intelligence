@@ -13,55 +13,55 @@
 ### 기본 검색
 ```bash
 # 기본 하이브리드 검색
-vis search --query "TDD"
+vis search "TDD"
 
 # 검색 방법 지정
-vis search --query "TDD" --search-method semantic   # 의미적 검색
-vis search --query "TDD" --search-method keyword    # 키워드 검색
-vis search --query "TDD" --search-method hybrid     # 하이브리드 (기본값)
-vis search --query "TDD" --search-method colbert    # ColBERT 토큰 검색
+vis search "TDD" --search-method semantic   # 의미적 검색
+vis search "TDD" --search-method keyword    # 키워드 검색
+vis search "TDD" --search-method hybrid     # 하이브리드 (기본값)
+vis search "TDD" --search-method colbert    # ColBERT 토큰 검색
 ```
 
 ### 고급 검색 옵션
 ```bash
 # 재순위화 (정확도 향상)
-vis search --query "TDD" --rerank
+vis search "TDD" --rerank
 
 # 쿼리 확장 (포괄성 향상)
-vis search --query "TDD" --expand                    # 동의어 + HyDE
-vis search --query "TDD" --expand --no-hyde         # 동의어만
-vis search --query "TDD" --expand --no-synonyms     # HyDE만
+vis search "TDD" --expand                    # 동의어 + HyDE
+vis search "TDD" --expand --no-hyde         # 동의어만
+vis search "TDD" --expand --no-synonyms     # HyDE만
 
 # 최고 품질 검색 (모든 기능 결합)
-vis search --query "TDD" --rerank --expand
+vis search "TDD" --rerank --expand
 
 # 결과 수 및 임계값 조정
-vis search --query "TDD" --top-k 20 --threshold 0.5
+vis search "TDD" --top-k 20 --threshold 0.5
 
 # 중심성 점수 반영
-vis search --query "TDD" --with-centrality
+vis search "TDD" --with-centrality
 
 # 결과 파일 저장
-vis search --query "TDD" --output results.md
-vis search --query "TDD" --output                    # 기본 파일명으로 저장
+vis search "TDD" --output results.md
+vis search "TDD" --output                    # 기본 파일명으로 저장
 
 # 데이터 디렉토리 지정 (기본값: ~/git/vault-intelligence)
-vis search --query "TDD" --data-dir /custom/path
+vis search "TDD" --data-dir /custom/path
 ```
 
 ### 기타 주요 명령어
 ```bash
 # 관련 문서 찾기
-vis related --file "문서명.md" --top-k 10
+vis related "문서명.md" --top-k 10
 
 # 지식 공백 분석
 vis analyze-gaps --top-k 20
 
 # 주제별 문서 수집
-vis collect --topic "TDD" --output collection.md
+vis collect "TDD" --output collection.md
 
 # MOC 생성
-vis generate-moc --topic "TDD" --top-k 50
+vis generate-moc "TDD" --top-k 50
 
 # 자동 태깅
 vis tag "문서명.md"
@@ -76,17 +76,18 @@ vis reindex --force            # 강제 전체 재인덱싱
 ### ⚠️ 자주 실수하는 옵션들
 ```bash
 # ❌ 잘못된 사용
-vis search --query "TDD" --method semantic        # --method (X)
-vis search --query "TDD" --k 20                   # --k (X)
-vis search --query "TDD" --top 20                 # --top (X)
-vis search --query "TDD" --output-file out.md     # --output-file (X)
-vis search --query "TDD" --reranking              # --reranking (X)
+vis search "TDD" --method semantic        # --method (X)
+vis search "TDD" --k 20                   # --k (X)
+vis search "TDD" --top 20                 # --top (X)
+vis search "TDD" --output-file out.md     # --output-file (X)
+vis search "TDD" --reranking              # --reranking (X)
+vis search --query "TDD"                  # --query (X) → positional로 변경됨
 
 # ✅ 올바른 사용
-vis search --query "TDD" --search-method semantic # --search-method (O)
-vis search --query "TDD" --top-k 20               # --top-k (O)
-vis search --query "TDD" --output out.md          # --output (O)
-vis search --query "TDD" --rerank                 # --rerank (O)
+vis search "TDD" --search-method semantic # --search-method (O)
+vis search "TDD" --top-k 20               # --top-k (O)
+vis search "TDD" --output out.md          # --output (O)
+vis search "TDD" --rerank                 # --rerank (O)
 ```
 
 ### 검색 방법 선택 가이드
@@ -196,7 +197,7 @@ python -c "from src.features.advanced_search import test_search_engine; test_sea
 
 ```bash
 # 검색 성능 테스트 (1000개 문서 기준)
-vis search --query "test" --benchmark
+vis search "test" --benchmark
 
 # 인덱싱 성능 테스트
 time vis reindex --force

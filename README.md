@@ -56,16 +56,16 @@ Claude가 vault-intelligence를 자동으로 활용하여 결과를 제공합니
 
 ```bash
 # 하이브리드 검색 (Dense + BM25, 추천)
-vis search --query "TDD 테스트 주도 개발" --search-method hybrid
+vis search "TDD 테스트 주도 개발" --search-method hybrid
 
 # 고정밀 재순위화 검색 (BGE Reranker V2-M3)
-vis search --query "clean architecture principles" --rerank
+vis search "clean architecture principles" --rerank
 
 # ColBERT 토큰 수준 검색 (긴 문장에 최적화)
-vis search --query "refactoring clean code practices" --search-method colbert
+vis search "refactoring clean code practices" --search-method colbert
 
 # 주제별 문서 수집
-vis collect --topic "리팩토링"
+vis collect "리팩토링"
 
 # 문서 클러스터링 및 요약 (Phase 9)
 vis summarize --clusters 5
