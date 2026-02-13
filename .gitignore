@@ -103,5 +103,6 @@ htmlcov/
 .claude/settings.local.json
 .claude/tasks/
 .serena/
+.worktrees/
 docs/plans/
 todo.md
