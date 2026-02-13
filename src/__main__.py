@@ -41,6 +41,8 @@ try:
     from src.features.moc_generator import MOCGenerator
     from src.features.content_clusterer import ContentClusterer
     from src.features.learning_reviewer import LearningReviewer
+    from src.features.tag_analyzer import TagAnalyzer
+    from src.features.topic_connector import TopicConnector
     from src.utils.output_manager import resolve_output_path
     import yaml
     DEPENDENCIES_AVAILABLE = True
@@ -1668,6 +1670,138 @@ def run_relate_docs_update(
         return False
 
 
+def run_list_tags(
+    vault_path: str,
+    depth: int = 0,
+    min_count: int = 1,
+    output_file: Optional[str] = None
+):
+    """태그 목록 출력"""
+    try:
+        analyzer = TagAnalyzer(vault_path)
+        result = analyzer.analyze(min_count=min_count, depth=depth)
+
+        # Console output
+        table = analyzer.format_table(result, depth=depth)
+        print(table)
+
+        # File output
+        if output_file is not None:
+            resolved = resolve_output_path(vault_path, output_file, "tags", "list")
+            if resolved:
+                md = analyzer.format_markdown(result)
+                Path(resolved).parent.mkdir(parents=True, exist_ok=True)
+                Path(resolved).write_text(md, encoding='utf-8')
+                print(f"\n💾 태그 분석 결과가 {resolved}에 저장되었습니다.")
+
+        return True
+
+    except Exception as e:
+        print(f"❌ 태그 분석 실패: {e}")
+        logger.exception("태그 분석 중 상세 오류:")
+        return False
+
+
+def run_connect_topic(
+    vault_path: str,
+    topic: str,
+    config: dict,
+    top_k: int = 50,
+    related_k: int = 3,
+    threshold: float = 0.3,
+    skip_moc: bool = False,
+    skip_related: bool = False,
+    backup: bool = False,
+    dry_run: bool = False,
+):
+    """주제별 문서 연결 실행"""
+    try:
+        mode = "[DRY-RUN] " if dry_run else ""
+        print(f"🔗 {mode}'{topic}' 주제 문서 연결 시작...")
+
+        # Initialize search engine
+        cache_dir = str(data_dir / "cache")
+        search_engine = AdvancedSearchEngine(vault_path, cache_dir, config)
+
+        if not search_engine.indexed:
+            print("📚 인덱스 구축 중...")
+            if not search_engine.build_index():
+                print("❌ 인덱스 구축 실패")
+                return False
+
+        connector = TopicConnector(search_engine, vault_path, config)
+        result = connector.connect_topic(
+            topic=topic,
+            top_k=top_k,
+            related_k=related_k,
+            threshold=threshold,
+            skip_moc=skip_moc,
+            skip_related=skip_related,
+            dry_run=dry_run,
+            backup=backup,
+        )
+
+        # Print results
+        print(f"\n📊 연결 결과:")
+        print("─" * 40)
+        print(f"주제: {result.topic}")
+        print(f"대상 문서: {result.documents_found}개")
+        if not skip_moc:
+            moc_status = "✅ 생성됨" if result.moc_generated else "❌ 실패"
+            print(f"MOC: {moc_status}")
+            if result.moc_path:
+                print(f"  경로: {result.moc_path}")
+        if not skip_related:
+            print(f"관련 링크 추가: {result.docs_with_links_added}개 문서")
+            print(f"스킵: {result.docs_skipped}개")
+            if result.docs_failed > 0:
+                print(f"실패: {result.docs_failed}개")
+
+        if result.errors:
+            print(f"\n⚠️ 오류 {len(result.errors)}건:")
+            for err in result.errors[:5]:
+                print(f"  - {err}")
+            if len(result.errors) > 5:
+                print(f"  ... 외 {len(result.errors) - 5}건")
+
+        return True
+
+    except Exception as e:
+        print(f"❌ 주제 연결 실패: {e}")
+        logger.exception("주제 연결 중 상세 오류:")
+        return False
+
+
+def run_connect_status(
+    vault_path: str,
+    config: dict,
+    detailed: bool = False,
+):
+    """그래프 연결 진행 상황 표시"""
+    try:
+        # Search engine needed for TopicConnector init
+        cache_dir = str(data_dir / "cache")
+        search_engine = AdvancedSearchEngine(vault_path, cache_dir, config)
+
+        if not search_engine.indexed:
+            print("📚 인덱스 구축 중...")
+            if not search_engine.build_index():
+                print("❌ 인덱스 구축 실패")
+                return False
+
+        connector = TopicConnector(search_engine, vault_path, config)
+        status = connector.get_status(detailed=detailed)
+        output = connector.format_status(status, detailed=detailed)
+        print(output)
+
+        return True
+
+    except Exception as e:
+        print(f"❌ 상태 확인 실패: {e}")
+        logger.exception("상태 확인 중 상세 오류:")
+        return False
+
+
 def run_moc_generation(
     vault_path: str,
     topic: str,
@@ -1862,6 +1996,27 @@ def main():
 
     # --- duplicates ---
     subparsers.add_parser("duplicates", help="중복 문서 감지")
+
+    # --- list-tags ---
+    p = subparsers.add_parser("list-tags", help="Vault 태그 목록 및 통계")
+    p.add_argument("--depth", type=int, default=0, help="태그 계층 깊이 (0=전체, 1=최상위만, 2=2단계까지)")
+    p.add_argument("--min-count", type=int, default=1, help="최소 문서 수 (기본값: 1)")
+    p.add_argument("--output", nargs='?', const="", help="출력 파일 저장")
+
+    # --- connect-topic ---
+    p = subparsers.add_parser("connect-topic", help="주제별 문서 연결 (MOC + 관련 문서 링크)")
+    p.add_argument("topic", help="연결할 주제 (태그명)")
+    p.add_argument("--top-k", type=int, default=50, help="MOC에 포함할 문서 수 (기본값: 50)")
+    p.add_argument("--related-k", type=int, default=3, help="문서당 관련 링크 수 (기본값: 3)")
+    p.add_argument("--threshold", type=float, default=0.3, help="유사도 임계값 (기본값: 0.3)")
+    p.add_argument("--skip-moc", action="store_true", help="MOC 생성 건너뛰기")
+    p.add_argument("--skip-related", action="store_true", help="관련 문서 링크 건너뛰기")
+    p.add_argument("--backup", action="store_true", help="원본 파일 백업 생성")
+    p.add_argument("--dry-run", action="store_true", help="실제 변경 없이 미리보기")
+
+    # --- connect-status ---
+    p = subparsers.add_parser("connect-status", help="그래프 연결 진행 상황")
+    p.add_argument("--detailed", action="store_true", help="전체 주제 상세 현황 표시")
 
     # --- init ---
     subparsers.add_parser("init", help="시스템 초기화")
@@ -2183,6 +2338,53 @@ def main():
             print("✅ 관련 문서 섹션 업데이트 완료!")
         else:
             print("❌ 관련 문서 섹션 업데이트 실패!")
+            sys.exit(1)
+
+    elif args.command == "list-tags":
+        if run_list_tags(
+            vault_path=vault_path,
+            depth=args.depth,
+            min_count=args.min_count,
+            output_file=args.output
+        ):
+            print("\n✅ 태그 분석 완료!")
+        else:
+            print("❌ 태그 분석 실패!")
+            sys.exit(1)
+
+    elif args.command == "connect-topic":
+        if not check_dependencies():
+            sys.exit(1)
+
+        if run_connect_topic(
+            vault_path=vault_path,
+            topic=args.topic,
+            config=config,
+            top_k=args.top_k,
+            related_k=args.related_k,
+            threshold=args.threshold,
+            skip_moc=args.skip_moc,
+            skip_related=args.skip_related,
+            backup=args.backup,
+            dry_run=args.dry_run,
+        ):
+            print("✅ 주제 연결 완료!")
+        else:
+            print("❌ 주제 연결 실패!")
+            sys.exit(1)
+
+    elif args.command == "connect-status":
+        if not check_dependencies():
+            sys.exit(1)
+
+        if run_connect_status(
+            vault_path=vault_path,
+            config=config,
+            detailed=args.detailed,
+        ):
+            print("\n✅ 상태 확인 완료!")
+        else:
+            print("❌ 상태 확인 실패!")
             sys.exit(1)
 
 
