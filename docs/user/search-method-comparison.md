@@ -1,3 +1,30 @@
+# 검색 방법별 비교 분석
+
+동일한 쿼리 "TDD"로 4가지 검색 방법과 다양한 옵션 조합을 실험하고, 각 결과의 차이와 원인을 분석한 문서입니다.
+
+## 목차
+
+1. [Keyword 검색](#keyword)
+   - [--rerank - bad (짧은 쿼리에서 역효과)](#--rerank---bad)
+   - [--expand - meaningful (동의어+HyDE 효과)](#--expand---meaningful)
+   - [--with-centrality - meaningful](#--with-centrality---meaningful)
+2. [Semantic 검색](#semantic)
+   - [--rerank - meaningful (노이즈 제거 효과)](#--rerank---meaningful)
+   - [Reranker 효과 분석](#reranker-효과-분석)
+   - [--expand - 다국어 환경에선 유의미](#--expand---다국어-환경에선-유의미-가능)
+   - [--expand --rerank](#--expand---rerank)
+   - [--with-centrality](#--with-centrality)
+3. [Hybrid 검색](#hybrid)
+   - [--rerank (차이 적음)](#--rerank)
+   - [Hybrid + Rerank 효과 분석](#hybrid--rerank-효과-분석)
+   - [검색 방법별 rerank 효과 차이](#검색-방법별-rerank-효과-차이)
+   - [권장 조합](#권장-조합)
+4. [ColBERT 검색](#colbert)
+   - [핵심 원리 (토큰별 독립 매칭)](#핵심-원리)
+5. [검색 방법별 최적 쿼리 길이](#검색-방법별-최적-쿼리-길이)
+
+---
+
 ## Keyword
 
 - TDD
@@ -114,13 +141,13 @@ INFO:src.features.advanced_search:확장 검색 완료: 6개 쿼리로 5개 결�
 5. 마틴 파울러-리팩토링의 중요성 feat.테스트 코드를 짜는 이유
    유사도: 0.7041
 
---rerank가 keyword보다 sematic에서 좋은 결과가 나오는 것이 보다 일반적인 현상
+#### Reranker 효과 분석
 
-Reranker의 효과는 1단계 후보 풀의 품질에 달려 있음
+--rerank가 keyword보다 semantic에서 좋은 결과가 나오는 것이 보다 일반적인 현상입니다.
 
-Reranker는 주어진 후보를 재정렬만 합니다. 새 문서를 찾아오지는 못합니다.
+**Reranker의 효과는 1단계 후보 풀의 품질에 달려 있습니다.** Reranker는 주어진 후보를 재정렬만 합니다. 새 문서를 찾아오지는 못합니다.
 
-Keyword + Rerank
+**Keyword + Rerank**
 
 1단계: "TDD" 포함 문서만 수집 (좁은 그물)
 → TDD 언급 daily note ✓
@@ -130,7 +157,7 @@ Keyword + Rerank
 2단계: Reranker가 재정렬
 → 이미 빠진 문서는 복구 불가
 
-Semantic + Rerank
+**Semantic + Rerank**
 
 1단계: 의미적으로 유사한 문서 수집 (넓은 그물)
 → TDD 언급 문서 ✓
@@ -219,9 +246,9 @@ reranking 조합이 가장 좋은 성능을 보인다는 것이 일반적인 결
 5. How to fall in love with TDD
    유사도: 2.1719
 
-hybrid + rerank에서 차이가 적은 건 충분히 예상 가능한 현상
+#### Hybrid + Rerank 효과 분석
 
-이유
+hybrid + rerank에서 차이가 적은 건 충분히 예상 가능한 현상입니다.
 
 Hybrid 검색은 이미 "자체 검증"이 내장되어 있습니다.
 
@@ -234,7 +261,7 @@ Hybrid = BM25(keyword) × 0.3 + Dense(semantic) × 0.7
 반면 reranker의 주 역할은 노이즈 필터링입니다. 이미 깨끗한 결과에 reranker를 적용하면 순서를 약간 조정할 뿐 큰 변화가
 없습니다.
 
-검색 방법별 rerank 효과 차이
+#### 검색 방법별 rerank 효과 차이
 
 | 검색 방법     | 초기 노이즈 수준           | rerank 효과           |
 | ------------- | -------------------------- | --------------------- |
@@ -247,7 +274,7 @@ Hybrid = BM25(keyword) × 0.3 + Dense(semantic) × 0.7
 - semantic + rerank = 넓게 그물을 던진 뒤 수작업으로 골라내기 (효과 큼)
 - hybrid + rerank = 이미 정밀 그물로 잡은 것을 다시 골라내기 (효과 작음)
 
-실용적 결론
+#### 권장 조합
 
 hybrid 검색에서는 --rerank를 생략해도 품질이 거의 동일하면서 속도가 빠릅니다. rerank는 cross-encoder 추론이 추가되므로
 불필요한 비용입니다.
@@ -273,7 +300,7 @@ hybrid 검색에서는 --rerank를 생략해도 품질이 거의 동일하면서
 5. TDD, Where Did It All Go Wrong (Ian Cooper)
    유사도: 0.6370
 
-핵심 원리
+### 핵심 원리
 
 Semantic: Query → [하나의 벡터] ↔ Doc → [하나의 벡터]
 "여러 개념이 하나로 뭉개짐"
