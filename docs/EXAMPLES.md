@@ -1,7 +1,7 @@
 # 🎯 Vault Intelligence System V2 실전 예제 모음
 
 ## 📖 문서 내비게이션
-- [🏠 프로젝트 홈](../../README.md) | [🚀 빠른 시작](QUICK_START.md) | [📚 사용자 가이드](USER_GUIDE.md) | **💡 실전 예제** | [🔧 문제 해결](TROUBLESHOOTING.md) | [⚙️ 개발자 가이드](../../CLAUDE.md)
+- [🏠 프로젝트 홈](../README.md) | [🚀 빠른 시작](QUICK_START.md) | [📚 사용자 가이드](USER_GUIDE.md) | **💡 실전 예제** | [🔧 문제 해결](TROUBLESHOOTING.md) | [⚙️ 개발자 가이드](../CLAUDE.md)
 
 ---
 
