@@ -27,6 +27,10 @@
 
 ## Keyword
 
+BM25 알고리즘 기반의 전통적인 키워드 검색입니다. 쿼리에 포함된 단어가 문서에 정확히 등장하는지를 기준으로 매칭합니다. "TDD"라는 단어가 문서에 직접 포함되어 있어야만 결과에 나타나므로, "테스트 주도 개발"이나 "Red Green Refactor"처럼 같은 개념을 다른 표현으로 쓴 문서는 찾지 못합니다.
+
+속도가 가장 빠르고 고유명사나 파일명 등 정확한 용어를 찾을 때 유리하지만, 동의어나 유사 표현을 인식하지 못하는 것이 한계입니다. 아래는 쿼리 "TDD"로 검색한 결과입니다.
+
 - TDD
 
 1. Clean Code Course by Uncle Bob
@@ -113,7 +117,11 @@ INFO:src.features.advanced_search:확장 검색 완료: 6개 쿼리로 5개 결�
 5. 클린 애자일(Back to Basics)
    유사도: 5.0000
 
-## semantic
+## Semantic
+
+BGE-M3 모델로 쿼리와 문서를 각각 1024차원 벡터로 변환한 뒤, 벡터 간 코사인 유사도를 계산하는 Dense embedding 검색입니다. 단어가 정확히 일치하지 않아도 의미적으로 유사한 문서를 찾아줍니다. 예를 들어 "TDD"로 검색해도 "테스트 주도 개발", "Red Green Refactor" 등 관련 개념을 다룬 문서가 결과에 포함됩니다.
+
+다만 쿼리와 문서 전체를 각각 하나의 벡터로 압축하기 때문에, 여러 개념이 하나로 뭉개지는 현상이 발생할 수 있습니다. 또한 넓은 그물을 던지는 만큼 관련 없는 문서(노이즈)가 섞일 수 있어, `--rerank` 옵션과 함께 사용하면 가장 효과적입니다. 아래는 쿼리 "Test Driven Development Red Green Refactor"로 검색한 결과입니다.
 
 - Test Driven Development Red Green Refactor
 
@@ -218,7 +226,11 @@ reranking 조합이 가장 좋은 성능을 보인다는 것이 일반적인 결
 5. Test-Driven Development: It's easier than you think
    유사도: 0.6021
 
-## hybrid
+## Hybrid
+
+Keyword(BM25)와 Semantic(Dense embedding) 두 가지 검색을 동시에 수행한 뒤, 가중 합산(`BM25 × 0.3 + Dense × 0.7`)으로 결과를 통합하는 방식입니다. 키워드 매칭의 정확성과 의미적 검색의 포괄성을 결합하므로, 단독 방법보다 균형 잡힌 결과를 제공합니다. **기본값으로 권장되는 검색 방법**입니다.
+
+두 신호가 상호 검증하는 효과가 있어 노이즈가 자연스럽게 걸러집니다. keyword에서만 높은 점수를 받거나 semantic에서만 높은 점수를 받는 문서는 희석되고, 양쪽 모두에서 관련성이 높은 문서만 상위에 올라옵니다. 이 때문에 `--rerank`를 추가해도 결과 차이가 크지 않습니다. 아래는 쿼리 "TDD Red Green Refactor 사이클"로 검색한 결과입니다.
 
 - TDD Red Green Refactor 사이클
 
@@ -286,6 +298,10 @@ hybrid 검색에서는 --rerank를 생략해도 품질이 거의 동일하면서
 - 정확한 용어: keyword (고유명사, 파일명 등)
 
 ## ColBERT
+
+ColBERT(Contextualized Late Interaction over BERT)는 쿼리와 문서를 각각 **토큰 단위 벡터 집합**으로 표현한 뒤, 각 쿼리 토큰이 가장 가까운 문서 토큰을 찾아 매칭하는 방식입니다. Semantic 검색이 문서 전체를 하나의 벡터로 압축하는 것과 달리, ColBERT는 개별 토큰별로 독립 매칭한 뒤 점수를 합산합니다.
+
+이 덕분에 "Kent Beck", "TDD", "Red Green Refactor", "리팩토링", "설계 개선"처럼 여러 개념을 나열한 체크리스트형 쿼리에서 강력한 성능을 발휘합니다. 각 개념이 독립적으로 매칭되므로 하나의 벡터로 뭉개지는 현상이 없습니다. 대신 토큰별 연산이 필요해 다른 방법보다 속도가 느리고, 최적 쿼리 길이도 15-25단어로 가장 깁니다. 아래는 쿼리 "Kent Beck TDD Red Green Refactor 리팩토링 설계 개선"으로 검색한 결과입니다.
 
 - Kent Beck TDD Red Green Refactor 리팩토링 설계 개선
 
