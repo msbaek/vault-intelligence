@@ -92,44 +92,10 @@ Vault Intelligence V2
 - **메모리**: 평상시 2-3GB, 인덱싱시 6-8GB
 - **정확도**: Cross-encoder 재순위화로 최고 품질
 
-## 🤝 기여하기
-
-1. 이슈 보고: [Issues](https://github.com/your-username/vault-intelligence/issues)
-2. 기능 제안: [Discussions](https://github.com/your-username/vault-intelligence/discussions)  
-3. 풀 리퀘스트: [CONTRIBUTING.md](CONTRIBUTING.md) 참조
-
 ## 🔒 보안
 
-이 프로젝트는 강화된 보안 시스템을 갖추고 있습니다:
-
-### 자동 보안 검사
-```bash
-# 전체 프로젝트 보안 스캔
-./scripts/security-check.sh
-
-# Git 커밋 시 자동 검사 (pre-commit hook 활성화됨)
-git commit -m "변경사항"  # 자동으로 민감정보 검사
-
-# Gitleaks로 추가 검사
-gitleaks detect --config .gitleaks.toml
-```
-
-### 보안 기능들
-- ✅ **Pre-commit Hook**: 커밋 시 자동 민감정보 감지
-- ✅ **Security Scanner**: 종합 보안 점검 스크립트
-- ✅ **Gitleaks 통합**: 업계 표준 비밀정보 스캔
-- ✅ **패턴 감지**: API 키, 비밀번호, 토큰 등 자동 감지
-- ✅ **환경변수 보호**: .env 파일 추적 방지
-
-### 민감정보 관리
-```bash
-# 환경변수는 .env.example 템플릿 사용
-cp .env.example .env
-# .env 파일을 편집하여 실제 API 키 입력 (git 추적 안됨)
-
-# 보안 검사 실행
-./scripts/security-check.sh --patterns  # 검사 패턴 확인
-```
+Pre-commit hook, Gitleaks 통합 등 자동 보안 검사 시스템을 갖추고 있습니다.
+자세한 내용은 **[SECURITY.md](SECURITY.md)**를 참조하세요.
 
 자세한 내용은 [SECURITY.md](SECURITY.md)를 참조하세요.
 
