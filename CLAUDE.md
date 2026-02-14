@@ -71,6 +71,20 @@ vis tag "폴더명/" --recursive
 vis reindex                    # 기본 재인덱싱
 vis reindex --with-colbert     # ColBERT 포함
 vis reindex --force            # 강제 전체 재인덱싱
+
+# 태그 분석
+vis list-tags
+
+# 주제별 문서 연결
+vis connect-topic "TDD" --dry-run    # 미리보기
+vis connect-topic "TDD"              # 실행
+
+# 연결 상태 확인
+vis connect-status
+
+# 고립 태그 정리
+vis clean-tags --dry-run
+vis clean-tags
 ```
 
 ### ⚠️ 자주 실수하는 옵션들

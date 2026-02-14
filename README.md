@@ -13,6 +13,7 @@
 - 📚 **문서 요약**: 클러스터링 기반 다중 문서 지능형 요약
 - 🕸️ **지식 그래프**: 문서 간 관계 분석 및 추천 시스템
 - 📋 **MOC 생성**: 주제별 체계적 목차 자동 생성
+- 🔗 **주제별 문서 연결**: 태그 기반 MOC 생성 + 관련 문서 자동 링크
 - 🇰🇷 **한국어 최적화**: 동의어 확장 및 HyDE 기술
 - ⚡ **M1 Pro 최적화**: Metal Performance Shaders 가속
 
@@ -70,6 +71,12 @@ vis summarize --clusters 5
 
 # 학습 리뷰 생성
 vis review --period weekly
+
+# 태그 분석
+vis list-tags
+
+# 주제별 문서 연결 (MOC 생성 + 관련 링크 삽입)
+vis connect-topic "TDD"
 ```
 
 > **참고:** 주 명령어 `vis` (vault-intelligence system)를 사용합니다. 기존 `python -m src` 방식도 프로젝트 디렉토리에서 동일하게 동작합니다.
@@ -158,6 +165,9 @@ vis review --period weekly
 | **요약** | 다중 문서 요약 | `summarize --clusters N` |
 | **리뷰** | 학습 패턴 분석 | `review --period weekly` |
 | **MOC** | 체계적 목차 생성 | `generate-moc --topic "주제"` |
+| **태그 분석** | vault 태그 집계 및 계층 분석 | `list-tags` |
+| **주제 연결** | 주제별 MOC + 관련 문서 링크 삽입 | `connect-topic "주제"` |
+| **고립 태그 정리** | 사용되지 않는 태그 자동 정리 | `clean-tags` |
 
 ## 🏗️ 아키텍처
 
@@ -174,7 +184,8 @@ Vault Intelligence V2
     ├── 지식 그래프 분석
     ├── 자동 클러스터링
     ├── 문서 요약 시스템
-    └── 학습 패턴 분석
+    ├── 학습 패턴 분석
+    └── 주제별 문서 연결
 ```
 
 ## 🔧 시스템 요구사항

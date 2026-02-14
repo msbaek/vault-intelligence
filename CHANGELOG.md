@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2026-02-13]
+
+### Added
+- 주제별 문서 연결 기능 (`connect-topic`, `list-tags`, `connect-status` 명령어)
+- `tag_analyzer.py` — vault 태그 분석 및 집계 모듈
+- `topic_connector.py` — 주제별 MOC 생성 + 관련 문서 링크 오케스트레이터
+
+## [2026-02-08]
+
+### Added
+- 고립 태그 자동 정리 기능 (`clean-tags` 명령어)
+- 최소 단어 수 필터링으로 저품질 문서 인덱싱 제외 (`settings.yaml: min_word_count`)
+
+### Fixed
+- centrality boost 검색에서 threshold 파라미터 올바르게 전달
+- symlink 지원 및 캐시 무효화 정확도 개선
+
+### Changed
+- 라이센스 MIT → PolyForm Noncommercial 1.0.0
+
 ## [2026-02-11]
 
 ### Added
@@ -145,3 +165,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 | 7 | 2025-08-21 | 자동 태깅 시스템 |
 | 8 | 2025-08-23 | MOC 자동 생성 |
 | 9 | 2025-08-24 | 다중 문서 요약 시스템 |
+| 10+ | 2026-02-08 | 주제별 문서 연결, 고립 태그 정리, 인덱싱 품질 개선 |
