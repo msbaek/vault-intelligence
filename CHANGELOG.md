@@ -59,7 +59,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [2025-09-05]
 
 ### Added
-- 관련 문서 찾기 기능 (`python -m src related`)
+- 관련 문서 찾기 기능 (`vis related`)
 
 ### Changed
 - `__pycache__` 파일 정리

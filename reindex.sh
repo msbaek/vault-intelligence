@@ -17,7 +17,7 @@ for folder in "${folders[@]}"; do
     echo "--------------------------------------------------"
     
     # 재인덱싱 실행
-    python -m src reindex --force --with-colbert --include-folders "$folder"
+    vis reindex --force --with-colbert --include-folders "$folder"
     
     # 결과 확인
     if [ $? -eq 0 ]; then

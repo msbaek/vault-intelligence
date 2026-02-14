@@ -44,7 +44,7 @@ pip install -r requirements.txt
 pip install pytest black flake8 mypy
 
 # 4. 시스템 테스트
-python -m src test
+vis test
 ```
 
 ## 📝 코딩 표준
@@ -100,7 +100,7 @@ def example_function(param1: str, param2: int) -> dict:
 ### 테스트 실행
 ```bash
 # 전체 시스템 테스트
-python -m src test
+vis test
 
 # 특정 모듈 테스트
 python -c "from src.features.advanced_search import test_search_engine; test_search_engine()"

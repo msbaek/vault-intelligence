@@ -85,7 +85,7 @@ vault-intelligence의 주요 사용 방식은 **Claude Code에서 자연어로 �
 ### 예제 1: 기본 개념 검색
 ```bash
 # TDD 관련 문서 찾기
-python -m src search "테스트 주도 개발"
+vis search "테스트 주도 개발"
 ```
 **결과 예시:**
 ```
@@ -98,32 +98,32 @@ python -m src search "테스트 주도 개발"
 ### 예제 2: 영어 키워드 검색
 ```bash
 # SOLID 원칙 관련 문서
-python -m src search "SOLID principles" --top-k 3
+vis search "SOLID principles" --top-k 3
 ```
 
 ### 예제 3: 복합 개념 검색
 ```bash
 # 마이크로서비스와 DDD를 함께 다룬 문서
-python -m src search "마이크로서비스 도메인 주도 설계" --threshold 0.5
+vis search "마이크로서비스 도메인 주도 설계" --threshold 0.5
 ```
 
 ### 예제 4: ColBERT 정밀 검색
 ```bash
 # 긴 문장을 사용한 ColBERT 검색 (권장)
-python -m src search "test driven development refactoring clean code practices" --search-method colbert --top-k 5
+vis search "test driven development refactoring clean code practices" --search-method colbert --top-k 5
 
 # 복합 개념 검색
-python -m src search "dependency injection inversion of control spring framework" --search-method colbert
+vis search "dependency injection inversion of control spring framework" --search-method colbert
 ```
 **사용 팁:** ColBERT는 단일 키워드보다 긴 문장에서 성능이 우수합니다.
 
 ### 예제 5: 재순위화로 정확도 향상
 ```bash
 # 하이브리드 + 재순위화 (최고 정확도)
-python -m src search "clean architecture principles" --search-method hybrid --rerank --top-k 3
+vis search "clean architecture principles" --search-method hybrid --rerank --top-k 3
 
 # 의미적 검색 + 재순위화  
-python -m src search "design patterns strategy factory" --search-method semantic --rerank
+vis search "design patterns strategy factory" --search-method semantic --rerank
 ```
 **기대 효과:** 정확도 15-25% 향상, 처리 시간 2-3배 증가
 
@@ -132,75 +132,75 @@ python -m src search "design patterns strategy factory" --search-method semantic
 # 같은 쿼리로 각 방법 비교
 query="SOLID principles object oriented design"
 
-python -m src search "$query" --search-method semantic   # 의미적
-python -m src search "$query" --search-method keyword    # 키워드  
-python -m src search "$query" --search-method hybrid     # 하이브리드 (추천)
-python -m src search "$query" --search-method colbert    # ColBERT
+vis search "$query" --search-method semantic   # 의미적
+vis search "$query" --search-method keyword    # 키워드  
+vis search "$query" --search-method hybrid     # 하이브리드 (추천)
+vis search "$query" --search-method colbert    # ColBERT
 
 # 재순위화 비교
-python -m src search "$query" --search-method hybrid             # 기본
-python -m src search "$query" --search-method hybrid --rerank   # 재순위화
+vis search "$query" --search-method hybrid             # 기본
+vis search "$query" --search-method hybrid --rerank   # 재순위화
 ```
 
 ### 예제 7: 단일 키워드 최적 검색법
 ```bash
 # 단일 약어/키워드는 ColBERT보다 하이브리드가 효과적
-python -m src search "YAGNI" --search-method hybrid           # ✅ 추천
-python -m src search "TDD" --search-method hybrid --rerank   # ✅ 더 정확
+vis search "YAGNI" --search-method hybrid           # ✅ 추천
+vis search "TDD" --search-method hybrid --rerank   # ✅ 더 정확
 
 # ColBERT용으로 쿼리 확장
-python -m src search "YAGNI You Aren't Going to Need It agile principle" --search-method colbert
+vis search "YAGNI You Aren't Going to Need It agile principle" --search-method colbert
 ```
 
 ### 예제 8: 정확도 조절
 ```bash
 # 낮은 임계값 - 더 많은 결과
-python -m src search "리팩토링" --threshold 0.2 --top-k 20
+vis search "리팩토링" --threshold 0.2 --top-k 20
 
 # 높은 임계값 - 정확한 결과만
-python -m src search "리팩토링" --threshold 0.7 --top-k 5
+vis search "리팩토링" --threshold 0.7 --top-k 5
 ```
 
 ### 예제 5: 특정 분야 검색
 ```bash
 # 프론트엔드 관련
-python -m src search "React 컴포넌트 설계"
+vis search "React 컴포넌트 설계"
 
 # 백엔드 관련  
-python -m src search "Spring Boot 아키텍처"
+vis search "Spring Boot 아키텍처"
 
 # 데이터베이스 관련
-python -m src search "JPA 성능 최적화"
+vis search "JPA 성능 최적화"
 ```
 
 ### 🆕 예제 6: ColBERT 토큰 수준 검색 (신규!)
 ```bash
 # ColBERT 검색 - 세밀한 토큰 매칭
-python -m src search "TDD" --search-method colbert
+vis search "TDD" --search-method colbert
 
 # ColBERT 검색과 재순위화 결합 - 최고 품질
-python -m src search "클린 코드" --search-method colbert --rerank
+vis search "클린 코드" --search-method colbert --rerank
 
 # ColBERT 검색에서 더 많은 결과
-python -m src search "리팩토링" --search-method colbert --top-k 15
+vis search "리팩토링" --search-method colbert --top-k 15
 ```
 
 **ColBERT vs 다른 검색 방법 비교:**
 ```bash
 # 동일한 쿼리로 다양한 검색 방법 테스트
-python -m src search "테스트 주도 개발" --search-method semantic
-python -m src search "테스트 주도 개발" --search-method keyword  
-python -m src search "테스트 주도 개발" --search-method hybrid
-python -m src search "테스트 주도 개발" --search-method colbert
+vis search "테스트 주도 개발" --search-method semantic
+vis search "테스트 주도 개발" --search-method keyword  
+vis search "테스트 주도 개발" --search-method hybrid
+vis search "테스트 주도 개발" --search-method colbert
 ```
 
 ### 예제 7: 초기 ColBERT 인덱싱
 ```bash
 # 🎯 처음 사용 시 ColBERT 전체 인덱싱 (1회, 1-2시간)
-python -m src reindex --with-colbert
+vis reindex --with-colbert
 
 # ✅ 이후로는 캐시 활용으로 즉시 검색 가능!
-python -m src search "아무 검색어" --search-method colbert
+vis search "아무 검색어" --search-method colbert
 ```
 
 ---
@@ -209,7 +209,7 @@ python -m src search "아무 검색어" --search-method colbert
 
 ### 예제 1: 기본 중복 감지
 ```bash
-python -m src duplicates
+vis duplicates
 ```
 **결과 해석:**
 ```
@@ -240,12 +240,12 @@ cat "001-INBOX/tdd-정리.md" | head -10
 ### 예제 3: 중복 해결 워크플로우
 ```bash
 # 1. 중복 감지
-python -m src duplicates
+vis duplicates
 
 # 2. 해당 파일들 검토 (수동)
 # 3. 불필요한 파일 제거 (수동)
 # 4. 재인덱싱으로 반영
-python -m src reindex
+vis reindex
 ```
 
 ---
@@ -254,14 +254,14 @@ python -m src reindex
 
 ### 예제 1: TDD 관련 자료 수집
 ```bash
-python -m src collect "TDD" --output collections/tdd_materials.md
+vis collect "TDD" --output collections/tdd_materials.md
 ```
 
 ### 예제 2: 쿼리 확장을 통한 포괄적 수집 🆕
 
 ```bash
 # 기본 확장 수집 (동의어 + HyDE)
-python -m src collect "TDD" --expand --output collections/tdd_expanded.md
+vis collect "TDD" --expand --output collections/tdd_expanded.md
 ```
 
 **확장 검색 결과 비교:**
@@ -275,13 +275,13 @@ python -m src collect "TDD" --expand --output collections/tdd_expanded.md
 
 ```bash
 # 동의어만 확장 (정확도 우선)
-python -m src collect "리팩토링" --expand --no-hyde --top-k 15
+vis collect "리팩토링" --expand --no-hyde --top-k 15
 
 # HyDE만 활용 (의미적 확장 우선)
-python -m src collect "도메인 모델링" --expand --no-synonyms --threshold 0.2
+vis collect "도메인 모델링" --expand --no-synonyms --threshold 0.2
 
 # 포괄적 수집 (낮은 임계값 + 확장)
-python -m src collect "클린 아키텍처" --expand --threshold 0.1 --top-k 30
+vis collect "클린 아키텍처" --expand --threshold 0.1 --top-k 30
 ```
 
 **생성된 파일 예시 (tdd_materials.md):**
@@ -323,31 +323,31 @@ TDD는 테스트 주도 개발(Test-Driven Development)의 약자로...
 ### 예제 4: 책 집필용 챕터별 자료 수집
 ```bash
 # 챕터 1: TDD 기초
-python -m src collect "TDD 기본 개념" --threshold 0.6 --output book/chapter1.md
+vis collect "TDD 기본 개념" --threshold 0.6 --output book/chapter1.md
 
 # 챕터 2: 실무 적용
-python -m src collect "TDD 실무 적용" --threshold 0.5 --output book/chapter2.md
+vis collect "TDD 실무 적용" --threshold 0.5 --output book/chapter2.md
 
 # 챕터 3: 고급 기법
-python -m src collect "TDD 고급 기법" --threshold 0.4 --output book/chapter3.md
+vis collect "TDD 고급 기법" --threshold 0.4 --output book/chapter3.md
 ```
 
 ### 예제 3: 연구 주제별 자료 정리
 ```bash
 # 아키텍처 패턴 연구
-python -m src collect "헥사고날 아키텍처" --top-k 20 --output research/hexagonal.md
+vis collect "헥사고날 아키텍처" --top-k 20 --output research/hexagonal.md
 
 # 성능 최적화 연구  
-python -m src collect "JPA 성능 최적화" --top-k 15 --output research/jpa_performance.md
+vis collect "JPA 성능 최적화" --top-k 15 --output research/jpa_performance.md
 ```
 
 ### 예제 4: 프로젝트별 관련 자료 수집
 ```bash
 # 특정 프로젝트 관련 자료
-python -m src collect "Spring Boot 마이크로서비스" --output projects/microservices.md
+vis collect "Spring Boot 마이크로서비스" --output projects/microservices.md
 
 # 프론트엔드 프로젝트
-python -m src collect "React 컴포넌트 아키텍처" --output projects/react_arch.md
+vis collect "React 컴포넌트 아키텍처" --output projects/react_arch.md
 ```
 
 ---
@@ -360,7 +360,7 @@ MOC(Map of Content)는 특정 주제에 대한 체계적인 탐색 가이드입�
 
 ```bash
 # TDD 주제 MOC 생성
-python -m src generate-moc "TDD"
+vis generate-moc "TDD"
 ```
 
 **결과 예시:**
@@ -390,7 +390,7 @@ python -m src generate-moc "TDD"
 
 ```bash
 # 50개 문서로 더 포괄적인 MOC 생성
-python -m src generate-moc "리팩토링" --top-k 50 --output "리팩토링-완전가이드.md"
+vis generate-moc "리팩토링" --top-k 50 --output "리팩토링-완전가이드.md"
 ```
 
 **결과 예시:**
@@ -420,7 +420,7 @@ python -m src generate-moc "리팩토링" --top-k 50 --output "리팩토링-완�
 
 ```bash
 # 연결되지 않은 문서들도 포함하여 완전한 MOC 생성
-python -m src generate-moc "Spring Boot" --include-orphans --threshold 0.2
+vis generate-moc "Spring Boot" --include-orphans --threshold 0.2
 ```
 
 **사용 시나리오**: Spring Boot 관련 문서들이 vault 전체에 흩어져 있고, 일부 문서들이 태그나 링크로 연결되지 않은 경우
@@ -429,7 +429,7 @@ python -m src generate-moc "Spring Boot" --include-orphans --threshold 0.2
 
 ```bash
 # "AI 시대의 TDD 활용" 책 집필을 위한 체계적 MOC
-python -m src generate-moc \
+vis generate-moc \
   --topic "TDD" \
   --output "book/TDD-책구성.md" \
   --top-k 100 \
@@ -447,7 +447,7 @@ topics=("TDD" "리팩토링" "클린코드" "DDD" "마이크로서비스")
 
 for topic in "${topics[@]}"; do
     echo "MOC 생성 중: $topic"
-    python -m src generate-moc "$topic" --output "MOCs/MOC-${topic}.md"
+    vis generate-moc "$topic" --output "MOCs/MOC-${topic}.md"
 done
 ```
 
@@ -494,28 +494,28 @@ for topic, count in moc_data.related_topics[:5]:
 #### 사례 1: 신입 개발자 온보딩
 ```bash
 # 신입 개발자를 위한 기초 개념 MOC
-python -m src generate-moc "프로그래밍 기초" --top-k 20 --threshold 0.4
+vis generate-moc "프로그래밍 기초" --top-k 20 --threshold 0.4
 ```
 → 학습 경로를 따라 체계적으로 기초를 다질 수 있음
 
 #### 사례 2: 기술 세미나 준비
 ```bash
 # TDD 세미나를 위한 발표 자료 구성
-python -m src generate-moc "TDD" --output "seminar/TDD-발표자료.md"
+vis generate-moc "TDD" --output "seminar/TDD-발표자료.md"
 ```
 → 입문부터 심화까지 체계적인 발표 구성 가능
 
 #### 사례 3: 팀 스터디 계획
 ```bash
 # 팀 스터디를 위한 단계별 학습 계획
-python -m src generate-moc "클린 아키텍처" --top-k 30
+vis generate-moc "클린 아키텍처" --top-k 30
 ```
 → 생성된 학습 경로를 따라 팀 스터디 진행
 
 #### 사례 4: 개인 지식 점검
 ```bash
 # 특정 분야 지식 현황 파악
-python -m src generate-moc "Spring" --include-orphans
+vis generate-moc "Spring" --include-orphans
 ```
 → 빠진 부분이나 약한 영역 파악 가능
 
@@ -524,25 +524,25 @@ python -m src generate-moc "Spring" --include-orphans
 #### 좋은 MOC를 위한 vault 정리
 ```bash
 # 1. 태그 체계 정리 (MOC 품질 향상)
-python -m src tag "specific-folder/" --recursive
+vis tag "specific-folder/" --recursive
 
 # 2. MOC 생성
-python -m src generate-moc "TDD"
+vis generate-moc "TDD"
 
 # 3. 결과 확인 후 태그 보완
-python -m src tag "missed-documents/" 
+vis tag "missed-documents/" 
 ```
 
 #### 임계값 최적화 과정
 ```bash
 # 1. 높은 임계값으로 시작 (핵심만)
-python -m src generate-moc "TDD" --threshold 0.5 --top-k 20
+vis generate-moc "TDD" --threshold 0.5 --top-k 20
 
 # 2. 중간 임계값으로 확장 (균형)
-python -m src generate-moc "TDD" --threshold 0.3 --top-k 50
+vis generate-moc "TDD" --threshold 0.3 --top-k 50
 
 # 3. 낮은 임계값으로 포괄적 수집
-python -m src generate-moc "TDD" --threshold 0.2 --top-k 100 --include-orphans
+vis generate-moc "TDD" --threshold 0.2 --top-k 100 --include-orphans
 ```
 
 ### 생성된 MOC 문서 예시 구조
@@ -599,7 +599,7 @@ python -m src generate-moc "TDD" --threshold 0.2 --top-k 100 --include-orphans
 
 ### 예제 1: 전체 vault 주제 분석
 ```bash
-python -m src analyze
+vis analyze
 ```
 **결과 예시:**
 ```
@@ -630,10 +630,10 @@ python -m src analyze
 분석 결과를 바탕으로 부족한 주제 파악:
 ```bash
 # 발견된 주제 중 문서가 적은 영역 보강
-python -m src collect "성능 테스트" --top-k 30
+vis collect "성능 테스트" --top-k 30
 
 # 새로운 주제 영역 탐색
-python -m src search "DevOps 파이프라인" --top-k 20
+vis search "DevOps 파이프라인" --top-k 20
 ```
 
 ---
@@ -1020,7 +1020,7 @@ def batch_collect():
         print(f"🔍 주제 '{topic}' 수집 중...")
         
         # CLI 명령어 실행
-        cmd = f'python -m src collect "{topic}" --top-k 15 --output "collections/{topic}.md"'
+        cmd = f'vis collect "{topic}" --top-k 15 --output "collections/{topic}.md"'
         result = os.system(cmd)
         
         if result == 0:
@@ -1057,11 +1057,11 @@ def daily_maintenance():
     
     # 1. 중복 감지
     print("1️⃣ 중복 문서 감지...")
-    os.system("python -m src duplicates > reports/duplicates_{today}.txt")
+    os.system("vis duplicates > reports/duplicates_{today}.txt")
     
     # 2. 주제 분석
     print("2️⃣ 주제 분석...")
-    os.system("python -m src analyze > reports/topics_{today}.txt")
+    os.system("vis analyze > reports/topics_{today}.txt")
     
     # 3. 캐시 백업
     print("3️⃣ 캐시 백업...")
@@ -1070,7 +1070,7 @@ def daily_maintenance():
     
     # 4. 통계 리포트 생성
     print("4️⃣ 통계 리포트...")
-    os.system("python -m src info > reports/stats_{today}.txt")
+    os.system("vis info > reports/stats_{today}.txt")
     
     print("✅ 일일 유지보수 완료")
 
@@ -1106,7 +1106,7 @@ def test_search_quality():
         print(f"🔍 테스트: '{query}'")
         
         start_time = time.time()
-        cmd = f'python -m src search "{query}" --top-k 20'
+        cmd = f'vis search "{query}" --top-k 20'
         result = os.system(cmd)
         duration = time.time() - start_time
         
@@ -1135,13 +1135,13 @@ if __name__ == "__main__":
 # 문제: "TDD" 검색 시 관련 없는 문서들이 나옴
 
 # 해결 1: 임계값 상향 조정
-python -m src search "TDD" --threshold 0.6
+vis search "TDD" --threshold 0.6
 
 # 해결 2: 더 구체적인 쿼리 사용
-python -m src search "테스트 주도 개발 방법론"
+vis search "테스트 주도 개발 방법론"
 
 # 해결 3: 강제 재인덱싱
-python -m src reindex --force
+vis reindex --force
 ```
 
 ### 예제 2: 인덱싱이 매우 느릴 때
@@ -1149,7 +1149,7 @@ python -m src reindex --force
 # 문제: 2,000개 문서 인덱싱에 30분 이상 소요
 
 # 진단: 상세 로그로 병목점 확인
-python -m src reindex --verbose
+vis reindex --verbose
 
 # 해결 1: 설정 최적화 (config/settings.yaml)
 model:
@@ -1184,7 +1184,7 @@ vault:
 
 # 해결: 캐시 완전 초기화
 rm -rf cache/
-python -m src reindex --force
+vis reindex --force
 
 # 예방: 정기적 백업
 cp cache/embeddings.db cache/embeddings_backup_$(date +%Y%m%d).db
@@ -1235,7 +1235,7 @@ def monitor_search_performance():
         start_time = time.time()
         
         # 검색 실행
-        result = os.system(f'python -m src search "{query}" > /dev/null 2>&1')
+        result = os.system(f'vis search "{query}" > /dev/null 2>&1')
         
         end_time = time.time()
         duration = end_time - start_time
@@ -1265,7 +1265,7 @@ echo "📚 책 집필 지원 워크플로우 시작"
 
 # 1단계: 전체 주제 분석으로 구조 파악
 echo "1️⃣ 주제 분석..."
-python -m src analyze > book_planning/topic_analysis.txt
+vis analyze > book_planning/topic_analysis.txt
 
 # 2단계: 챕터별 자료 수집
 chapters=(
@@ -1280,7 +1280,7 @@ echo "2️⃣ 챕터별 자료 수집..."
 for chapter in "${chapters[@]}"; do
     IFS=':' read -r topic title <<< "$chapter"
     echo "  📖 ${title} 수집 중..."
-    python -m src collect \
+    vis collect \
         --topic "$title" \
         --top-k 25 \
         --threshold 0.5 \
@@ -1289,11 +1289,11 @@ done
 
 # 3단계: 중복 내용 검사
 echo "3️⃣ 중복 내용 검사..."
-python -m src duplicates > book_planning/duplicate_check.txt
+vis duplicates > book_planning/duplicate_check.txt
 
 # 4단계: 부족한 자료 식별
 echo "4️⃣ 추가 자료 검색..."
-python -m src search "TDD 실무 적용 사례" --top-k 15 > book_materials/additional_cases.txt
+vis search "TDD 실무 적용 사례" --top-k 15 > book_materials/additional_cases.txt
 
 echo "✅ 책 집필 워크플로우 완료"
 echo "📁 결과물: book_materials/ 디렉토리 확인"
@@ -1318,7 +1318,7 @@ class KnowledgeOrganizer:
         print("🔍 지식 공백 분석 중...")
         
         # 주제 분석 실행
-        os.system(f"python -m src analyze > reports/topics_{self.timestamp}.txt")
+        os.system(f"vis analyze > reports/topics_{self.timestamp}.txt")
         
         # 결과 분석 (간단한 예시)
         expected_topics = [
@@ -1329,7 +1329,7 @@ class KnowledgeOrganizer:
         print("📊 예상 주제 대비 분석:")
         for topic in expected_topics:
             # 각 주제별 문서 수 확인
-            result = os.popen(f'python -m src search "{topic}" --top-k 1 2>/dev/null | grep "검색 결과"').read()
+            result = os.popen(f'vis search "{topic}" --top-k 1 2>/dev/null | grep "검색 결과"').read()
             print(f"  {topic}: {result.strip() if result else '자료 부족'}")
     
     def create_study_plan(self):
@@ -1350,7 +1350,7 @@ class KnowledgeOrganizer:
             plan_content += f"## 주차 {week}: {title} ({days}일)\n"
             
             # 해당 주제 자료 수집
-            os.system(f'python -m src collect "{topic}" --top-k 10 --output study_materials/{title.replace(" ", "_")}.md')
+            os.system(f'vis collect "{topic}" --top-k 10 --output study_materials/{title.replace(" ", "_")}.md')
             
             plan_content += f"- 자료: study_materials/{title.replace(' ', '_')}.md\n"
             plan_content += f"- 예상 소요: {days}일\n\n"
@@ -1376,7 +1376,7 @@ class KnowledgeOrganizer:
             os.makedirs(f"organized/{level}", exist_ok=True)
             
             for topic in topics:
-                os.system(f'python -m src collect "{topic}" --top-k 8 --threshold 0.5 --output organized/{level}/{topic.replace(" ", "_")}.md')
+                os.system(f'vis collect "{topic}" --top-k 8 --threshold 0.5 --output organized/{level}/{topic.replace(" ", "_")}.md')
 
 if __name__ == "__main__":
     organizer = KnowledgeOrganizer()
@@ -1411,19 +1411,19 @@ duplicates:
 EOF
 
 # 단계별 처리
-python -m src reindex --config config/large_vault_settings.yaml --verbose
+vis reindex --config config/large_vault_settings.yaml --verbose
 ```
 
 ### 예제 2: 다국어 문서 처리
 ```bash
 # 한영 혼합 문서 검색
-python -m src search "Machine Learning 머신러닝"
+vis search "Machine Learning 머신러닝"
 
 # 영어 기술 문서 검색
-python -m src search "Spring Boot Configuration" --threshold 0.4
+vis search "Spring Boot Configuration" --threshold 0.4
 
 # 한국어 개념 설명 문서
-python -m src search "객체지향 프로그래밍 원칙" --top-k 15
+vis search "객체지향 프로그래밍 원칙" --top-k 15
 ```
 
 ### 예제 3: 프로젝트별 분리 검색
@@ -1482,14 +1482,14 @@ vault-intelligence를 활용한 실제 프로젝트 사례들입니다.
 **사용된 워크플로우**:
 ```bash
 # 1. 주제별 문서 검색
-python -m src search "AI 활용 기법" --search-method hybrid --top-k 30
+vis search "AI 활용 기법" --search-method hybrid --top-k 30
 
 # 2. 배치 처리를 위한 문서 목록 생성
-python -m src collect "AI coding" --top-k 50 --output batch-input.md
+vis collect "AI coding" --top-k 50 --output batch-input.md
 
 # 3. 카테고리별 MOC 생성
-python -m src generate-moc "Prompt Engineering" --top-k 30
-python -m src generate-moc "AI Agent" --top-k 30
+vis generate-moc "Prompt Engineering" --top-k 30
+vis generate-moc "AI Agent" --top-k 30
 ```
 
 **핵심 성과**:
@@ -1510,14 +1510,14 @@ AI의 한계에 대한 종합 분석 MOC 문서를 vault-intelligence로 작성�
 **사용된 워크플로우**:
 ```bash
 # 1. 관련 문서 검색
-python -m src search "AI 한계 limitations" --search-method hybrid --rerank --top-k 30
+vis search "AI 한계 limitations" --search-method hybrid --rerank --top-k 30
 
 # 2. 주제별 수집
-python -m src collect "AI 환각 hallucination" --top-k 15
-python -m src collect "AI 비결정성 non-deterministic" --top-k 15
+vis collect "AI 환각 hallucination" --top-k 15
+vis collect "AI 비결정성 non-deterministic" --top-k 15
 
 # 3. MOC 자동 생성
-python -m src generate-moc "AI limitations" --top-k 50 --output AI-한계-MOC.md
+vis generate-moc "AI limitations" --top-k 50 --output AI-한계-MOC.md
 ```
 
 **발견된 8가지 한계 영역**:
@@ -1543,13 +1543,13 @@ python -m src generate-moc "AI limitations" --top-k 50 --output AI-한계-MOC.md
 **사용된 워크플로우**:
 ```bash
 # 1. 관련 자료 검색
-python -m src search "AI 시대 개발자 역할" --rerank --expand --top-k 20
+vis search "AI 시대 개발자 역할" --rerank --expand --top-k 20
 
 # 2. MOC로 구조화
-python -m src generate-moc "주니어 개발자 생존" --top-k 30
+vis generate-moc "주니어 개발자 생존" --top-k 30
 
 # 3. 핵심 인용 자료 수집
-python -m src collect "Specification Translation Verification" --top-k 15
+vis collect "Specification Translation Verification" --top-k 15
 ```
 
 **워크플로우 특징**:
@@ -1569,13 +1569,13 @@ python -m src collect "Specification Translation Verification" --top-k 15
 
 ```bash
 # 주간 학습 리뷰
-python -m src review --period weekly --output weekly-review.md
+vis review --period weekly --output weekly-review.md
 
 # 월간 학습 리뷰 (더 포괄적)
-python -m src review --period monthly --output monthly-review.md
+vis review --period monthly --output monthly-review.md
 
 # 특정 주제 집중 리뷰
-python -m src review --period weekly --topic "TDD"
+vis review --period weekly --topic "TDD"
 ```
 
 **생성되는 인사이트**:

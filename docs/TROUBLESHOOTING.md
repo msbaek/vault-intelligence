@@ -90,7 +90,7 @@ config['knowledge_graph']['min_word_count'] = 20  # 기본값 50에서 낮춤
 ```bash
 # 캐시 삭제 후 재구축
 rm -rf cache/
-python -m src init --vault-path /path/to/vault
+vis init --vault-path /path/to/vault
 ```
 
 ### 메모리 부족
@@ -100,7 +100,7 @@ python -m src init --vault-path /path/to/vault
 **해결 방법**:
 ```bash
 # 샘플링 사용
-python -m src search "test" --sample-size 100
+vis search "test" --sample-size 100
 
 # 배치 크기 줄이기 (config/settings.yaml)
 model:
@@ -128,7 +128,7 @@ model:
 
 3. **샘플링 사용**:
 ```bash
-python -m src search "test" --sample-size 500
+vis search "test" --sample-size 500
 ```
 
 ## 설치 문제
@@ -188,7 +188,7 @@ WARNING:src.core.embedding_cache:ColBERT 배열 크기 불일치: 2444288 != 524
 ```bash
 # 캐시 완전 초기화 후 재인덱싱
 rm -rf cache/
-python -m src reindex --with-colbert --force
+vis reindex --with-colbert --force
 
 # 수정된 코드로 새로 생성되는 모든 임베딩은 정상
 ```
@@ -204,9 +204,9 @@ python -m src reindex --with-colbert --force
 **해결 방법**: ✅ **2025-08-27 수정 완료**
 ```bash
 # 이제 모든 검색 방법에서 재순위화 지원
-python -m src search "TDD" --search-method colbert --rerank ✅
-python -m src search "TDD" --search-method hybrid --rerank ✅ 
-python -m src search "TDD" --search-method semantic --rerank ✅
+vis search "TDD" --search-method colbert --rerank ✅
+vis search "TDD" --search-method hybrid --rerank ✅ 
+vis search "TDD" --search-method semantic --rerank ✅
 ```
 
 ### ColBERT 검색 결과 품질 문제
@@ -218,13 +218,13 @@ python -m src search "TDD" --search-method semantic --rerank ✅
 **해결 방법**:
 ```bash
 # 1. 하이브리드 검색 사용 (권장)
-python -m src search "YAGNI" --search-method hybrid
+vis search "YAGNI" --search-method hybrid
 
 # 2. 확장된 쿼리 사용  
-python -m src search "YAGNI You Aren't Going to Need It principle" --search-method colbert
+vis search "YAGNI You Aren't Going to Need It principle" --search-method colbert
 
 # 3. 재순위화 적용
-python -m src search "YAGNI" --search-method hybrid --rerank
+vis search "YAGNI" --search-method hybrid --rerank
 ```
 
 **ColBERT 적합한 사용 케이스**:

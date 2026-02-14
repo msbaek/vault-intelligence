@@ -12,15 +12,15 @@ Obsidian vault를 위한 완전한 지능형 검색 및 분석 시스템 사용�
 ### 1. 시스템 초기화
 ```bash
 # 기본 vault 경로로 초기화
-python -m src init
+vis init
 
 # 사용자 정의 vault 경로
-python -m src init --vault-path /path/to/your/vault
+vis init --vault-path /path/to/your/vault
 ```
 
 ### 2. 시스템 테스트
 ```bash
-python -m src test
+vis test
 ```
 
 #### 테스트 결과 해석
@@ -56,7 +56,7 @@ python -c "from src.features.knowledge_graph import test_knowledge_graph; test_k
 
 ### 3. 첫 검색 (자동 인덱싱)
 ```bash
-python -m src search "TDD"
+vis search "TDD"
 ```
 
 ## 🔍 검색 기능
@@ -64,23 +64,23 @@ python -m src search "TDD"
 ### 기본 검색 모드
 ```bash
 # 1. 기본 하이브리드 검색 (빠르고 균형잡힌 결과)
-python -m src search "테스트 주도 개발"
+vis search "테스트 주도 개발"
 
 # 2. 의미적 검색 (개념 중심)
-python -m src search "TDD" --search-method semantic
+vis search "TDD" --search-method semantic
 
 # 3. 키워드 검색 (정확한 매칭)
-python -m src search "리팩토링" --search-method keyword
+vis search "리팩토링" --search-method keyword
 
 # 4. ColBERT 토큰 수준 검색 (세밀한 매칭)
-python -m src search "클린 코드" --search-method colbert
+vis search "클린 코드" --search-method colbert
 ```
 
 ### 🎯 고급 검색 기능 (Phase 5)
 
 #### 1️⃣ **재순위화 검색** (`--rerank`) - 최고 정확도
 ```bash
-python -m src search "TDD" --rerank
+vis search "TDD" --rerank
 
 # 작동 방식:
 # 1. 하이브리드 검색으로 상위 30개 후보 추출
@@ -90,7 +90,7 @@ python -m src search "TDD" --rerank
 
 #### 2️⃣ **쿼리 확장 검색** (`--expand`) - 최대 포괄성
 ```bash
-python -m src search "TDD" --expand
+vis search "TDD" --expand
 
 # 작동 방식:
 # 1. 동의어 확장: TDD → "테스트 주도 개발", "Test Driven Development"
@@ -100,7 +100,7 @@ python -m src search "TDD" --expand
 
 #### 3️⃣ **동의어만 확장** (`--expand --no-hyde`)
 ```bash
-python -m src search "TDD" --expand --no-hyde
+vis search "TDD" --expand --no-hyde
 
 # 한국어↔영어 동의어만 사용
 # 빠른 확장 검색, 용어 중심
@@ -108,7 +108,7 @@ python -m src search "TDD" --expand --no-hyde
 
 #### 4️⃣ **HyDE만 활용** (`--expand --no-synonyms`)
 ```bash
-python -m src search "TDD" --expand --no-synonyms
+vis search "TDD" --expand --no-synonyms
 
 # 가상 문서로 맥락 확장
 # 개념적 유사성 포착
@@ -116,7 +116,7 @@ python -m src search "TDD" --expand --no-synonyms
 
 #### 5️⃣ **ColBERT 토큰 수준 검색** (`--search-method colbert`)
 ```bash
-python -m src search "test driven development refactoring" --search-method colbert
+vis search "test driven development refactoring" --search-method colbert
 
 # ColBERT 토큰 레벨 late interaction
 # 긴 문장과 복합 개념에 최적화
@@ -126,18 +126,18 @@ python -m src search "test driven development refactoring" --search-method colbe
 #### 6️⃣ **재순위화 모드** (`--rerank`)
 ```bash
 # 하이브리드 + 재순위화 (추천)
-python -m src search "clean architecture" --search-method hybrid --rerank
+vis search "clean architecture" --search-method hybrid --rerank
 
 # ColBERT + 재순위화 (정밀 검색)
-python -m src search "SOLID principles" --search-method colbert --rerank
+vis search "SOLID principles" --search-method colbert --rerank
 
 # 의미적 + 재순위화
-python -m src search "design patterns" --search-method semantic --rerank
+vis search "design patterns" --search-method semantic --rerank
 ```
 
 #### 7️⃣ **최고 성능 모드** (`--rerank --expand`)
 ```bash
-python -m src search "TDD" --rerank --expand
+vis search "TDD" --rerank --expand
 
 # 모든 기능 결합:
 # 1. 쿼리 확장 (동의어 + HyDE)
@@ -149,14 +149,14 @@ python -m src search "TDD" --rerank --expand
 ### 검색 옵션 조합
 ```bash
 # 상위 20개, 높은 정확도, 재순위화
-python -m src search \
+vis search \
   --query "SOLID principles" \
   --top-k 20 \
   --threshold 0.5 \
   --rerank
 
 # 포괄적 검색, 동의어만 사용
-python -m src search \
+vis search \
   --query "마이크로서비스" \
   --expand \
   --no-hyde \
@@ -209,22 +209,22 @@ python -m src search \
 
 ```bash
 # 기본 관련 문서 추천
-python -m src related "클린 애자일(Back to Basics)" --top-k 5
+vis related "클린 애자일(Back to Basics)" --top-k 5
 
 # 전체 경로로 지정
-python -m src related "/full/path/to/document.md" --top-k 10
+vis related "/full/path/to/document.md" --top-k 10
 
 # 더 많은 추천 결과
-python -m src related "TDD 가이드" --top-k 20
+vis related "TDD 가이드" --top-k 20
 
 # 관련성 임계값 조정
-python -m src related "클린코드" --similarity-threshold 0.5 --top-k 15
+vis related "클린코드" --similarity-threshold 0.5 --top-k 15
 
 # 낮은 임계값으로 포괄적 추천
-python -m src related "리팩토링" --similarity-threshold 0.2 --top-k 30
+vis related "리팩토링" --similarity-threshold 0.2 --top-k 30
 
 # 상세 로그와 함께
-python -m src related "DDD" --verbose --top-k 10
+vis related "DDD" --verbose --top-k 10
 ```
 
 #### 관련성 임계값 가이드
@@ -258,10 +258,10 @@ python -m src related "DDD" --verbose --top-k 10
 
 ```bash
 # 중심성 점수 반영 검색
-python -m src search "TDD" --with-centrality --top-k 10
+vis search "TDD" --with-centrality --top-k 10
 
 # 일반 검색과 비교
-python -m src search "TDD" --top-k 10
+vis search "TDD" --top-k 10
 ```
 
 #### 중심성 점수란?
@@ -275,22 +275,22 @@ vault 내에서 고립되거나 연결이 약한 문서들을 찾아 지식 체�
 
 ```bash
 # 기본 지식 공백 분석
-python -m src analyze-gaps --top-k 10
+vis analyze-gaps --top-k 10
 
 # 더 상세한 분석
-python -m src analyze-gaps --top-k 20
+vis analyze-gaps --top-k 20
 
 # 연결 기준 조정 (더 엄격한 고립 판정)
-python -m src analyze-gaps --min-connections 5 --top-k 15
+vis analyze-gaps --min-connections 5 --top-k 15
 
 # 유사도 임계값 조정
-python -m src analyze-gaps --similarity-threshold 0.4 --min-connections 3
+vis analyze-gaps --similarity-threshold 0.4 --min-connections 3
 
 # 결과를 파일로 저장
-python -m src analyze-gaps --output knowledge_gaps.json --top-k 50
+vis analyze-gaps --output knowledge_gaps.json --top-k 50
 
 # 상세 분석 로그
-python -m src analyze-gaps --verbose --top-k 30
+vis analyze-gaps --verbose --top-k 30
 ```
 
 #### 분석 매개변수 가이드
@@ -339,7 +339,7 @@ python -m src analyze-gaps --verbose --top-k 30
 
 ### 기본 중복 감지
 ```bash
-python -m src duplicates
+vis duplicates
 ```
 
 ### 결과 해석
@@ -366,13 +366,13 @@ python -m src duplicates
 ### 기본 수집
 ```bash
 # 주제별 문서 자동 수집
-python -m src collect "리팩토링"
+vis collect "리팩토링"
 
 # 파일로 저장
-python -m src collect "TDD" --output tdd_collection.md
+vis collect "TDD" --output tdd_collection.md
 
 # 고품질 문서만 (높은 임계값)
-python -m src collect "클린 코드" --threshold 0.6 --top-k 20
+vis collect "클린 코드" --threshold 0.6 --top-k 20
 ```
 
 ### 쿼리 확장 수집 🆕
@@ -381,19 +381,19 @@ python -m src collect "클린 코드" --threshold 0.6 --top-k 20
 
 ```bash
 # 기본 확장 수집 (동의어 + HyDE)
-python -m src collect "TDD" --expand
+vis collect "TDD" --expand
 
 # 동의어만 확장 (HyDE 제외)
-python -m src collect "리팩토링" --expand --no-hyde
+vis collect "리팩토링" --expand --no-hyde
 
 # HyDE만 활용 (동의어 제외)
-python -m src collect "아키텍처" --expand --no-synonyms
+vis collect "아키텍처" --expand --no-synonyms
 
 # 확장 + 낮은 임계값으로 포괄적 수집
-python -m src collect "도메인 모델링" --expand --threshold 0.1 --top-k 30
+vis collect "도메인 모델링" --expand --threshold 0.1 --top-k 30
 
 # 확장 + 결과 파일 저장
-python -m src collect "클린 코드" --expand --output clean_code_expanded.md
+vis collect "클린 코드" --expand --output clean_code_expanded.md
 ```
 
 #### 확장 검색 비교 예시
@@ -434,7 +434,7 @@ python -m src collect "클린 코드" --expand --output clean_code_expanded.md
 
 ### 전체 vault 주제 분석
 ```bash
-python -m src analyze
+vis analyze
 ```
 
 ### 분석 결과
@@ -472,7 +472,7 @@ MOC(Map of Content)는 특정 주제에 대한 체계적인 탐색 가이드로,
 
 #### 기본 MOC 생성
 ```bash
-python -m src generate-moc "TDD"
+vis generate-moc "TDD"
 ```
 
 **결과 예시:**
@@ -502,16 +502,16 @@ python -m src generate-moc "TDD"
 #### 고급 옵션
 ```bash
 # 사용자 정의 출력 파일
-python -m src generate-moc "TDD" --output "TDD-완전정리.md"
+vis generate-moc "TDD" --output "TDD-완전정리.md"
 
 # 더 많은 문서 포함
-python -m src generate-moc "리팩토링" --top-k 50
+vis generate-moc "리팩토링" --top-k 50
 
 # 연결되지 않은 문서도 포함
-python -m src generate-moc "아키텍처" --include-orphans
+vis generate-moc "아키텍처" --include-orphans
 
 # 임계값 조정 (더 포괄적인 수집)
-python -m src generate-moc "클린코드" --threshold 0.2 --top-k 30
+vis generate-moc "클린코드" --threshold 0.2 --top-k 30
 ```
 
 ### MOC 문서 구조
@@ -597,14 +597,14 @@ MOC는 다음 키워드를 기반으로 문서를 자동 분류합니다:
 #### 주제 선택 가이드
 ```bash
 # ✅ 좋은 주제 예시 (구체적이고 명확한 주제)
-python -m src generate-moc "TDD"
-python -m src generate-moc "리팩토링"
-python -m src generate-moc "Spring Boot"
-python -m src generate-moc "도메인 주도 설계"
+vis generate-moc "TDD"
+vis generate-moc "리팩토링"
+vis generate-moc "Spring Boot"
+vis generate-moc "도메인 주도 설계"
 
 # ❌ 피해야 할 주제 예시 (너무 광범위하거나 모호한 주제)
-python -m src generate-moc "프로그래밍"  # 너무 광범위
-python -m src generate-moc "공부"        # 너무 모호
+vis generate-moc "프로그래밍"  # 너무 광범위
+vis generate-moc "공부"        # 너무 모호
 ```
 
 #### 임계값 조정 가이드
@@ -659,13 +659,13 @@ print(f"학습 단계: {len(moc_data.learning_path)}")
 #### MOC 생성이 안 될 때
 ```bash
 # 1. 임계값을 낮춰서 다시 시도
-python -m src generate-moc "TDD" --threshold 0.2
+vis generate-moc "TDD" --threshold 0.2
 
 # 2. 더 많은 문서 포함
-python -m src generate-moc "TDD" --top-k 100
+vis generate-moc "TDD" --top-k 100
 
 # 3. 연결되지 않은 문서도 포함
-python -m src generate-moc "TDD" --include-orphans
+vis generate-moc "TDD" --include-orphans
 ```
 
 #### 문서가 잘못 분류될 때
@@ -675,10 +675,10 @@ python -m src generate-moc "TDD" --include-orphans
 #### MOC가 너무 클 때
 ```bash
 # 임계값 높이기
-python -m src generate-moc "TDD" --threshold 0.4
+vis generate-moc "TDD" --threshold 0.4
 
 # 문서 수 제한
-python -m src generate-moc "TDD" --top-k 20
+vis generate-moc "TDD" --top-k 20
 ```
 
 ## 🏷️ 자동 태깅 시스템 (Phase 7)
@@ -699,43 +699,43 @@ Phase 7에서 새로 추가된 BGE-M3 기반 지능형 태깅 시스템입니다
 #### 단일 문서 태깅
 ```bash
 # 절대 경로로 태깅
-python -m src tag "/full/path/to/document.md"
+vis tag "/full/path/to/document.md"
 
 # Vault 상대 경로로 태깅
-python -m src tag "997-BOOKS/clean-code.md"
+vis tag "997-BOOKS/clean-code.md"
 
 # 파일명만으로 태깅 (자동 검색)
-python -m src tag "clean-code.md"
+vis tag "clean-code.md"
 
 # Dry-run 모드 (실제 적용하지 않고 미리보기)
-python -m src tag "document.md" --dry-run
+vis tag "document.md" --dry-run
 ```
 
 #### 폴더별 일괄 태깅
 ```bash
 # 특정 폴더 일괄 태깅
-python -m src tag "997-BOOKS/"
+vis tag "997-BOOKS/"
 
 # 여러 폴더 동시 태깅
-python -m src tag "997-BOOKS/" "003-RESOURCES/" "000-SLIPBOX/"
+vis tag "997-BOOKS/" "003-RESOURCES/" "000-SLIPBOX/"
 
 # 대용량 폴더 점진적 처리 (배치 단위)
-python -m src tag "large-folder/" --batch-size 50
+vis tag "large-folder/" --batch-size 50
 ```
 
 #### 고급 옵션
 ```bash
 # 기존 태그 무시하고 완전히 새로 생성
-python -m src tag "document.md" --replace-existing
+vis tag "document.md" --replace-existing
 
 # 상세 진행률 표시
-python -m src tag "folder/" --verbose
+vis tag "folder/" --verbose
 
 # 특정 카테고리만 태깅
-python -m src tag "document.md" --categories "topic,source"
+vis tag "document.md" --categories "topic,source"
 
 # 태그 수 제한
-python -m src tag "document.md" --max-tags-per-category 3
+vis tag "document.md" --max-tags-per-category 3
 ```
 
 ### 태깅 규칙 체계
@@ -876,13 +876,13 @@ semantic_tagging:
 #### 태그 품질 향상 팁
 ```bash
 # 1. 기존 태그가 많은 문서들 먼저 처리 (학습 데이터 증가)
-python -m src tag "well-tagged-folder/" --verbose
+vis tag "well-tagged-folder/" --verbose
 
 # 2. 유사한 문서들을 그룹으로 처리
-python -m src tag "997-BOOKS/" --batch-size 30
+vis tag "997-BOOKS/" --batch-size 30
 
 # 3. 결과 확인 후 설정 조정
-python -m src tag "sample-doc.md" --dry-run --verbose
+vis tag "sample-doc.md" --dry-run --verbose
 ```
 
 ### 문제 해결
@@ -908,7 +908,7 @@ python -m src tag "sample-doc.md" --dry-run --verbose
 #### 처리 속도가 느릴 때
 ```bash
 # 배치 크기 증가
-python -m src tag "folder/" --batch-size 100
+vis tag "folder/" --batch-size 100
 
 # FP16 비활성화로 속도 향상 (정확도 약간 감소)
 # config/settings.yaml에서 model.use_fp16: false
@@ -944,35 +944,35 @@ python -m src tag "folder/" --batch-size 100
 ### 자동 인덱싱 (추천)
 ```bash
 # 첫 검색 시 자동으로 인덱싱됩니다
-python -m src search "첫 검색"
+vis search "첫 검색"
 ```
 
 ### 수동 재인덱싱
 ```bash
 # 🆕 ColBERT 포함 통합 인덱싱 (권장!)
-python -m src reindex --with-colbert
+vis reindex --with-colbert
 
 # ColBERT만 재인덱싱 (Dense 임베딩 제외)
-python -m src reindex --colbert-only
+vis reindex --colbert-only
 
 # ColBERT 강제 재인덱싱
-python -m src reindex --with-colbert --force
+vis reindex --with-colbert --force
 
 # 기본 재인덱싱 (Dense 임베딩만)
-python -m src reindex
+vis reindex
 
 # 강제 전체 재인덱싱 (모든 캐시 무시)
-python -m src reindex --force
+vis reindex --force
 
 # 샘플링 재인덱싱 (대규모 vault 성능 최적화)
-python -m src reindex --sample-size 1000
+vis reindex --sample-size 1000
 
 # 폴더별 점진적 재인덱싱
-python -m src reindex --include-folders "003-RESOURCES" "997-BOOKS"
-python -m src reindex --exclude-folders "ATTACHMENTS" "temp"
+vis reindex --include-folders "003-RESOURCES" "997-BOOKS"
+vis reindex --exclude-folders "ATTACHMENTS" "temp"
 
 # 상세 진행률 표시
-python -m src reindex --force --verbose
+vis reindex --force --verbose
 ```
 
 ### 폴더별 점진적 색인
@@ -992,7 +992,7 @@ python -m src reindex --force --verbose
 
 #### 캐시 상태 확인
 ```bash
-python -m src info  # Dense + ColBERT 캐시 통계 포함
+vis info  # Dense + ColBERT 캐시 통계 포함
 ```
 
 ### 폴더별 점진적 색인
@@ -1002,19 +1002,19 @@ python -m src info  # Dense + ColBERT 캐시 통계 포함
 #### 특정 폴더만 포함
 ```bash
 # 중요한 폴더들만 먼저 인덱싱
-python -m src reindex --include-folders "003-RESOURCES" "000-SLIPBOX" "997-BOOKS"
+vis reindex --include-folders "003-RESOURCES" "000-SLIPBOX" "997-BOOKS"
 
 # 개발 관련 문서만 인덱싱
-python -m src reindex --include-folders "programming" "projects"
+vis reindex --include-folders "programming" "projects"
 ```
 
 #### 특정 폴더 제외
 ```bash
 # 임시 파일과 첨부 파일 제외
-python -m src reindex --exclude-folders "ATTACHMENTS" "temp" "WIP"
+vis reindex --exclude-folders "ATTACHMENTS" "temp" "WIP"
 
 # 아카이브 폴더 제외
-python -m src reindex --exclude-folders "archive" "old"
+vis reindex --exclude-folders "archive" "old"
 ```
 
 #### 샘플링 기반 처리
@@ -1023,10 +1023,10 @@ python -m src reindex --exclude-folders "archive" "old"
 
 ```bash
 # 1000개 문서만 샘플링하여 빠른 테스트
-python -m src reindex --sample-size 1000
+vis reindex --sample-size 1000
 
 # 검색도 샘플링 모드로
-python -m src search "TDD" --sample-size 500
+vis search "TDD" --sample-size 500
 ```
 
 **샘플링 모드 특징:**
@@ -1142,7 +1142,7 @@ collection:
 
 ### 사용자 정의 설정으로 실행
 ```bash
-python -m src search --config custom_config.yaml --query "TDD"
+vis search --config custom_config.yaml --query "TDD"
 ```
 
 ## 🛠️ 고급 사용법
@@ -1306,16 +1306,16 @@ for topic in topics:
 #### 1. 검색 결과가 부정확할 때
 ```bash
 # 임계값을 높여서 정확도 향상
-python -m src search "TDD" --threshold 0.6
+vis search "TDD" --threshold 0.6
 
 # 강제 재인덱싱으로 인덱스 새로고침
-python -m src reindex --force
+vis reindex --force
 ```
 
 #### 2. 인덱싱이 느릴 때
 ```bash
 # 진행률 확인 (verbose 모드)
-python -m src reindex --verbose
+vis reindex --verbose
 
 # 설정에서 batch_size 조정
 # config/settings.yaml에서 model.batch_size 값 변경
@@ -1340,7 +1340,7 @@ colbert:
 ```bash
 # 캐시 디렉토리 삭제 후 재인덱싱
 rm -rf cache/
-python -m src reindex --force
+vis reindex --force
 ```
 
 ### 로그 확인 및 Verbose 모드
@@ -1348,31 +1348,31 @@ python -m src reindex --force
 #### 모든 명령어에서 Verbose 옵션 사용
 ```bash
 # 검색 시 상세 로그
-python -m src search "TDD" --verbose
+vis search "TDD" --verbose
 
 # 재인덱싱 시 진행률 상세 표시
-python -m src reindex --force --verbose
+vis reindex --force --verbose
 
 # 중복 감지 시 상세 분석 과정
-python -m src duplicates --verbose
+vis duplicates --verbose
 
 # 관련 문서 찾기 시 계산 과정 표시
-python -m src related "문서명" --verbose
+vis related "문서명" --verbose
 
 # 지식 공백 분석 시 상세 통계
-python -m src analyze-gaps --verbose
+vis analyze-gaps --verbose
 ```
 
 #### 로그 파일 저장
 ```bash
 # 로그를 파일로 저장 (Linux/Mac)
-python -m src reindex --verbose 2>&1 | tee reindex.log
+vis reindex --verbose 2>&1 | tee reindex.log
 
 # 검색 로그 저장
-python -m src search "TDD" --rerank --expand --verbose > search.log 2>&1
+vis search "TDD" --rerank --expand --verbose > search.log 2>&1
 
 # 시스템 테스트 로그 저장
-python -m src test --verbose > test_results.log 2>&1
+vis test --verbose > test_results.log 2>&1
 ```
 
 #### Verbose 모드에서 확인할 수 있는 정보
@@ -1451,25 +1451,25 @@ colbert:
 **관련 문서 추천 (`related`)**
 ```bash
 # 빠른 추천 (기본 설정)
-python -m src related "문서명" --top-k 5
+vis related "문서명" --top-k 5
 
 # 정확한 추천 (높은 임계값)
-python -m src related "문서명" --similarity-threshold 0.5 --top-k 10
+vis related "문서명" --similarity-threshold 0.5 --top-k 10
 
 # 포괄적 추천 (낮은 임계값)
-python -m src related "문서명" --similarity-threshold 0.2 --top-k 20
+vis related "문서명" --similarity-threshold 0.2 --top-k 20
 ```
 
 **지식 공백 분석 (`analyze-gaps`)**
 ```bash
 # 빠른 분석 (기본 설정)
-python -m src analyze-gaps
+vis analyze-gaps
 
 # 정밀 분석 (더 엄격한 기준)
-python -m src analyze-gaps --min-connections 5 --similarity-threshold 0.4
+vis analyze-gaps --min-connections 5 --similarity-threshold 0.4
 
 # 관대한 분석 (더 많은 연결 허용)
-python -m src analyze-gaps --min-connections 1 --similarity-threshold 0.2
+vis analyze-gaps --min-connections 1 --similarity-threshold 0.2
 ```
 
 **중심성 기반 검색**
@@ -1480,16 +1480,16 @@ python -m src analyze-gaps --min-connections 1 --similarity-threshold 0.2
 #### 성능 최적화 팁
 ```bash
 # 빠른 탐색용
-python -m src search "TDD"
+vis search "TDD"
 
 # 정확도 우선
-python -m src search "TDD" --rerank
+vis search "TDD" --rerank
 
 # 포괄성 우선  
-python -m src search "TDD" --expand --no-hyde
+vis search "TDD" --expand --no-hyde
 
 # 최고 품질 (시간 소요)
-python -m src search "TDD" --rerank --expand
+vis search "TDD" --rerank --expand
 ```
 
 ### 🖥️ 시스템 정보 및 모니터링
@@ -1497,7 +1497,7 @@ python -m src search "TDD" --rerank --expand
 #### 시스템 정보 확인
 ```bash
 # 시스템 전체 정보 확인
-python -m src info
+vis info
 ```
 
 #### 시스템 정보 결과 해석
@@ -1521,18 +1521,18 @@ GPU 메모리: 24.0GB                   # 통합 메모리
 - 실전 예제: docs/EXAMPLES.md
 
 ⚡ 빠른 시작:
-  python -m src search 'TDD'
-  python -m src related '클린 애자일'
-  python -m src analyze-gaps
+  vis search 'TDD'
+  vis related '클린 애자일'
+  vis analyze-gaps
 ```
 
 ### 성능 모니터링
 ```bash
 # 시스템 통계 확인
-python -m src info
+vis info
 
 # 검색 성능 테스트
-time python -m src search "performance test"
+time vis search "performance test"
 
 # 개별 모듈 테스트
 python -c "from src.features.reranker import test_reranker; test_reranker()"
@@ -1545,50 +1545,50 @@ python -c "from src.features.query_expansion import test_query_expansion; test_q
 ### 1. 책 집필 지원
 ```bash
 # 1. 주제별 자료 수집
-python -m src collect "TDD" --output book/chapter1_tdd.md
-python -m src collect "리팩토링" --output book/chapter2_refactor.md
+vis collect "TDD" --output book/chapter1_tdd.md
+vis collect "리팩토링" --output book/chapter2_refactor.md
 
 # 2. 중복 내용 확인
-python -m src duplicates
+vis duplicates
 
 # 3. 누락된 주제 발견
-python -m src analyze
+vis analyze
 ```
 
 ### 2. 지식 정리 및 체계화
 ```bash
 # 1. 전체 주제 분석으로 구조 파악
-python -m src analyze
+vis analyze
 
 # 2. 지식 공백 분석으로 개선점 발견 (Phase 6)
-python -m src analyze-gaps --top-k 20
+vis analyze-gaps --top-k 20
 
 # 3. 주제별 상세 수집
-python -m src collect "아키텍처" --threshold 0.5
+vis collect "아키텍처" --threshold 0.5
 
 # 4. 중복 파일 정리
-python -m src duplicates
+vis duplicates
 
 # 5. 핵심 문서 중심성 분석 (Phase 6)
-python -m src search "중요한 개념" --with-centrality --top-k 15
+vis search "중요한 개념" --with-centrality --top-k 15
 ```
 
 ### 3. 연구 자료 관리
 ```bash
 # 1. 키워드별 관련 자료 검색
-python -m src search "마이크로서비스" --top-k 20
+vis search "마이크로서비스" --top-k 20
 
 # 2. 특정 문서 기반 관련 자료 발굴 (Phase 6)
-python -m src related "마이크로서비스 아키텍처 패턴" --top-k 15
+vis related "마이크로서비스 아키텍처 패턴" --top-k 15
 
 # 3. 시계열 분석을 위한 날짜 필터링 (프로그래밍 방식)
 # SearchQuery로 date_from, date_to 설정
 
 # 4. 주제별 자료집 생성
-python -m src collect "클라우드 아키텍처" --output research/cloud.md
+vis collect "클라우드 아키텍처" --output research/cloud.md
 
 # 5. 연구 공백 분석으로 누락 영역 발견 (Phase 6)
-python -m src analyze-gaps --top-k 10
+vis analyze-gaps --top-k 10
 ```
 
 ## 📝 팁과 요령
@@ -1598,22 +1598,22 @@ python -m src analyze-gaps --top-k 10
 #### ✅ 좋은 예시
 ```bash
 # 구체적인 개념
-python -m src search "테스트 주도 개발"
+vis search "테스트 주도 개발"
 
 # 영어/한글 혼용
-python -m src search "SOLID principles"
+vis search "SOLID principles"
 
 # 복합 개념
-python -m src search "마이크로서비스 아키텍처 패턴"
+vis search "마이크로서비스 아키텍처 패턴"
 ```
 
 #### ❌ 피해야 할 예시
 ```bash
 # 너무 짧은 쿼리
-python -m src search "TDD"  # 대신 "TDD 방법론" 권장
+vis search "TDD"  # 대신 "TDD 방법론" 권장
 
 # 너무 일반적인 단어
-python -m src search "개발"  # 대신 "소프트웨어 개발" 권장
+vis search "개발"  # 대신 "소프트웨어 개발" 권장
 ```
 
 ### 임계값 조정 가이드
