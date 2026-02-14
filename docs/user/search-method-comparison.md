@@ -1,338 +1,306 @@
-# 검색 방법별 비교 분석
+# 검색 방법 비교 가이드
 
-동일한 쿼리 "TDD"로 4가지 검색 방법과 다양한 옵션 조합을 실험하고, 각 결과의 차이와 원인을 분석한 문서입니다.
-
-## 목차
-
-1. [Keyword 검색](#keyword)
-   - [--rerank - bad (짧은 쿼리에서 역효과)](#--rerank---bad)
-   - [--expand - meaningful (동의어+HyDE 효과)](#--expand---meaningful)
-   - [--with-centrality - meaningful](#--with-centrality---meaningful)
-2. [Semantic 검색](#semantic)
-   - [--rerank - meaningful (노이즈 제거 효과)](#--rerank---meaningful)
-   - [Reranker 효과 분석](#reranker-효과-분석)
-   - [--expand - 다국어 환경에선 유의미](#--expand---다국어-환경에선-유의미-가능)
-   - [--expand --rerank](#--expand---rerank)
-   - [--with-centrality](#--with-centrality)
-3. [Hybrid 검색](#hybrid)
-   - [--rerank (차이 적음)](#--rerank)
-   - [Hybrid + Rerank 효과 분석](#hybrid--rerank-효과-분석)
-   - [검색 방법별 rerank 효과 차이](#검색-방법별-rerank-효과-차이)
-   - [권장 조합](#권장-조합)
-4. [ColBERT 검색](#colbert)
-   - [핵심 원리 (토큰별 독립 매칭)](#핵심-원리)
-5. [검색 방법별 최적 쿼리 길이](#검색-방법별-최적-쿼리-길이)
+[프로젝트 홈](../../README.md) | [빠른 시작](QUICK_START.md) | [사용자 가이드](USER_GUIDE.md) | [실전 예제](EXAMPLES.md) | [문제 해결](TROUBLESHOOTING.md) | **검색 방법 비교**
 
 ---
 
-## Keyword
+Vault Intelligence는 4가지 검색 방법을 제공합니다. 이 문서는 각 방법의 원리, 적합한 상황, 사용법을 설명합니다.
 
-BM25 알고리즘 기반의 전통적인 키워드 검색입니다. 쿼리에 포함된 단어가 문서에 정확히 등장하는지를 기준으로 매칭합니다. "TDD"라는 단어가 문서에 직접 포함되어 있어야만 결과에 나타나므로, "테스트 주도 개발"이나 "Red Green Refactor"처럼 같은 개념을 다른 표현으로 쓴 문서는 찾지 못합니다.
+## 목차
 
-속도가 가장 빠르고 고유명사나 파일명 등 정확한 용어를 찾을 때 유리하지만, 동의어나 유사 표현을 인식하지 못하는 것이 한계입니다. 아래는 쿼리 "TDD"로 검색한 결과입니다.
+- [어떤 방법을 쓸까?](#어떤-방법을-쓸까)
+- [Keyword 검색](#keyword-검색)
+- [Semantic 검색](#semantic-검색)
+- [Hybrid 검색](#hybrid-검색)
+- [ColBERT 검색](#colbert-검색)
+- [옵션 조합 가이드](#옵션-조합-가이드)
+- [검색 방법별 최적 쿼리 길이](#검색-방법별-최적-쿼리-길이)
 
-- TDD
+---
 
-1. Clean Code Course by Uncle Bob
-   유사도: 5.0000
-2. Example - Book Management
-   유사도: 5.0000
-3. Unity Catalog - 데이터 관리 및 거버넌스 Labs
-   유사도: 5.0000
-4. 소프트웨어장인
-   유사도: 5.0000
-5. 클린 애자일(Back to Basics)
-   유사도: 5.0000
+## 어떤 방법을 쓸까?
 
-### --rerank - bad
-
-Cross-encoder의 판단
-
-Reranker(cross-encoder)는 **"이 문서가 쿼리 'TDD'와 얼마나 관련 있는가?"**를 평가합니다.
-
-- A 일기장: 짧은 글에서 TDD가 자주 나오니까 → "이 문서는 TDD 이야기로 가득하네" → 높은 점수
-- B 교과서: 길고 다양한 내용 속에 TDD가 섞여 있으니까 → "TDD도 있지만 다른 얘기도 많네" → 상대적으로 낮은 점수
-
-한 마디로, 진짜 TDD 전문 문서보다 TDD를 잠깐 언급한 짧은 메모가 더 높은 점수를 받는 역전 현상이 발생합니다.
-
-해당 daily note 파일들은 실제로 "TDD"를 포함하고 있어 키워드 매칭 자체는 정확합니다.
-| 파일 | TDD 언급 횟수 | 단어 수 | 예시 내용 |
-|---|---|---|---|
-| 2025-11-01.md | 5회 | 179 | "vault-intelligence: TDD 절차 블로그 콘텐츠 작성" |
-| 2025-12-09.md | 3회 | 175 | (작업 로그에서 TDD 언급) |
-| 2025-10-31.md | 5회 | 154 | (작업 로그에서 TDD 언급) |
-이 파일들은 TDD를 주제로 다루는 문서가 아니라, 작업 로그에서 TDD 관련 활동을 간략히 기록한 문서입니다.
-
-2단계(reranker)에서 과대평가되는 원인
-
-BGE-reranker-v2-m3의 cross-encoder가 (query="TDD", document_content) 쌍의 관련도를 평가할 때:
-
-- Daily note (179단어 중 TDD 5회) → TDD 밀도 약 2.8%
-- Clean Code Course (TDD 전문 문서) → TDD가 다른 개념들 사이에서 설명됨
-
-Cross-encoder는 "TDD"가 짧은 쿼리이기 때문에, 짧은 문서에서 TDD가 반복 등장하면 오히려 관련도를 높게 평가합니다.
-즉: 짧은 문서 + 높은 키워드 밀도 = 과대평가
-
-\_prepare_document_text가 2048자로 잘라내므로(line 234), 긴 TDD 전문 문서는 내용이 잘리는 반면, 짧은 daily note는 전체가
-그대로 reranker에 전달되어 상대적으로 유리합니다.
-
-요약
-| 단계 | 동작 | 문제 |
-|---|---|---|
-| keyword 검색 | "TDD" 포함 문서 정상 매칭 | 없음 (정상) |
-| reranker | cross-encoder 관련도 평가 | 짧은 daily note가 높은 키워드 밀도로 과대평가 |
-근본 원인: Reranker가 "TDD에 관한 문서"와 "TDD를 잠깐 언급한 문서"를 구별하지 못합니다. 이는 cross-encoder의 한계이자, 짧은 쿼리의 한계입니다.
-
-### --expand - meaningful
-
-```zsh
-INFO:src.features.query_expansion:동의어 발견: 3개
-INFO:src.features.query_expansion:HyDE 문서 생성 완료: 161자
-INFO:src.features.query_expansion:쿼리 확장 완료: 4개 용어, 방법: synonyms+hyde
-INFO:src.features.advanced_search:쿼리 확장 완료: synonyms+hyde
-INFO:src.features.advanced_search:확장 검색 완료: 6개 쿼리로 5개 결과
+```mermaid
+flowchart TD
+    Start["검색하고 싶다"] --> Q1{"정확한 용어나\n고유명사를 찾는가?"}
+    Q1 -->|"Yes"| Keyword["Keyword 검색"]
+    Q1 -->|"No"| Q2{"여러 개념을 나열한\n체크리스트형 쿼리인가?"}
+    Q2 -->|"Yes"| ColBERT["ColBERT 검색"]
+    Q2 -->|"No"| Q3{"최고 정확도가\n필요한가?"}
+    Q3 -->|"Yes"| SemanticRerank["Semantic + --rerank"]
+    Q3 -->|"No"| Hybrid["Hybrid 검색 (기본값)"]
 ```
 
-1. 켄트 백의 아규먼티드 코딩: TDD와 AI를 활용한 작동하는 깔끔한 코드
-   유사도: 52.7118
-2. TDD-Theme & Variations
-   유사도: 43.6235
-3. TDD, Where Did It All Go Wrong (Ian Cooper)
-   유사도: 42.6706
-4. 클린 코더스 강의 7. TDD 1
-   유사도: 41.7529
-5. 테스트 주도적 사고로 두뇌 재배선하기 - C++ TDD 완전 가이드
-   유사도: 41.2941
+### 비교 요약
 
-### --with-centrality - meaningful
+| | Keyword | Semantic | Hybrid | ColBERT |
+|---|---|---|---|---|
+| **비유** | 사전에서 단어 찾기 | 사서에게 주제 설명하기 | 사서 + 사전 동시 활용 | 사서에게 체크리스트 주기 |
+| **원리** | 정확한 단어 매칭 (BM25) | 의미 벡터 유사도 (Dense) | Keyword + Semantic 결합 | 토큰별 독립 매칭 |
+| **최적 쿼리** | 1-3단어 | 10-15단어 | 5-15단어 | 15-25단어 |
+| **속도** | 빠름 | 빠름 | 빠름 | 보통 |
+| **정확도** | 중간 | 높음 | 높음 | 높음 |
+| **추천 상황** | 고유명사, 파일명 | 개념적 검색 | 일반적 모든 검색 | 복합 개념 검색 |
 
-1. Clean Code Course by Uncle Bob
-   유사도: 5.0000
-2. Example - Book Management
-   유사도: 5.0000
-3. Unity Catalog - 데이터 관리 및 거버넌스 Labs
-   유사도: 5.0000
-4. 소프트웨어장인
-   유사도: 5.0000
-5. 클린 애자일(Back to Basics)
-   유사도: 5.0000
+---
 
-## Semantic
+## Keyword 검색
 
-BGE-M3 모델로 쿼리와 문서를 각각 1024차원 벡터로 변환한 뒤, 벡터 간 코사인 유사도를 계산하는 Dense embedding 검색입니다. 단어가 정확히 일치하지 않아도 의미적으로 유사한 문서를 찾아줍니다. 예를 들어 "TDD"로 검색해도 "테스트 주도 개발", "Red Green Refactor" 등 관련 개념을 다룬 문서가 결과에 포함됩니다.
+> 사전에서 단어를 찾듯이, 쿼리에 포함된 단어가 문서에 정확히 등장하는지를 기준으로 매칭합니다.
 
-다만 쿼리와 문서 전체를 각각 하나의 벡터로 압축하기 때문에, 여러 개념이 하나로 뭉개지는 현상이 발생할 수 있습니다. 또한 넓은 그물을 던지는 만큼 관련 없는 문서(노이즈)가 섞일 수 있어, `--rerank` 옵션과 함께 사용하면 가장 효과적입니다. 아래는 쿼리 "Test Driven Development Red Green Refactor"로 검색한 결과입니다.
+### 원리
 
-- Test Driven Development Red Green Refactor
+BM25 알고리즘 기반의 전통적인 키워드 검색입니다. "TDD"라는 단어가 문서에 직접 포함되어 있어야만 결과에 나타납니다. "테스트 주도 개발"이나 "Red Green Refactor"처럼 같은 개념을 다른 표현으로 쓴 문서는 찾지 못합니다.
 
-1. TDD
-   유사도: 0.6124
-2. 개발 문화
-   유사도: 0.6079
-3. TDD + AI 통합 워크플로우
-   유사도: 0.6065
-4. Test Driven TDD and Acceptance TDD for java Developers - Manning.pdf
-   유사도: 0.6029
-5. Test-Driven Development: It's easier than you think
-   유사도: 0.6021
+### 적합한 상황
 
-### --rerank - meaningful
+- 고유명사를 정확히 찾을 때: `"Kent Beck"`, `"Spring Boot"`
+- 파일명이나 특정 용어를 찾을 때: `"SOLID"`, `"YAGNI"`
+- 약어(acronym)를 검색할 때: `"TDD"`, `"DDD"`, `"BDD"`
 
-1. Test-Driven Generation: Adopting TDD With GenAI
-   유사도: 3.1543
-2. TDD와 리팩토링의 원칙 및 기법
-   유사도: 2.4980
-3. TDD + AI 통합 워크플로우
-   유사도: 1.9248
-4. TDD와 리팩토링 워크숍 목차 (2일, 14시간)
-   유사도: 1.4434
-5. 마틴 파울러-리팩토링의 중요성 feat.테스트 코드를 짜는 이유
-   유사도: 0.7041
+### CLI 사용법
 
-#### Reranker 효과 분석
+```bash
+vis search "SOLID" --search-method keyword
+vis search "Kent Beck" --search-method keyword --top-k 10
+```
 
---rerank가 keyword보다 semantic에서 좋은 결과가 나오는 것이 보다 일반적인 현상입니다.
+### 강점과 한계
 
-**Reranker의 효과는 1단계 후보 풀의 품질에 달려 있습니다.** Reranker는 주어진 후보를 재정렬만 합니다. 새 문서를 찾아오지는 못합니다.
+| 강점 | 한계 |
+|------|------|
+| 가장 빠른 속도 | 동의어/유사 표현을 인식하지 못함 |
+| 정확한 용어 매칭에 유리 | "TDD"로 검색하면 "테스트 주도 개발"은 놓침 |
+| 결과가 직관적 | 짧은 쿼리에 의존적 |
 
-**Keyword + Rerank**
+### 옵션별 효과
 
-1단계: "TDD" 포함 문서만 수집 (좁은 그물)
-→ TDD 언급 daily note ✓
-→ "테스트 주도 개발"만 쓴 문서 ✗ (탈락)
-→ "Red Green Refactor" 문서 ✗ (탈락)
+- **`--rerank`**: 짧은 키워드 쿼리에서는 **역효과**가 날 수 있습니다. Cross-encoder가 짧은 문서에서 키워드 밀도가 높으면 과대평가하는 경향이 있어, 진짜 전문 문서보다 키워드를 잠깐 언급한 메모가 상위에 올라올 수 있습니다.
+- **`--expand`**: **효과적**. 동의어 확장으로 "TDD" → "테스트 주도 개발", "Test Driven Development" 등으로 검색 범위를 넓혀줍니다.
 
-2단계: Reranker가 재정렬
-→ 이미 빠진 문서는 복구 불가
+---
 
-**Semantic + Rerank**
+## Semantic 검색
 
-1단계: 의미적으로 유사한 문서 수집 (넓은 그물)
-→ TDD 언급 문서 ✓
-→ "테스트 주도 개발" 문서 ✓
-→ "Red Green Refactor" 문서 ✓
-→ 장거리 라이딩 같은 노이즈도 ✓ (섞임)
+> 사서에게 "이런 주제의 책을 찾고 있어요"라고 설명하듯이, 단어가 정확히 일치하지 않아도 의미적으로 유사한 문서를 찾아줍니다.
 
-2단계: Reranker가 재정렬
-→ 노이즈 제거, 진짜 관련 문서를 상위로
+### 원리
 
-핵심
-| | 1단계 역할 | Reranker 역할 |
-|---|---|---|
-| **Keyword** | 정확하지만 좁은 후보 | 이미 좁은 풀 안에서 재정렬 (개선 여지 적음) |
-| **Semantic** | 넓지만 노이즈 섞인 후보 | 노이즈 제거 + 정밀 순위 조정 (개선 여지 큼) |
+BGE-M3 모델로 쿼리와 문서를 각각 1024차원 벡터로 변환한 뒤, 벡터 간 코사인 유사도(cosine similarity)를 계산하는 Dense embedding 검색입니다. "TDD"로 검색해도 "테스트 주도 개발", "Red Green Refactor" 등 관련 개념을 다룬 문서가 결과에 포함됩니다.
 
-Semantic 검색은 recall(재현율)이 높고 precision(정밀도)이 낮은 특성이 있고, reranker는 precision을 높이는 도구입니다. 서로 약점을 보완하는 조합이라 효과가 좋습니다.
+다만 쿼리와 문서 전체를 각각 **하나의 벡터로 압축**하기 때문에, 여러 개념이 하나로 뭉개지는 현상이 발생할 수 있습니다. 넓은 그물을 던지는 만큼 관련 없는 문서(노이즈)가 섞일 수 있습니다.
 
-이것은 정보 검색(IR) 분야에서 **"retrieve and rerank"**라고 불리는 표준 패턴이고, semantic retrieval + cross-encoder
-reranking 조합이 가장 좋은 성능을 보인다는 것이 일반적인 결론입니다.
+### 적합한 상황
 
-### --expand - 다국어 환경에선 유의미 가능
+- 개념적, 의미적 검색: `"테스트 주도 개발 방법론과 설계 개선"`
+- 한국어/영어 혼용 검색: `"리팩토링 best practices"`
+- 정확한 용어를 모를 때: `"코드를 깨끗하게 유지하는 방법"`
 
-1. TDD
-   유사도: 0.6124
-2. 개발 문화
-   유사도: 0.6079
-3. TDD + AI 통합 워크플로우
-   유사도: 0.6065
-4. Test Driven TDD and Acceptance TDD for java Developers - Manning.pdf
-   유사도: 0.6029
-5. Test-Driven Development: It's easier than you think
-   유사도: 0.6021
+### CLI 사용법
 
-### --expand --rerank
+```bash
+vis search "테스트 주도 개발 방법론" --search-method semantic
+vis search "design patterns for clean code" --search-method semantic --rerank
+```
 
-1. TDD
-   유사도: 0.6124
-2. 개발 문화
-   유사도: 0.6079
-3. TDD + AI 통합 워크플로우
-   유사도: 0.6065
-4. Test Driven TDD and Acceptance TDD for java Developers - Manning.pdf
-   유사도: 0.6029
-5. Test-Driven Development: It's easier than you think
-   유사도: 0.6021
+### 강점과 한계
 
-### --with-centrality
+| 강점 | 한계 |
+|------|------|
+| 동의어/유사 표현 인식 | 노이즈가 섞일 수 있음 |
+| 다국어 지원 우수 | 여러 개념이 하나의 벡터로 뭉개짐 |
+| 개념 기반 검색 가능 | 짧은 쿼리에서 precision 낮음 |
 
-1. TDD
-   유사도: 0.6124
-2. 개발 문화
-   유사도: 0.6079
-3. TDD + AI 통합 워크플로우
-   유사도: 0.6065
-4. Test Driven TDD and Acceptance TDD for java Developers - Manning.pdf
-   유사도: 0.6029
-5. Test-Driven Development: It's easier than you think
-   유사도: 0.6021
+### 옵션별 효과
 
-## Hybrid
+- **`--rerank`**: **매우 효과적**. Semantic 검색은 recall(재현율)이 높고 precision(정밀도)이 낮은데, reranker가 정확히 precision을 높여주는 도구입니다. 정보 검색(IR) 분야에서 **"retrieve and rerank"**라고 불리는 표준 패턴이며, semantic retrieval + cross-encoder reranking 조합이 가장 좋은 성능을 보입니다.
+- **`--expand`**: 다국어 환경에서 유의미합니다. 한국어 동의어 확장으로 검색 범위가 넓어집니다.
 
-Keyword(BM25)와 Semantic(Dense embedding) 두 가지 검색을 동시에 수행한 뒤, 가중 합산(`BM25 × 0.3 + Dense × 0.7`)으로 결과를 통합하는 방식입니다. 키워드 매칭의 정확성과 의미적 검색의 포괄성을 결합하므로, 단독 방법보다 균형 잡힌 결과를 제공합니다. **기본값으로 권장되는 검색 방법**입니다.
+> **Semantic + Rerank가 잘 작동하는 이유**
+>
+> | 단계 | 역할 |
+> |------|------|
+> | 1단계 (Semantic) | 넓은 그물 — 의미적으로 유사한 문서를 폭넓게 수집 |
+> | 2단계 (Reranker) | 정밀 필터 — 노이즈를 제거하고 진짜 관련 문서를 상위로 |
+>
+> Semantic이 넓게 수집한 후보에서 Reranker가 노이즈를 걸러내므로, 서로 약점을 보완하는 조합입니다.
 
-두 신호가 상호 검증하는 효과가 있어 노이즈가 자연스럽게 걸러집니다. keyword에서만 높은 점수를 받거나 semantic에서만 높은 점수를 받는 문서는 희석되고, 양쪽 모두에서 관련성이 높은 문서만 상위에 올라옵니다. 이 때문에 `--rerank`를 추가해도 결과 차이가 크지 않습니다. 아래는 쿼리 "TDD Red Green Refactor 사이클"로 검색한 결과입니다.
+---
 
-- TDD Red Green Refactor 사이클
+## Hybrid 검색
 
-1. 클린 코더스 강의 7. TDD 1
-   유사도: 6.6000
-2. TDD와 리팩토링의 원칙 및 기법
-   유사도: 6.6000
-3. Claude Code에 Superpowers를 부여하다: AI를 노련한 시니어 엔지니어로 변화시킨 방법
-   유사도: 6.6000
-4. AI-vs-TDD
-   유사도: 6.3000
-5. TDD, Where Did It All Go Wrong (Ian Cooper)
-   유사도: 6.1106
+> 사전과 사서를 동시에 활용하는 것처럼, Keyword와 Semantic 두 가지 검색을 동시에 수행하여 결과를 통합합니다.
 
-### --rerank
+### 원리
 
-1. 클린 코더스 강의 7. TDD 1
-   유사도: 4.1836
-2. TDD와 리팩토링 워크숍 목차 (2일, 14시간)
-   유사도: 4.0391
-3. TDD가 AI 지원 개발 워크플로우에서 가지는 의미
-   유사도: 3.4902
-4. Claude Code에 Superpowers를 부여하다: AI를 노련한 시니어 엔지니어로 변화시킨 방법
-   유사도: 2.2266
-5. How to fall in love with TDD
-   유사도: 2.1719
+Keyword(BM25)와 Semantic(Dense embedding) 두 가지 검색을 동시에 수행한 뒤, 가중 합산으로 결과를 통합합니다.
 
-#### Hybrid + Rerank 효과 분석
+```
+최종 점수 = BM25 점수 × 0.3 + Dense 유사도 × 0.7
+```
 
-hybrid + rerank에서 차이가 적은 건 충분히 예상 가능한 현상입니다.
+두 신호가 **상호 검증**하는 효과가 있습니다:
+- Keyword에서만 높은 점수를 받은 문서 → 점수 희석
+- Semantic에서만 높은 점수를 받은 문서 → 점수 희석
+- **양쪽 모두에서 관련성이 높은 문서만 상위에 올라옴** → 노이즈가 자연스럽게 걸러짐
 
-Hybrid 검색은 이미 "자체 검증"이 내장되어 있습니다.
+**기본값으로 권장되는 검색 방법**입니다.
 
-Hybrid = BM25(keyword) × 0.3 + Dense(semantic) × 0.7
+### 적합한 상황
 
-- keyword에서 높고 semantic에서 낮은 문서 → 점수 희석
-- semantic에서 높고 keyword에서 낮은 문서 → 점수 희석
-- 둘 다 높은 문서만 상위에 올라감 → 이미 노이즈가 걸러진 상태
+- 일반적인 모든 검색 (기본값)
+- 키워드와 의미를 모두 활용하고 싶을 때
+- 빠르면서도 균형 잡힌 결과가 필요할 때
 
-반면 reranker의 주 역할은 노이즈 필터링입니다. 이미 깨끗한 결과에 reranker를 적용하면 순서를 약간 조정할 뿐 큰 변화가
-없습니다.
+### CLI 사용법
 
-#### 검색 방법별 rerank 효과 차이
+```bash
+# 기본 검색 (hybrid가 기본값)
+vis search "TDD Red Green Refactor"
 
-| 검색 방법     | 초기 노이즈 수준           | rerank 효과           |
-| ------------- | -------------------------- | --------------------- |
-| semantic 단독 | 높음 (짧은 쿼리 시 특히)   | 큼 - 노이즈 제거 효과 |
-| keyword 단독  | 중간 (키워드 빈도 편향)    | 중간                  |
-| hybrid        | 낮음 (두 신호가 상호 검증) | 작음 - 이미 깨끗      |
+# 명시적으로 지정
+vis search "TDD Red Green Refactor" --search-method hybrid
+```
 
-비유
+### 강점과 한계
 
-- semantic + rerank = 넓게 그물을 던진 뒤 수작업으로 골라내기 (효과 큼)
-- hybrid + rerank = 이미 정밀 그물로 잡은 것을 다시 골라내기 (효과 작음)
+| 강점 | 한계 |
+|------|------|
+| 키워드 + 의미 결합 = 균형 잡힌 결과 | 특화된 단일 방법보다 각 영역에서 약간 뒤질 수 있음 |
+| 자체 노이즈 필터링 효과 | |
+| 빠른 속도 | |
 
-#### 권장 조합
+### 옵션별 효과
 
-hybrid 검색에서는 --rerank를 생략해도 품질이 거의 동일하면서 속도가 빠릅니다. rerank는 cross-encoder 추론이 추가되므로
-불필요한 비용입니다.
+- **`--rerank`**: **효과가 작음**. Hybrid는 이미 두 신호의 상호 검증으로 노이즈가 걸러진 상태입니다. Reranker의 주 역할이 노이즈 필터링인데, 이미 깨끗한 결과에 적용하면 순서를 약간 조정할 뿐 큰 변화가 없습니다. 속도 비용 대비 효과가 적으므로 생략해도 됩니다.
+- **`--expand`**: 다국어 환경에서 유의미합니다.
 
-권장 조합:
+> **검색 방법별 Rerank 효과 비교**
+>
+> | 검색 방법 | 초기 노이즈 수준 | Rerank 효과 |
+> |-----------|------------------|-------------|
+> | Semantic 단독 | 높음 (짧은 쿼리 시 특히) | **큼** — 노이즈 제거 효과 |
+> | Keyword 단독 | 중간 (키워드 빈도 편향) | 중간 (짧은 쿼리에서 역효과 가능) |
+> | Hybrid | 낮음 (두 신호가 상호 검증) | **작음** — 이미 깨끗 |
+>
+> 비유하면:
+> - Semantic + Rerank = 넓게 그물을 던진 뒤 수작업으로 골라내기 (효과 큼)
+> - Hybrid + Rerank = 이미 정밀 그물로 잡은 것을 다시 골라내기 (효과 작음)
 
-- 일반 검색: hybrid (기본값, 빠르고 충분히 정확)
-- 정밀 검색: semantic --rerank (넓은 후보 + 정밀 필터링)
-- 정확한 용어: keyword (고유명사, 파일명 등)
+---
 
-## ColBERT
+## ColBERT 검색
 
-ColBERT(Contextualized Late Interaction over BERT)는 쿼리와 문서를 각각 **토큰 단위 벡터 집합**으로 표현한 뒤, 각 쿼리 토큰이 가장 가까운 문서 토큰을 찾아 매칭하는 방식입니다. Semantic 검색이 문서 전체를 하나의 벡터로 압축하는 것과 달리, ColBERT는 개별 토큰별로 독립 매칭한 뒤 점수를 합산합니다.
+> 사서에게 체크리스트를 주듯이, 쿼리의 각 단어가 독립적으로 문서의 가장 가까운 단어를 찾아 매칭합니다.
 
-이 덕분에 "Kent Beck", "TDD", "Red Green Refactor", "리팩토링", "설계 개선"처럼 여러 개념을 나열한 체크리스트형 쿼리에서 강력한 성능을 발휘합니다. 각 개념이 독립적으로 매칭되므로 하나의 벡터로 뭉개지는 현상이 없습니다. 대신 토큰별 연산이 필요해 다른 방법보다 속도가 느리고, 최적 쿼리 길이도 15-25단어로 가장 깁니다. 아래는 쿼리 "Kent Beck TDD Red Green Refactor 리팩토링 설계 개선"으로 검색한 결과입니다.
+### 원리
 
-- Kent Beck TDD Red Green Refactor 리팩토링 설계 개선
+ColBERT(Contextualized Late Interaction over BERT)는 쿼리와 문서를 각각 **토큰 단위 벡터 집합**으로 표현한 뒤, 각 쿼리 토큰이 가장 가까운 문서 토큰을 찾아 매칭하는 방식입니다.
 
-1. X-Additionals
-   유사도: 0.6869
-2. TDD, Where Did It All Go Wrong (Ian Cooper)
-   유사도: 0.6536
-3. TDD
-   유사도: 0.6525
-4. TDD와 Refactoring 관련 리소스 모음
-   유사도: 0.6428
-5. TDD, Where Did It All Go Wrong (Ian Cooper)
-   유사도: 0.6370
+```
+Semantic:  Query → [하나의 벡터]     ↔  Doc → [하나의 벡터]
+           "여러 개념이 하나로 뭉개짐"
 
-### 핵심 원리
+ColBERT:   Query → [토큰1][토큰2][토큰3]...
+           Doc   → [토큰A][토큰B][토큰C]...
+           각 쿼리 토큰이 가장 가까운 문서 토큰과 매칭
+           "개념별로 독립 매칭 → 합산"
+```
 
-Semantic: Query → [하나의 벡터] ↔ Doc → [하나의 벡터]
-"여러 개념이 하나로 뭉개짐"
+Semantic 검색이 문서 전체를 하나의 벡터로 압축하는 것과 달리, ColBERT는 개별 토큰별로 독립 매칭한 뒤 점수를 합산합니다. 이 덕분에 "Kent Beck", "TDD", "Red Green Refactor", "리팩토링" 처럼 여러 개념을 나열한 **체크리스트형 쿼리**에서 강력한 성능을 발휘합니다.
 
-ColBERT: Query → [토큰1][토큰2][토큰3]...
-Doc → [토큰A][토큰B][토큰C]...
-각 쿼리 토큰이 가장 가까운 문서 토큰과 매칭
-"개념별로 독립 매칭 → 합산"
+### 적합한 상황
 
-요약: ColBERT에는 **"이것도 포함하고 저것도 포함하고 그것도 포함된 문서"**를 찾는 체크리스트형 쿼리가 가장 효과적입니다.
+- 여러 개념을 나열한 체크리스트형 쿼리: `"Kent Beck TDD Red Green Refactor 리팩토링 설계 개선"`
+- 긴 문장 검색: `"test driven development with refactoring and clean code practices"`
+- 복합 개념 검색: `"dependency injection inversion of control spring framework"`
+
+### CLI 사용법
+
+```bash
+vis search "Kent Beck TDD Red Green Refactor 리팩토링" --search-method colbert
+vis search "clean code refactoring design patterns SOLID" --search-method colbert
+```
+
+### 강점과 한계
+
+| 강점 | 한계 |
+|------|------|
+| 여러 개념이 뭉개지지 않고 독립 매칭 | 다른 방법보다 속도가 느림 |
+| 체크리스트형 쿼리에서 최강 | 짧은 쿼리에서는 Hybrid보다 이점 없음 |
+| 긴 문장에 최적화 | 초기 인덱싱 시간이 김 (1-2시간, 1회만) |
+
+### 옵션별 효과
+
+- **`--rerank`**: 효과적입니다. ColBERT의 넓은 후보에서 정밀도를 높여줍니다.
+
+---
+
+## 옵션 조합 가이드
+
+### `--rerank` (재순위화)
+
+Cross-encoder(BGE Reranker V2-M3)가 1단계 검색 결과를 정밀하게 재평가합니다. 속도는 느려지지만 정확도가 향상됩니다.
+
+```bash
+vis search "검색어" --rerank
+```
+
+**검색 방법별 궁합:**
+
+| 조합 | 효과 | 권장 |
+|------|------|------|
+| Semantic + Rerank | 매우 효과적 (넓은 후보 + 정밀 필터) | 정밀 검색이 필요할 때 |
+| ColBERT + Rerank | 효과적 | 복합 개념의 정밀 검색 |
+| Hybrid + Rerank | 효과 작음 (이미 깨끗한 결과) | 비용 대비 효과 낮음 |
+| Keyword + Rerank | 역효과 가능 (짧은 쿼리 시) | 권장하지 않음 |
+
+### `--expand` (쿼리 확장)
+
+동의어와 HyDE(Hypothetical Document Embeddings)를 활용하여 검색 범위를 넓힙니다.
+
+```bash
+# 동의어 + HyDE 모두 사용
+vis search "TDD" --expand
+
+# 동의어만 사용 (빠름)
+vis search "TDD" --expand --no-hyde
+
+# HyDE만 사용
+vis search "TDD" --expand --no-synonyms
+```
+
+**작동 방식:**
+1. 동의어 확장: "TDD" → "테스트 주도 개발", "Test Driven Development"
+2. HyDE: AI가 가상의 관련 문서를 생성하여 의미적 검색 정확도 향상
+3. 확장된 쿼리들로 병렬 검색 후 결과 통합
+
+### `--with-centrality` (중심성 점수)
+
+지식 그래프에서의 문서 중요도를 검색 결과에 반영합니다. 많은 문서와 연결된 핵심 문서가 상위에 올라옵니다.
+
+```bash
+vis search "TDD" --with-centrality
+```
+
+### 권장 조합
+
+| 상황 | 권장 명령어 | 이유 |
+|------|------------|------|
+| 일반 검색 | `vis search "검색어"` | Hybrid 기본값, 빠르고 충분히 정확 |
+| 정밀 검색 | `vis search "검색어" --search-method semantic --rerank` | 넓은 후보 + 정밀 필터링 |
+| 정확한 용어 | `vis search "용어" --search-method keyword` | 고유명사, 파일명 등 |
+| 포괄적 검색 | `vis search "검색어" --expand` | 동의어 + HyDE로 범위 확장 |
+| 복합 개념 | `vis search "개념1 개념2 개념3" --search-method colbert` | 체크리스트형 쿼리 |
+| 최고 품질 | `vis search "검색어" --rerank --expand` | 모든 기능 결합 (가장 느림) |
+
+---
 
 ## 검색 방법별 최적 쿼리 길이
 
-| 검색 방법 | 최적 쿼리                                                       | 비유                             |
-| --------- | --------------------------------------------------------------- | -------------------------------- |
-| keyword   | TDD, Clean Code                                                 | 사전에서 단어 찾기               |
-| semantic  | 테스트 주도 개발 방법론과 설계 개선 (10-15단어)                 | 사서에게 주제 설명하기           |
-| colbert   | Kent Beck TDD Red Green Refactor 리팩토링 설계 개선 (15-25단어) | 사서에게 체크리스트 주기         |
-| hybrid    | 중간 길이 (10-15단어)                                           | 사서에게 주제 + 키워드 함께 전달 |
+| 검색 방법 | 최적 쿼리 예시 | 비유 |
+|-----------|---------------|------|
+| Keyword | `TDD`, `Clean Code` (1-3단어) | 사전에서 단어 찾기 |
+| Semantic | `테스트 주도 개발 방법론과 설계 개선` (10-15단어) | 사서에게 주제 설명하기 |
+| Hybrid | `TDD Red Green Refactor 사이클` (5-15단어) | 사서에게 주제 + 키워드 함께 전달 |
+| ColBERT | `Kent Beck TDD Red Green Refactor 리팩토링 설계 개선` (15-25단어) | 사서에게 체크리스트 주기 |
