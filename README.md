@@ -19,67 +19,13 @@
 
 ## 🚀 빠른 시작
 
-### 1. 설치
-
 ```bash
-git clone https://github.com/msbaek/vault-intelligence.git ~/git/vault-intelligence
-cd ~/git/vault-intelligence
-pip install -r requirements.txt
+pipx install -e ~/git/vault-intelligence  # 설치
+vis init --vault-path /path/to/vault       # 초기화
+vis search "TDD"                            # 검색
 ```
 
-#### pipx 전역 설치 (권장 - 어디서든 `vis` 명령어 사용 가능)
-```bash
-pipx install -e ~/git/vault-intelligence
-```
-
-### 2. 시스템 초기화
-```bash
-vis init --vault-path /path/to/your/vault
-# 또는: python -m src init --vault-path /path/to/your/vault
-```
-
-### 3. 기본 사용법
-
-#### 💬 Claude Code에서 사용 (권장)
-
-Claude Code 세션에서 자연어로 요청하세요:
-
-- "TDD 관련 문서 찾아줘"
-- "리팩토링 MOC 만들어줘"
-- "최근 학습 내용 요약해줘"
-- "이 문서와 관련된 다른 문서 찾아줘"
-
-Claude가 vault-intelligence를 자동으로 활용하여 결과를 제공합니다.
-
-#### 🖥️ CLI 직접 사용
-
-```bash
-# 하이브리드 검색 (Dense + BM25, 추천)
-vis search "TDD 테스트 주도 개발" --search-method hybrid
-
-# 고정밀 재순위화 검색 (BGE Reranker V2-M3)
-vis search "clean architecture principles" --rerank
-
-# ColBERT 토큰 수준 검색 (긴 문장에 최적화)
-vis search "refactoring clean code practices" --search-method colbert
-
-# 주제별 문서 수집
-vis collect "리팩토링"
-
-# 문서 클러스터링 및 요약 (Phase 9)
-vis summarize --clusters 5
-
-# 학습 리뷰 생성
-vis review --period weekly
-
-# 태그 분석
-vis list-tags
-
-# 주제별 문서 연결 (MOC 생성 + 관련 링크 삽입)
-vis connect-topic "TDD"
-```
-
-> **참고:** 주 명령어 `vis` (vault-intelligence system)를 사용합니다. 기존 `python -m src` 방식도 프로젝트 디렉토리에서 동일하게 동작합니다.
+상세한 설치 및 사용법은 **[5분 빠른 시작](docs/QUICK_START.md)**을 참조하세요.
 
 ## 📖 문서 인덱스
 
