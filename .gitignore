@@ -106,3 +106,4 @@ htmlcov/
 .worktrees/
 docs/plans/
 todo.md
+.claude/plans
