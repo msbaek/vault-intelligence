@@ -341,6 +341,10 @@ class AdvancedSearchEngine:
             # 임베딩 배열 구성
             self.embeddings = np.array(all_embeddings)
             self.documents = all_documents
+
+            # 개별 Document 객체에 임베딩 할당 (duplicate detector 등에서 사용)
+            for i, doc in enumerate(self.documents):
+                doc.embedding = self.embeddings[i]
             
             # BM25 인덱스 재구축 (빠름)
             from rank_bm25 import BM25Okapi
