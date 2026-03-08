@@ -1807,6 +1807,12 @@ def run_graph(vault_path: str, file_path: str, top_k: int, config: dict,
               no_open: bool = False):
     """문서 관계 그래프 생성"""
     try:
+        # Normalize to absolute path (matching doc.path in index)
+        fp = Path(file_path)
+        if not fp.is_absolute():
+            fp = Path(vault_path) / fp
+        file_path = str(fp.resolve())
+
         print(f"📊 '{file_path}' 관계 그래프 생성 중...")
 
         # 1. Search engine init + get related docs
@@ -1822,7 +1828,7 @@ def run_graph(vault_path: str, file_path: str, top_k: int, config: dict,
         related_results = search_engine.get_related_documents(
             document_path=file_path,
             top_k=top_k,
-            include_centrality_boost=True,
+            include_centrality_boost=False,
             similarity_threshold=similarity_threshold
         )
 
