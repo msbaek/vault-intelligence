@@ -82,6 +82,7 @@ class KnowledgeGraphRenderer:
                       'color': '#dcddde',
                       'strokeWidth': 2,
                       'strokeColor': '#1e1e1e'},
+                level=n.depth,  # custom attr for JS filtering
             )
 
         for e in edges:
@@ -139,24 +140,92 @@ class KnowledgeGraphRenderer:
         Path(output_path).parent.mkdir(parents=True, exist_ok=True)
         net.save_graph(output_path)
 
-        # Inject title and legend into HTML
-        _inject_html_extras(output_path, title)
+        max_depth = max(n.depth for n in nodes)
+        _inject_html_extras(output_path, title, max_depth)
         return True
 
 
-def _inject_html_extras(path: str, title: str):
-    """Inject title bar and edge legend into the generated HTML."""
+def _inject_html_extras(path: str, title: str, max_depth: int = 1):
+    """Inject title bar, edge legend, and depth slider into the generated HTML."""
     html = Path(path).read_text(encoding='utf-8')
-    legend = f'''
-    <div style="position:fixed;top:10px;left:10px;z-index:1000;
+
+    # Depth slider (only show when multi-depth)
+    slider_html = ""
+    if max_depth > 1:
+        slider_html = f'''
+        <div style="margin-top:10px;padding-top:8px;border-top:1px solid #3e3e3e;">
+            <label style="display:block;margin-bottom:4px;">
+                Depth: <span id="depthValue">{max_depth}</span>
+            </label>
+            <input type="range" id="depthSlider" min="1" max="{max_depth}" value="{max_depth}"
+                   style="width:100%;accent-color:#B4A7FA;cursor:pointer;">
+            <div style="display:flex;justify-content:space-between;font-size:11px;color:#888;">
+                <span>1</span><span>{max_depth}</span>
+            </div>
+        </div>
+        '''
+
+    panel = f'''
+    <div id="controlPanel" style="position:fixed;top:10px;left:10px;z-index:1000;
                 background:#262626;padding:12px 16px;border-radius:8px;
-                border:1px solid #3e3e3e;font-family:monospace;color:#dcddde;font-size:13px;">
+                border:1px solid #3e3e3e;font-family:monospace;color:#dcddde;font-size:13px;
+                min-width:200px;">
         <div style="font-size:15px;font-weight:bold;margin-bottom:8px;">{title}</div>
         <div><span style="color:#7DDCB5;">━━</span> wikilink (existing)</div>
         <div><span style="color:#FDBA8C;">╌╌</span> semantic (discovered)</div>
         <div><span style="color:#B4A7FA;">━━</span> both</div>
         <div style="margin-top:6px;"><span style="color:#FFD700;">●</span> center document</div>
+        <div id="nodeCount" style="margin-top:6px;color:#888;font-size:11px;"></div>
+        {slider_html}
     </div>
     '''
-    html = html.replace('<body>', f'<body>{legend}', 1)
+
+    # JavaScript for depth filtering
+    depth_script = ""
+    if max_depth > 1:
+        depth_script = '''
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+        var slider = document.getElementById("depthSlider");
+        var depthLabel = document.getElementById("depthValue");
+        var countLabel = document.getElementById("nodeCount");
+        if (!slider || !nodes) return;
+
+        function updateCount(maxD) {
+            var visible = 0, total = nodes.length;
+            nodes.forEach(function(n) { if (n.level <= maxD) visible++; });
+            countLabel.textContent = visible + " / " + total + " nodes";
+        }
+        updateCount(parseInt(slider.value));
+
+        slider.addEventListener("input", function() {
+            var maxD = parseInt(this.value);
+            depthLabel.textContent = maxD;
+
+            // Update node visibility
+            var updates = [];
+            nodes.forEach(function(n) {
+                var hidden = (n.level > maxD);
+                updates.push({id: n.id, hidden: hidden});
+            });
+            nodes.update(updates);
+
+            // Hide edges connected to hidden nodes
+            var hiddenNodes = new Set();
+            nodes.forEach(function(n) { if (n.level > maxD) hiddenNodes.add(n.id); });
+            var edgeUpdates = [];
+            edges.forEach(function(e) {
+                var hidden = hiddenNodes.has(e.from) || hiddenNodes.has(e.to);
+                edgeUpdates.push({id: e.id, hidden: hidden});
+            });
+            edges.update(edgeUpdates);
+
+            updateCount(maxD);
+        });
+    });
+    </script>
+    '''
+
+    html = html.replace('<body>', f'<body>{panel}', 1)
+    html = html.replace('</body>', f'{depth_script}</body>', 1)
     Path(path).write_text(html, encoding='utf-8')
