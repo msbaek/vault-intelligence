@@ -41,7 +41,8 @@ vis connect-topic "TDD"              # 실행
 
 # 문서 관계 그래프 시각화
 vis graph "문서명.md" --top-k 10     # 인터랙티브 HTML 그래프 생성
-vis graph "문서명.md" --top-k 20 --no-open  # 브라우저 열지 않음
+vis graph "문서명.md" --depth 2      # 2단계 깊이 탐색 (브라우저 depth 슬라이더 포함)
+vis graph "문서명.md" --depth 3 --expand-threshold 0.4  # 3단계, 확장 기준 완화
 ```
 
 ### 검색 옵션
@@ -64,16 +65,28 @@ vis search "TDD" --output results.md
 
 ### 문서 관계 그래프
 
+![Knowledge Graph Preview](docs/graph-preview.png)
+
+> 인터랙티브 데모: [docs/graph-demo.html](docs/graph-demo.html)을 다운로드하여 브라우저에서 열면 노드 드래그, 줌, depth 슬라이더를 직접 사용할 수 있습니다.
+
 ```bash
 # 기준 문서의 관계를 인터랙티브 HTML 그래프로 시각화
-vis graph "문서명.md"                              # 기본 (top-k 10, 브라우저 자동 오픈)
+vis graph "문서명.md"                              # 기본 (top-k 10, depth 1)
 vis graph "문서명.md" --top-k 20                   # 관련 문서 20개
 vis graph "문서명.md" --threshold 0.5              # 유사도 0.5 이상만
 vis graph "문서명.md" --no-open -o /tmp/graph.html # 브라우저 안 열고 경로 지정
+
+# Multi-depth 탐색 (2-3단계 관계 시각화)
+vis graph "문서명.md" --depth 2                    # 2단계 깊이 탐색
+vis graph "문서명.md" --depth 3                    # 3단계 깊이 탐색
+vis graph "문서명.md" --depth 2 --expand-threshold 0.4  # 확장 기준 완화 (더 많은 노드)
+vis graph "문서명.md" --depth 3 --expand-threshold 0.6  # 확장 기준 강화 (핵심 노드만)
 ```
 
-- **노드**: 중심 문서(gold) + 관련 문서(폴더별 색상)
+- **노드**: 중심 문서(gold) + 관련 문서(폴더별 색상), depth가 깊을수록 작게 표시
 - **엣지**: wikilink(녹색 실선), semantic(주황 점선), both(보라 실선)
+- **depth 슬라이더**: multi-depth 그래프에서 브라우저 내 슬라이더로 depth별 노드 필터링
+- **score 기반 확장**: parent score에 비례한 top-k 자동 조절, `--expand-threshold`로 확장 기준 설정
 - Obsidian 다크 테마 스타일, 물리 시뮬레이션 레이아웃
 
 ### 분석 도구
