@@ -1802,6 +1802,115 @@ def run_connect_status(
         return False
 
 
+def run_graph(vault_path: str, file_path: str, top_k: int, config: dict,
+              similarity_threshold: float = 0.3, output_file: str = None,
+              no_open: bool = False):
+    """문서 관계 그래프 생성"""
+    try:
+        print(f"📊 '{file_path}' 관계 그래프 생성 중...")
+
+        # 1. Search engine init + get related docs
+        cache_dir = str(data_dir / "cache")
+        search_engine = AdvancedSearchEngine(vault_path, cache_dir, config)
+
+        if not search_engine.indexed:
+            print("📚 인덱스 구축 중...")
+            if not search_engine.build_index():
+                print("❌ 인덱스 구축 실패")
+                return False
+
+        related_results = search_engine.get_related_documents(
+            document_path=file_path,
+            top_k=top_k,
+            include_centrality_boost=True,
+            similarity_threshold=similarity_threshold
+        )
+
+        if not related_results:
+            print("❌ 관련 문서를 찾을 수 없습니다.")
+            return False
+
+        # 2. Parse wikilinks
+        from src.features.wikilink_parser import WikilinkParser
+        wl_parser = WikilinkParser(vault_path)
+
+        all_paths = [file_path] + [r.document.path for r in related_results]
+        wikilinks = {}  # source_path -> [target_paths]
+        for p in all_paths:
+            raw_links = wl_parser.extract_from_file(p)
+            resolved = []
+            for link in raw_links:
+                target = wl_parser.resolve_link(link)
+                if target and target in all_paths:
+                    resolved.append(target)
+            if resolved:
+                wikilinks[p] = resolved
+
+        # 3. Build graph data
+        from src.visualization.graph_renderer import (
+            KnowledgeGraphRenderer, GraphNode, GraphEdge
+        )
+
+        nodes = [GraphNode(
+            id=file_path, label=Path(file_path).stem,
+            path=file_path, is_center=True, score=1.0
+        )]
+        score_map = {}
+        for r in related_results:
+            p = r.document.path
+            nodes.append(GraphNode(
+                id=p, label=Path(p).stem,
+                path=p, is_center=False, score=r.similarity_score,
+                tags=r.document.tags or []
+            ))
+            score_map[p] = r.similarity_score
+
+        # Edges: combine wikilinks + semantic
+        edge_set = {}  # (src, tgt) -> (edge_type, weight)
+        # Semantic edges
+        for r in related_results:
+            key = tuple(sorted([file_path, r.document.path]))
+            edge_set[key] = ("semantic", r.similarity_score)
+
+        # Wikilink edges
+        for src, targets in wikilinks.items():
+            for tgt in targets:
+                key = tuple(sorted([src, tgt]))
+                if key in edge_set:
+                    edge_set[key] = ("both", edge_set[key][1])
+                else:
+                    edge_set[key] = ("wikilink", score_map.get(tgt, 0.5))
+
+        edges = [
+            GraphEdge(source=k[0], target=k[1], edge_type=v[0], weight=v[1])
+            for k, v in edge_set.items()
+        ]
+
+        # 4. Render
+        out = output_file or str(Path(vault_path) / ".obsidian-tools" / "knowledge-graph.html")
+        renderer = KnowledgeGraphRenderer()
+        title = f"Knowledge Graph: {Path(file_path).stem}"
+        renderer.render(nodes, edges, out, title)
+
+        print(f"\nGraph: {len(nodes)} nodes, {len(edges)} edges")
+        print(f"  Wikilink: {sum(1 for e in edges if e.edge_type == 'wikilink')}")
+        print(f"  Semantic: {sum(1 for e in edges if e.edge_type == 'semantic')}")
+        print(f"  Both: {sum(1 for e in edges if e.edge_type == 'both')}")
+        print(f"Saved to {out}")
+
+        if not no_open:
+            import webbrowser
+            webbrowser.open(f"file://{out}")
+
+        return True
+
+    except Exception as e:
+        print(f"❌ 그래프 생성 실패: {e}")
+        import traceback
+        traceback.print_exc()
+        return False
+
+
 def run_moc_generation(
     vault_path: str,
     topic: str,
@@ -2017,6 +2126,14 @@ def main():
     # --- connect-status ---
     p = subparsers.add_parser("connect-status", help="그래프 연결 진행 상황")
     p.add_argument("--detailed", action="store_true", help="전체 주제 상세 현황 표시")
+
+    # --- graph ---
+    p = subparsers.add_parser("graph", help="문서 관계 그래프 시각화")
+    p.add_argument("file", help="기준 문서 경로")
+    p.add_argument("--top-k", type=int, default=10, help="관련 문서 수 (기본값: 10)")
+    p.add_argument("--threshold", type=float, default=0.3, help="유사도 임계값 (기본값: 0.3)")
+    p.add_argument("--no-open", action="store_true", help="브라우저 열지 않음")
+    p.add_argument("-o", "--output", default=None, help="출력 파일 경로")
 
     # --- init ---
     subparsers.add_parser("init", help="시스템 초기화")
@@ -2385,6 +2502,24 @@ def main():
             print("\n✅ 상태 확인 완료!")
         else:
             print("❌ 상태 확인 실패!")
+            sys.exit(1)
+
+    elif args.command == "graph":
+        if not check_dependencies():
+            sys.exit(1)
+
+        if run_graph(
+            vault_path,
+            args.file,
+            args.top_k,
+            config,
+            similarity_threshold=args.threshold,
+            output_file=args.output,
+            no_open=args.no_open,
+        ):
+            print("✅ 그래프 생성 완료!")
+        else:
+            print("❌ 그래프 생성 실패!")
             sys.exit(1)
 
 
