@@ -107,3 +107,7 @@ htmlcov/
 docs/plans/
 todo.md
 .claude/plans
+/ai_clustering_report.json
+/ai_move_log.json
+/ai_move_plan.json
+/qmd_technical_analysis.json

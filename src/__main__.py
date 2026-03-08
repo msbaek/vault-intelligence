@@ -1804,8 +1804,9 @@ def run_connect_status(
 
 def run_graph(vault_path: str, file_path: str, top_k: int, config: dict,
               similarity_threshold: float = 0.3, output_file: str = None,
-              no_open: bool = False):
-    """문서 관계 그래프 생성"""
+              no_open: bool = False, depth: int = 1,
+              expand_threshold: float = 0.5):
+    """문서 관계 그래프 생성 (multi-depth BFS)"""
     try:
         # Normalize to absolute path (matching doc.path in index)
         fp = Path(file_path)
@@ -1813,9 +1814,9 @@ def run_graph(vault_path: str, file_path: str, top_k: int, config: dict,
             fp = Path(vault_path) / fp
         file_path = str(fp.resolve())
 
-        print(f"📊 '{file_path}' 관계 그래프 생성 중...")
+        print(f"📊 '{file_path}' 관계 그래프 생성 중... (depth={depth})")
 
-        # 1. Search engine init + get related docs
+        # 1. Search engine init
         cache_dir = str(data_dir / "cache")
         search_engine = AdvancedSearchEngine(vault_path, cache_dir, config)
 
@@ -1825,22 +1826,51 @@ def run_graph(vault_path: str, file_path: str, top_k: int, config: dict,
                 print("❌ 인덱스 구축 실패")
                 return False
 
-        related_results = search_engine.get_related_documents(
-            document_path=file_path,
-            top_k=top_k,
-            include_centrality_boost=False,
-            similarity_threshold=similarity_threshold
-        )
+        # 2. BFS: collect nodes per depth
+        #    visited: path -> (score, depth, parent_path)
+        visited = {file_path: (1.0, 0, None)}
+        #    semantic_edges: [(source, result)] across all depths
+        all_semantic_results = []  # (source_path, result)
+        frontier = [file_path]
 
-        if not related_results:
+        for current_depth in range(1, depth + 1):
+            next_frontier = []
+            for source_path in frontier:
+                source_score = visited[source_path][0]
+                # Score-proportional top-k: parent score * base top-k
+                depth_top_k = max(3, round(top_k * source_score))
+                results = search_engine.get_related_documents(
+                    document_path=source_path,
+                    top_k=depth_top_k,
+                    include_centrality_boost=False,
+                    similarity_threshold=similarity_threshold
+                )
+                if not results:
+                    continue
+
+                for r in results:
+                    p = r.document.path
+                    all_semantic_results.append((source_path, r))
+                    if p not in visited:
+                        visited[p] = (r.similarity_score, current_depth, source_path)
+                        # Expand in next depth only if score >= expand_threshold
+                        if r.similarity_score >= expand_threshold:
+                            next_frontier.append(p)
+
+            frontier = next_frontier
+            if not frontier:
+                break
+            print(f"  depth {current_depth}: {len(next_frontier)} nodes to expand")
+
+        if len(visited) <= 1:
             print("❌ 관련 문서를 찾을 수 없습니다.")
             return False
 
-        # 2. Parse wikilinks
+        # 3. Parse wikilinks
         from src.features.wikilink_parser import WikilinkParser
         wl_parser = WikilinkParser(vault_path)
 
-        all_paths = [file_path] + [r.document.path for r in related_results]
+        all_paths = set(visited.keys())
         wikilinks = {}  # source_path -> [target_paths]
         for p in all_paths:
             raw_links = wl_parser.extract_from_file(p)
@@ -1852,33 +1882,29 @@ def run_graph(vault_path: str, file_path: str, top_k: int, config: dict,
             if resolved:
                 wikilinks[p] = resolved
 
-        # 3. Build graph data
+        # 4. Build graph data
         from src.visualization.graph_renderer import (
             KnowledgeGraphRenderer, GraphNode, GraphEdge
         )
 
-        nodes = [GraphNode(
-            id=file_path, label=Path(file_path).stem,
-            path=file_path, is_center=True, score=1.0
-        )]
+        nodes = []
         score_map = {}
-        for r in related_results:
-            p = r.document.path
+        for p, (score, d, _parent) in visited.items():
             nodes.append(GraphNode(
                 id=p, label=Path(p).stem,
-                path=p, is_center=False, score=r.similarity_score,
-                tags=r.document.tags or []
+                path=p, is_center=(d == 0), score=score, depth=d,
             ))
-            score_map[p] = r.similarity_score
+            score_map[p] = score
 
-        # Edges: combine wikilinks + semantic
+        # Edges: combine semantic + wikilinks
         edge_set = {}  # (src, tgt) -> (edge_type, weight)
-        # Semantic edges
-        for r in related_results:
-            key = tuple(sorted([file_path, r.document.path]))
-            edge_set[key] = ("semantic", r.similarity_score)
+        for source_path, r in all_semantic_results:
+            tgt = r.document.path
+            if tgt in all_paths:
+                key = tuple(sorted([source_path, tgt]))
+                if key not in edge_set:
+                    edge_set[key] = ("semantic", r.similarity_score)
 
-        # Wikilink edges
         for src, targets in wikilinks.items():
             for tgt in targets:
                 key = tuple(sorted([src, tgt]))
@@ -1892,13 +1918,20 @@ def run_graph(vault_path: str, file_path: str, top_k: int, config: dict,
             for k, v in edge_set.items()
         ]
 
-        # 4. Render
+        # 5. Render
         out = output_file or str(Path(vault_path) / ".obsidian-tools" / "knowledge-graph.html")
         renderer = KnowledgeGraphRenderer()
-        title = f"Knowledge Graph: {Path(file_path).stem}"
+        title = f"Knowledge Graph: {Path(file_path).stem} (depth={depth})"
         renderer.render(nodes, edges, out, title)
 
+        # Stats per depth
+        depth_counts = {}
+        for _p, (_, d, _) in visited.items():
+            depth_counts[d] = depth_counts.get(d, 0) + 1
         print(f"\nGraph: {len(nodes)} nodes, {len(edges)} edges")
+        for d in sorted(depth_counts):
+            label = "center" if d == 0 else f"depth {d}"
+            print(f"  {label}: {depth_counts[d]} nodes")
         print(f"  Wikilink: {sum(1 for e in edges if e.edge_type == 'wikilink')}")
         print(f"  Semantic: {sum(1 for e in edges if e.edge_type == 'semantic')}")
         print(f"  Both: {sum(1 for e in edges if e.edge_type == 'both')}")
@@ -2138,6 +2171,9 @@ def main():
     p.add_argument("file", help="기준 문서 경로")
     p.add_argument("--top-k", type=int, default=10, help="관련 문서 수 (기본값: 10)")
     p.add_argument("--threshold", type=float, default=0.3, help="유사도 임계값 (기본값: 0.3)")
+    p.add_argument("--depth", type=int, default=1, help="탐색 깊이 (기본값: 1, 최대 3)")
+    p.add_argument("--expand-threshold", type=float, default=0.5,
+                   help="다음 depth로 확장할 최소 유사도 (기본값: 0.5)")
     p.add_argument("--no-open", action="store_true", help="브라우저 열지 않음")
     p.add_argument("-o", "--output", default=None, help="출력 파일 경로")
 
@@ -2514,6 +2550,7 @@ def main():
         if not check_dependencies():
             sys.exit(1)
 
+        graph_depth = min(args.depth, 3)  # cap at 3
         if run_graph(
             vault_path,
             args.file,
@@ -2522,6 +2559,8 @@ def main():
             similarity_threshold=args.threshold,
             output_file=args.output,
             no_open=args.no_open,
+            depth=graph_depth,
+            expand_threshold=args.expand_threshold,
         ):
             print("✅ 그래프 생성 완료!")
         else:

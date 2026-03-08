@@ -14,6 +14,7 @@ class GraphNode:
     path: str
     is_center: bool
     score: float
+    depth: int = 0
     folder: str = ""
     tags: list[str] = field(default_factory=list)
 
@@ -63,15 +64,21 @@ class KnowledgeGraphRenderer:
 
         for n in nodes:
             color = CENTER_COLOR if n.is_center else _folder_color(n.path)
-            size = 25 if n.is_center else max(8, int(n.score * 20))
+            # Depth-aware sizing: deeper nodes are smaller
+            depth_factor = max(0.4, 1.0 - n.depth * 0.25)
+            size = 25 if n.is_center else max(6, int(n.score * 20 * depth_factor))
+            font_size = 14 if n.is_center else max(8, int(11 * depth_factor))
+            opacity = max(0.4, 1.0 - n.depth * 0.2)
             G.add_node(
                 n.id,
                 label=n.label,
-                title=f"{n.path}\nScore: {n.score:.3f}",
-                color=color,
+                title=f"{n.path}\nScore: {n.score:.3f}\nDepth: {n.depth}",
+                color={'background': color, 'border': color,
+                       'highlight': {'background': color, 'border': '#fff'},
+                       'opacity': opacity},
                 size=size,
                 shape="dot",
-                font={'size': 14 if n.is_center else 11,
+                font={'size': font_size,
                       'color': '#dcddde',
                       'strokeWidth': 2,
                       'strokeColor': '#1e1e1e'},

@@ -41,6 +41,7 @@ vault:
     - "WIP"
     - "ATTACHMENTS"
     - "FONTS"
+    - "claude-session"
   excluded_files:
     - ".DS_Store"
     - "Thumbs.db"
