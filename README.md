@@ -38,6 +38,10 @@ vis collect "TDD" --output collection.md
 # 주제별 문서 연결 (MOC + 관련 문서 링크 삽입)
 vis connect-topic "TDD" --dry-run    # 미리보기
 vis connect-topic "TDD"              # 실행
+
+# 문서 관계 그래프 시각화
+vis graph "문서명.md" --top-k 10     # 인터랙티브 HTML 그래프 생성
+vis graph "문서명.md" --top-k 20 --no-open  # 브라우저 열지 않음
 ```
 
 ### 검색 옵션
@@ -57,6 +61,20 @@ vis search "TDD" --with-centrality
 # 결과 파일로 저장
 vis search "TDD" --output results.md
 ```
+
+### 문서 관계 그래프
+
+```bash
+# 기준 문서의 관계를 인터랙티브 HTML 그래프로 시각화
+vis graph "문서명.md"                              # 기본 (top-k 10, 브라우저 자동 오픈)
+vis graph "문서명.md" --top-k 20                   # 관련 문서 20개
+vis graph "문서명.md" --threshold 0.5              # 유사도 0.5 이상만
+vis graph "문서명.md" --no-open -o /tmp/graph.html # 브라우저 안 열고 경로 지정
+```
+
+- **노드**: 중심 문서(gold) + 관련 문서(폴더별 색상)
+- **엣지**: wikilink(녹색 실선), semantic(주황 점선), both(보라 실선)
+- Obsidian 다크 테마 스타일, 물리 시뮬레이션 레이아웃
 
 ### 분석 도구
 
