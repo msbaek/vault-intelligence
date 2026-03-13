@@ -282,6 +282,26 @@ def show_system_info():
 
 def run_search(vault_path: str, query: str, top_k: int, threshold: float, config: dict, sample_size: Optional[int] = None, use_reranker: bool = False, search_method: str = "hybrid", use_expansion: bool = False, include_synonyms: bool = True, include_hyde: bool = True, use_centrality: bool = False, centrality_weight: float = 0.2):
     """검색 실행"""
+    # 서버가 떠있으면 서버를 통해 검색 (빠른 경로)
+    try:
+        from src.client import VisClient
+        client = VisClient()
+        if client.is_server_running():
+            results = client.search(
+                query=query, top_k=top_k, threshold=threshold,
+                search_method=search_method, rerank=use_reranker,
+                auto_start=False,
+            )
+            print(f"\n📄 검색 결과 ({len(results)}개) [서버 모드]:")
+            print("-" * 80)
+            for i, r in enumerate(results, 1):
+                print(f"\n{i}. [{r['score']:.4f}] {r['path']}")
+                if r.get('snippet'):
+                    print(f"   {r['snippet'][:150]}")
+            return True
+    except Exception as e:
+        logger.debug(f"서버 모드 검색 실패, 로컬 모드로 전환: {e}")
+
     try:
         print(f"🔍 검색 시작: '{query}'")
         if sample_size:
@@ -2177,6 +2197,16 @@ def main():
     p.add_argument("--no-open", action="store_true", help="브라우저 열지 않음")
     p.add_argument("-o", "--output", default=None, help="출력 파일 경로")
 
+    # --- serve ---
+    p = subparsers.add_parser("serve", help="백그라운드 검색 서버 시작")
+    p.add_argument("--port", type=int, default=8741, help="서버 포트 (기본값: 8741)")
+
+    # --- stop ---
+    subparsers.add_parser("stop", help="검색 서버 중지")
+
+    # --- status ---
+    subparsers.add_parser("status", help="검색 서버 상태 확인")
+
     # --- init ---
     subparsers.add_parser("init", help="시스템 초기화")
 
@@ -2216,7 +2246,26 @@ def main():
     print(f"📁 사용 중인 Vault 경로: {vault_path}")
     
     # 명령어 실행
-    if args.command == "info":
+    if args.command == "serve":
+        from src.server import run_server
+        run_server(port=args.port)
+
+    elif args.command == "stop":
+        from src.client import VisClient
+        VisClient.stop_server()
+
+    elif args.command == "status":
+        from src.client import VisClient
+        client = VisClient()
+        if client.is_server_running():
+            info = client.health()
+            print(f"✅ 서버 실행 중")
+            print(f"   문서 수: {info['document_count']}")
+            print(f"   인덱스: {'구축됨' if info['indexed'] else '미구축'}")
+        else:
+            print("❌ 서버가 실행 중이 아닙니다. vis serve로 시작하세요.")
+
+    elif args.command == "info":
         show_system_info()
     
     elif args.command == "test":
