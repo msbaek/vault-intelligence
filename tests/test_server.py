@@ -9,7 +9,7 @@ because model loading is slow and not suitable for unit tests.
 import os
 import pytest
 from pathlib import Path
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import Mock, patch
 from fastapi.testclient import TestClient
 
 

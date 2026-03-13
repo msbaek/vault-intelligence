@@ -10,13 +10,13 @@ import sys
 import logging
 import signal
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Dict, List
 from contextlib import asynccontextmanager
 
 import yaml
 import uvicorn
 from fastapi import FastAPI, HTTPException, Query
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 from .features.advanced_search import AdvancedSearchEngine, SearchResult
 from .core.vault_processor import Document
