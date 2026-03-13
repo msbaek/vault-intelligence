@@ -3,16 +3,13 @@
 Tests for VisClient - HTTP client for vis daemon server.
 """
 
-import os
 import signal
-from pathlib import Path
 from unittest.mock import Mock, patch, MagicMock
 
 import pytest
 import httpx
 
 from src.client import VisClient, ServerNotRunning
-from src.server import DEFAULT_PORT, PID_FILE
 
 
 class TestVisClient:
@@ -22,8 +19,8 @@ class TestVisClient:
         """Test client initialization"""
         client = VisClient()
         assert client.host == "127.0.0.1"
-        assert client.port == DEFAULT_PORT
-        assert client.base_url == f"http://127.0.0.1:{DEFAULT_PORT}"
+        assert client.port == 8741
+        assert client.base_url == "http://127.0.0.1:8741"
 
     def test_init_custom_port(self):
         """Test client initialization with custom port"""
