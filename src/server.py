@@ -28,13 +28,21 @@ logger = logging.getLogger(__name__)
 DEFAULT_PORT = 8741
 PID_FILE = Path.home() / ".vis-server.pid"
 
-# Global state
+# Global state - engine is the single source of truth for indexed/document_count
 _state: Dict = {
     "engine": None,
     "config": None,
-    "indexed": False,
-    "document_count": 0,
 }
+
+
+def _is_indexed() -> bool:
+    engine = _state["engine"]
+    return engine is not None and engine.indexed
+
+
+def _document_count() -> int:
+    engine = _state["engine"]
+    return len(engine.documents) if engine and hasattr(engine, 'documents') else 0
 
 
 # Pydantic models
@@ -152,18 +160,12 @@ async def lifespan(app: FastAPI):
             success = engine.build_index()
 
         if success:
-            _state["indexed"] = True
-            _state["document_count"] = len(engine.documents)
-            logger.info(f"✅ Index built successfully: {_state['document_count']} documents")
+            logger.info(f"✅ Index built successfully: {_document_count()} documents")
         else:
             logger.warning("⚠️  Index build failed or no documents found")
-            _state["indexed"] = False
-            _state["document_count"] = 0
 
     except Exception as e:
         logger.error(f"Failed to initialize server: {e}")
-        _state["indexed"] = False
-        _state["document_count"] = 0
 
     yield
 
@@ -171,8 +173,6 @@ async def lifespan(app: FastAPI):
     logger.info("Shutting down Vault Intelligence Server...")
     _state["engine"] = None
     _state["config"] = None
-    _state["indexed"] = False
-    _state["document_count"] = 0
 
 
 def create_app() -> FastAPI:
@@ -188,9 +188,9 @@ def create_app() -> FastAPI:
     async def health_check():
         """Health check endpoint"""
         return HealthResponse(
-            status="ok" if _state["indexed"] else "not_indexed",
-            indexed=_state["indexed"],
-            document_count=_state["document_count"]
+            status="ok" if _is_indexed() else "not_indexed",
+            indexed=_is_indexed(),
+            document_count=_document_count()
         )
 
     @app.get("/search", response_model=SearchResponse)
@@ -202,7 +202,7 @@ def create_app() -> FastAPI:
         rerank: bool = Query(False, description="Enable reranking")
     ):
         """Search endpoint"""
-        if not _state["indexed"]:
+        if not _is_indexed():
             raise HTTPException(status_code=503, detail="Index not built yet")
 
         engine: AdvancedSearchEngine = _state["engine"]
@@ -265,12 +265,9 @@ def create_app() -> FastAPI:
             success = engine.build_index(force_rebuild=force)
 
             if success:
-                _state["indexed"] = True
-                _state["document_count"] = len(engine.documents)
-
                 return ReindexResponse(
-                    document_count=_state["document_count"],
-                    message=f"Successfully reindexed {_state['document_count']} documents"
+                    document_count=_document_count(),
+                    message=f"Successfully reindexed {_document_count()} documents"
                 )
             else:
                 raise HTTPException(status_code=500, detail="Reindex failed")

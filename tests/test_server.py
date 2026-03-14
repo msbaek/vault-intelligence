@@ -185,10 +185,8 @@ def client(test_vault, test_data_dir, mock_engine):
         app = create_app()
         client = TestClient(app)
 
-        # Set state directly for testing
+        # Set engine directly - indexed/document_count derived from engine
         _state["engine"] = mock_engine
-        _state["indexed"] = True
-        _state["document_count"] = len(mock_engine.documents)
 
         yield client
 

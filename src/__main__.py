@@ -284,22 +284,26 @@ def run_search(vault_path: str, query: str, top_k: int, threshold: float, config
     """검색 실행"""
     # 서버가 떠있으면 서버를 통해 검색 (빠른 경로)
     try:
-        from src.client import VisClient
-        client = VisClient()
-        if client.is_server_running():
-            results = client.search(
-                query=query, top_k=top_k, threshold=threshold,
-                search_method=search_method, rerank=use_reranker,
-                auto_start=False,
-            )
-            print(f"\n📄 검색 결과 ({len(results)}개) [서버 모드]:")
-            print("-" * 80)
-            for i, r in enumerate(results, 1):
-                print(f"\n{i}. [{r['score']:.4f}] {r['path']}")
-                if r.get('snippet'):
-                    print(f"   {r['snippet'][:150]}")
-            return True
-    except Exception as e:
+        from src.server import PID_FILE
+        from src.client import VisClient, ServerNotRunning
+        import httpx
+        # PID 파일 존재 여부를 먼저 확인하여 서버 없을 때 HTTP 타임아웃 방지
+        if PID_FILE.exists():
+            client = VisClient()
+            if client.is_server_running():
+                results = client.search(
+                    query=query, top_k=top_k, threshold=threshold,
+                    search_method=search_method, rerank=use_reranker,
+                    auto_start=False,
+                )
+                print(f"\n📄 검색 결과 ({len(results)}개) [서버 모드]:")
+                print("-" * 80)
+                for i, r in enumerate(results, 1):
+                    print(f"\n{i}. [{r['score']:.4f}] {r['path']}")
+                    if r.get('snippet'):
+                        print(f"   {r['snippet'][:150]}")
+                return True
+    except (httpx.HTTPError, ServerNotRunning, ConnectionError) as e:
         logger.debug(f"서버 모드 검색 실패, 로컬 모드로 전환: {e}")
 
     try:
