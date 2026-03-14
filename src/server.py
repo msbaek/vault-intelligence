@@ -142,8 +142,14 @@ async def lifespan(app: FastAPI):
         engine = _init_engine()
         _state["engine"] = engine
 
-        logger.info("Building search index...")
-        success = engine.build_index()
+        # load_index()는 AdvancedSearchEngine 생성자에서 이미 호출됨
+        # 캐시로 복원 성공 시 build_index() 건너뜀
+        if engine.indexed:
+            logger.info("✅ Loaded existing index from cache")
+            success = True
+        else:
+            logger.info("Building search index...")
+            success = engine.build_index()
 
         if success:
             _state["indexed"] = True
