@@ -2,7 +2,8 @@
 """Entry point for running the server as a separate process."""
 
 import argparse
-from src.server import run_server, DEFAULT_PORT
+from src.server import run_server
+from src.constants import DEFAULT_PORT
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(

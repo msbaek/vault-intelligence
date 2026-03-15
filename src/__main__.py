@@ -29,27 +29,46 @@ def get_data_dir(cli_data_dir: str = None) -> Path:
 
 data_dir = get_data_dir()
 
-try:
-    from src.core.sentence_transformer_engine import SentenceTransformerEngine
-    from src.core.embedding_cache import EmbeddingCache
-    from src.core.vault_processor import VaultProcessor
-    from src.features.advanced_search import AdvancedSearchEngine, SearchQuery
-    from src.features.duplicate_detector import DuplicateDetector
-    from src.features.topic_collector import TopicCollector
-    from src.features.topic_analyzer import TopicAnalyzer
-    from src.features.semantic_tagger import SemanticTagger, TaggingResult
-    from src.features.moc_generator import MOCGenerator
-    from src.features.content_clusterer import ContentClusterer
-    from src.features.learning_reviewer import LearningReviewer
-    from src.features.tag_analyzer import TagAnalyzer
-    from src.features.topic_connector import TopicConnector
-    from src.utils.output_manager import resolve_output_path
-    import yaml
-    DEPENDENCIES_AVAILABLE = True
-except ImportError as e:
-    print(f"❌ 모듈 가져오기 실패: {e}")
-    print("필수 의존성이 누락되었습니다.")
-    DEPENDENCIES_AVAILABLE = False
+# Lazy-load ML dependencies to keep CLI startup fast (--help, stop, status)
+_deps_loaded = False
+DEPENDENCIES_AVAILABLE = False
+
+
+def _load_deps():
+    """Load heavy ML dependencies on demand. Returns True if available."""
+    global _deps_loaded, DEPENDENCIES_AVAILABLE
+    global SentenceTransformerEngine, EmbeddingCache, VaultProcessor
+    global AdvancedSearchEngine, SearchQuery, DuplicateDetector
+    global TopicCollector, TopicAnalyzer, SemanticTagger, TaggingResult
+    global MOCGenerator, ContentClusterer, LearningReviewer
+    global TagAnalyzer, TopicConnector, resolve_output_path, yaml
+
+    if _deps_loaded:
+        return DEPENDENCIES_AVAILABLE
+    _deps_loaded = True
+
+    try:
+        from src.core.sentence_transformer_engine import SentenceTransformerEngine
+        from src.core.embedding_cache import EmbeddingCache
+        from src.core.vault_processor import VaultProcessor
+        from src.features.advanced_search import AdvancedSearchEngine, SearchQuery
+        from src.features.duplicate_detector import DuplicateDetector
+        from src.features.topic_collector import TopicCollector
+        from src.features.topic_analyzer import TopicAnalyzer
+        from src.features.semantic_tagger import SemanticTagger, TaggingResult
+        from src.features.moc_generator import MOCGenerator
+        from src.features.content_clusterer import ContentClusterer
+        from src.features.learning_reviewer import LearningReviewer
+        from src.features.tag_analyzer import TagAnalyzer
+        from src.features.topic_connector import TopicConnector
+        from src.utils.output_manager import resolve_output_path
+        import yaml
+        DEPENDENCIES_AVAILABLE = True
+    except ImportError as e:
+        print(f"❌ 모듈 가져오기 실패: {e}")
+        print("필수 의존성이 누락되었습니다.")
+        DEPENDENCIES_AVAILABLE = False
+    return DEPENDENCIES_AVAILABLE
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -57,6 +76,8 @@ logger = logging.getLogger(__name__)
 
 def load_config(config_path: str = None) -> dict:
     """설정 파일 로딩"""
+    import yaml as _yaml
+
     if config_path is None:
         config_path = data_dir / "config" / "settings.yaml"
         if not config_path.exists():
@@ -65,7 +86,7 @@ def load_config(config_path: str = None) -> dict:
 
     try:
         with open(config_path, 'r', encoding='utf-8') as f:
-            config = yaml.safe_load(f)
+            config = _yaml.safe_load(f)
         logger.info(f"설정 파일 로딩 완료: {config_path}")
         return config
     except Exception as e:
@@ -76,8 +97,8 @@ def load_config(config_path: str = None) -> dict:
 def check_dependencies() -> bool:
     """필수 의존성 확인"""
     print("🔍 의존성 확인 중...")
-    
-    if not DEPENDENCIES_AVAILABLE:
+
+    if not _load_deps():
         print("❌ 핵심 모듈을 가져올 수 없습니다.")
         return False
     
@@ -281,31 +302,7 @@ def show_system_info():
 
 
 def run_search(vault_path: str, query: str, top_k: int, threshold: float, config: dict, sample_size: Optional[int] = None, use_reranker: bool = False, search_method: str = "hybrid", use_expansion: bool = False, include_synonyms: bool = True, include_hyde: bool = True, use_centrality: bool = False, centrality_weight: float = 0.2):
-    """검색 실행"""
-    # 서버가 떠있으면 서버를 통해 검색 (빠른 경로)
-    try:
-        from src.server import PID_FILE
-        from src.client import VisClient, ServerNotRunning
-        import httpx
-        # PID 파일 존재 여부를 먼저 확인하여 서버 없을 때 HTTP 타임아웃 방지
-        if PID_FILE.exists():
-            client = VisClient()
-            if client.is_server_running():
-                results = client.search(
-                    query=query, top_k=top_k, threshold=threshold,
-                    search_method=search_method, rerank=use_reranker,
-                    auto_start=False,
-                )
-                print(f"\n📄 검색 결과 ({len(results)}개) [서버 모드]:")
-                print("-" * 80)
-                for i, r in enumerate(results, 1):
-                    print(f"\n{i}. [{r['score']:.4f}] {r['path']}")
-                    if r.get('snippet'):
-                        print(f"   {r['snippet'][:150]}")
-                return True
-    except (httpx.HTTPError, ServerNotRunning, ConnectionError) as e:
-        logger.debug(f"서버 모드 검색 실패, 로컬 모드로 전환: {e}")
-
+    """검색 실행 (로컬 엔진). 서버 모드 검색은 main()에서 처리."""
     try:
         print(f"🔍 검색 시작: '{query}'")
         if sample_size:
@@ -1058,7 +1055,7 @@ def run_tagging(vault_path: str, target: str, recursive: bool, dry_run: bool,
         return False
 
 
-def display_tagging_result(result: TaggingResult):
+def display_tagging_result(result: "TaggingResult"):
     """단일 태깅 결과 표시"""
     print(f"\n📄 태깅 결과: {Path(result.file_path).name}")
     print("-" * 50)
@@ -2202,8 +2199,9 @@ def main():
     p.add_argument("-o", "--output", default=None, help="출력 파일 경로")
 
     # --- serve ---
+    from src.constants import DEFAULT_PORT
     p = subparsers.add_parser("serve", help="백그라운드 검색 서버 시작")
-    p.add_argument("--port", type=int, default=8741, help="서버 포트 (기본값: 8741)")
+    p.add_argument("--port", type=int, default=DEFAULT_PORT, help=f"서버 포트 (기본값: {DEFAULT_PORT})")
 
     # --- stop ---
     subparsers.add_parser("stop", help="검색 서버 중지")
@@ -2224,7 +2222,7 @@ def main():
 
     if not args.command:
         parser.print_help()
-        sys.exit(1)
+        sys.exit(0)
 
     # --data-dir이 지정되면 전역 data_dir 업데이트
     global data_dir
@@ -2233,32 +2231,18 @@ def main():
     if args.verbose:
         logging.getLogger().setLevel(logging.DEBUG)
 
-    # 설정 로딩
-    config = load_config(args.config)
-    
-    # Vault 경로 결정 (CLI 인자가 우선, 없으면 설정 파일에서 읽기)
-    vault_path = args.vault_path
-    if not vault_path:
-        vault_path = config.get('vault', {}).get('path')
-        if not vault_path:
-            print("❌ Vault 경로가 지정되지 않았습니다.")
-            print("다음 중 하나를 수행하세요:")
-            print("1. --vault-path 인자 사용: vis <command> --vault-path /path/to/vault")
-            print("2. config/settings.yaml의 vault.path 설정")
-            sys.exit(1)
-    
-    print(f"📁 사용 중인 Vault 경로: {vault_path}")
-    
-    # 명령어 실행
+    # Fast-path commands: no ML dependencies or config needed
     if args.command == "serve":
         from src.server import run_server
         run_server(port=args.port)
+        return
 
-    elif args.command == "stop":
+    if args.command == "stop":
         from src.client import VisClient
         VisClient.stop_server()
+        return
 
-    elif args.command == "status":
+    if args.command == "status":
         from src.client import VisClient
         client = VisClient()
         if client.is_server_running():
@@ -2268,8 +2252,51 @@ def main():
             print(f"   인덱스: {'구축됨' if info['indexed'] else '미구축'}")
         else:
             print("❌ 서버가 실행 중이 아닙니다. vis serve로 시작하세요.")
+        return
 
-    elif args.command == "info":
+    # search: daemon required
+    if args.command == "search":
+        from src.client import VisClient, ServerNotRunning
+        client = VisClient()
+        try:
+            results = client.search(
+                query=args.query, top_k=args.top_k,
+                threshold=args.threshold,
+                search_method=args.search_method,
+                rerank=args.rerank, auto_start=False,
+            )
+            print(f"\n📄 검색 결과 ({len(results)}개):")
+            print("-" * 80)
+            for i, r in enumerate(results, 1):
+                print(f"\n{i}. [{r['score']:.4f}] {r['path']}")
+                if r.get('snippet'):
+                    print(f"   {r['snippet'][:150]}")
+            print("\n✅ 검색 완료!")
+            return
+        except ServerNotRunning:
+            print("❌ visd가 실행 중이 아닙니다.")
+            print("   visd start")
+            sys.exit(1)
+        except Exception as e:
+            print(f"❌ 서버 통신 오류: {e}")
+            sys.exit(1)
+
+    # All other commands need config and vault path
+    config = load_config(args.config)
+
+    vault_path = args.vault_path
+    if not vault_path:
+        vault_path = config.get('vault', {}).get('path')
+        if not vault_path:
+            print("❌ Vault 경로가 지정되지 않았습니다.")
+            print("다음 중 하나를 수행하세요:")
+            print("1. --vault-path 인자 사용: vis <command> --vault-path /path/to/vault")
+            print("2. config/settings.yaml의 vault.path 설정")
+            sys.exit(1)
+
+    print(f"📁 사용 중인 Vault 경로: {vault_path}")
+
+    if args.command == "info":
         show_system_info()
     
     elif args.command == "test":
@@ -2295,30 +2322,6 @@ def main():
             print("4. vis analyze                  # 주제 분석")
         else:
             print("❌ 초기화 실패!")
-            sys.exit(1)
-    
-    elif args.command == "search":
-        if not check_dependencies():
-            sys.exit(1)
-
-        if run_search(
-            vault_path, 
-            args.query, 
-            args.top_k, 
-            args.threshold, 
-            config,
-            args.sample_size,
-            use_reranker=args.rerank,
-            search_method=args.search_method,
-            use_expansion=args.expand,
-            include_synonyms=not args.no_synonyms,
-            include_hyde=not args.no_hyde,
-            use_centrality=args.with_centrality,
-            centrality_weight=args.centrality_weight
-        ):
-            print("✅ 검색 완료!")
-        else:
-            print("❌ 검색 실패!")
             sys.exit(1)
     
     elif args.command == "duplicates":
@@ -2553,6 +2556,7 @@ def main():
             sys.exit(1)
 
     elif args.command == "list-tags":
+        _load_deps()
         if run_list_tags(
             vault_path=vault_path,
             depth=args.depth,

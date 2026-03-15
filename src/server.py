@@ -20,13 +20,10 @@ from pydantic import BaseModel
 
 from .features.advanced_search import AdvancedSearchEngine, SearchResult
 from .core.vault_processor import Document
+from .constants import DEFAULT_PORT, PID_FILE
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-
-# Constants
-DEFAULT_PORT = 8741
-PID_FILE = Path.home() / ".vis-server.pid"
 
 # Global state - engine is the single source of truth for indexed/document_count
 _state: Dict = {

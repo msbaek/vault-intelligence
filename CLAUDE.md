@@ -87,6 +87,21 @@ vis clean-tags --dry-run
 vis clean-tags
 ```
 
+### 데몬 관리 (visd)
+```bash
+# vis search는 visd 데몬이 필수
+visd start                             # 백그라운드 시작
+visd status                            # 상태 확인 (PID, 문서 수, 인덱스)
+visd stop                              # 중지
+visd restart                           # 재시작
+visd logs 30                           # 최근 로그 30줄
+
+# HTTP API 직접 호출
+curl http://localhost:8741/health
+curl -s --get --data-urlencode "query=TDD" "http://localhost:8741/search?rerank=true&top_k=10"
+curl -X POST "http://localhost:8741/reindex?force=true"
+```
+
 ### ⚠️ 자주 실수하는 옵션들
 ```bash
 # ❌ 잘못된 사용
@@ -128,6 +143,10 @@ vis search "TDD" --rerank                 # --rerank (O)
 
 ```
 src/
+├── constants.py                    # 공유 상수 (DEFAULT_PORT, PID_FILE)
+├── server.py                       # FastAPI 데몬 서버 (HTTP API)
+├── server_runner.py                # 서버 프로세스 런처
+├── client.py                       # HTTP 클라이언트 (visd용)
 ├── core/                           # 핵심 엔진
 │   ├── sentence_transformer_engine.py  # BGE-M3 임베딩 엔진
 │   ├── embedding_cache.py              # SQLite 캐싱 시스템
@@ -283,6 +302,31 @@ learning_review:
 - ⚠️ 메모리 사용량 증가
 
 ## 🔧 주요 API
+
+### 0. 데몬 / HTTP 클라이언트
+
+```bash
+# 데몬 관리 (visd 셸 스크립트)
+visd start        # 백그라운드 시작
+visd status       # 상태 확인
+visd stop         # 중지
+```
+
+```python
+# Python 클라이언트 (visd 실행 중일 때)
+from src.client import VisClient
+
+client = VisClient()
+results = client.search(query="TDD", top_k=10, rerank=True)
+```
+
+**HTTP API 엔드포인트** (기본 포트: 8741):
+
+| 엔드포인트 | 메서드 | 파라미터 | 설명 |
+|-----------|--------|---------|------|
+| `/health` | GET | - | 서버 상태 (`status`, `document_count`, `indexed`) |
+| `/search` | GET | `query`, `top_k`, `threshold`, `search_method`, `rerank` | 검색 |
+| `/reindex` | POST | `force` | 인덱스 재구축 |
 
 ### 1. 검색 엔진 (AdvancedSearchEngine)
 
@@ -455,10 +499,10 @@ stats.print_stats(10)
 - **Phase 8**: MOC 자동 생성
 - **Phase 9**: 다중 문서 요약 시스템 ✨
 - **긴급 수정 (2025-08-27)**: ColBERT 메타데이터 무결성 완전 해결 🔧
+- **Daemon 서버 (2026-03)**: FastAPI 기반 HTTP 서버 모드 (검색 30-200배 가속) 🚀
 
-### 🎯 향후 개발 방향 (Phase 10+)
+### 🎯 향후 개발 방향
 
-- 웹 인터페이스 (FastAPI + React)
 - 실시간 모니터링 대시보드
 - 플러그인 시스템 아키텍처
 - 다중 언어 지원 확장

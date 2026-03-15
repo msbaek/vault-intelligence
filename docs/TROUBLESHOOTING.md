@@ -232,6 +232,63 @@ vis search "YAGNI" --search-method hybrid --rerank
 - ✅ 복합 개념: "clean architecture dependency inversion"  
 - ❌ 단일 약어: "TDD", "YAGNI", "DDD"
 
+## 서버 모드 (Daemon) 문제
+
+### 데몬이 시작되지 않는 경우
+
+**증상**: `visd start` 실행 시 포트 충돌 또는 시작 실패
+
+**해결 방법**:
+```bash
+# 1. 포트 사용 여부 확인
+lsof -i :8741
+
+# 2. 좀비 PID 파일 정리
+rm ~/.vis-server.pid
+
+# 3. 로그 확인
+visd logs
+```
+
+### 데몬이 응답하지 않는 경우
+
+**증상**: `visd status`에서 실행 중이지만 검색이 안 됨
+
+**해결 방법**:
+```bash
+# 1. 헬스 체크 직접 확인
+curl http://localhost:8741/health
+
+# 2. 재시작
+visd restart
+```
+
+### PID 파일이 남아있는 경우
+
+**증상**: `visd status`에서 실행 중으로 표시되지만 실제 프로세스는 없음
+
+**해결 방법**:
+```bash
+# PID 파일 수동 삭제 후 재시작
+rm ~/.vis-server.pid
+visd start
+```
+
+### 검색 시 "visd가 실행 중이 아닙니다" 오류
+
+**증상**: `vis search` 실행 시 데몬 미실행 오류
+
+**해결 방법**:
+```bash
+# 데몬 시작
+visd start
+
+# 상태 확인
+visd status
+```
+
+---
+
 ## 자주 묻는 질문
 
 ### Q: 시각화가 너무 오래 걸려요
@@ -253,6 +310,12 @@ engine.build_index(sample_size=50)  # 50개 문서만 사용
 - ✅ 전문 지식 검색 (기술 문서, 학술 자료)
 - ✅ 정밀도가 중요한 경우 (소수의 정확한 결과)
 - ❌ 단순 키워드나 실시간 검색 (속도 중시)
+
+### Q: visd는 항상 실행해야 하나요?
+**A**: 네, `vis search`는 visd 데몬이 필요합니다. `visd start`로 시작하면 백그라운드에서 실행되므로 한 번 시작하면 됩니다.
+
+### Q: 서버 모드 메모리 사용량은?
+**A**: 약 2-4GB 메모리를 상주 사용합니다 (vault 크기에 따라 변동). 8GB 이상 RAM 환경에서 권장합니다.
 
 ### Q: 한글 외에 다른 언어도 지원하나요?
 **A**: BGE-M3는 다국어를 지원하지만, 시각화 폰트는 별도 설정이 필요합니다.

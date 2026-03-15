@@ -1492,6 +1492,84 @@ vis search "TDD" --expand --no-hyde
 vis search "TDD" --rerank --expand
 ```
 
+### 🖥️ 서버 모드 (Daemon)
+
+BGE-M3 모델과 검색 인덱스를 메모리에 상주시켜 검색 속도를 대폭 향상시킵니다.
+
+#### 데몬 시작 및 관리
+```bash
+# 데몬 시작 (백그라운드)
+visd start
+
+# 상태 확인
+visd status
+# 출력:
+# ✅ visd running (PID: 12345, port: 8741)
+#    Documents: 1234, Indexed: true
+
+# 데몬 중지 / 재시작
+visd stop
+visd restart
+
+# 로그 확인
+visd logs 30
+```
+
+#### 성능
+
+| 작업 | 소요 시간 |
+|------|----------|
+| `visd start` (첫 시작) | 15-20초 (모델 + 인덱스 로딩) |
+| `vis search` (데몬 실행 중) | **0.1-0.5초** |
+| `vis --help` / `visd status` | 0.05초 |
+
+#### 데몬 필수
+
+`vis search` 명령어는 visd 데몬이 실행 중일 때만 동작합니다. 데몬이 없으면 안내 메시지와 함께 종료됩니다.
+
+```bash
+# 데몬 미실행 시
+❯ vis search "TDD"
+❌ visd가 실행 중이 아닙니다.
+   visd start
+```
+
+#### HTTP API 직접 사용
+
+서버가 실행 중이면 HTTP API로 직접 검색할 수 있습니다:
+
+```bash
+# 헬스 체크
+curl http://localhost:8741/health
+
+# 검색 (쿼리 파라미터 방식)
+curl -s --get \
+  --data-urlencode "query=TDD" \
+  --data-urlencode "search_method=hybrid" \
+  --data-urlencode "rerank=true" \
+  --data-urlencode "top_k=10" \
+  "http://localhost:8741/search"
+
+# 재인덱싱 트리거
+curl -X POST "http://localhost:8741/reindex?force=true"
+```
+
+**API 엔드포인트:**
+
+| 엔드포인트 | 메서드 | 설명 |
+|-----------|--------|------|
+| `/health` | GET | 서버 상태 (status, document_count, indexed) |
+| `/search` | GET | 검색 (query, top_k, threshold, search_method, rerank) |
+| `/reindex` | POST | 인덱스 재구축 (force 파라미터) |
+
+#### 언제 사용하나?
+
+#### 메모리 사용
+
+서버 모드는 약 2-4GB 메모리를 상주 사용합니다 (vault 크기에 따라 변동). `visd start`로 시작하면 백그라운드로 실행되므로 터미널을 점유하지 않습니다.
+
+---
+
 ### 🖥️ 시스템 정보 및 모니터링
 
 #### 시스템 정보 확인

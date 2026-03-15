@@ -7,6 +7,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2026-03-15]
+
+### Added
+- `src/constants.py` — `DEFAULT_PORT`, `PID_FILE` 상수 분리 (import chain 차단)
+- `visd` — 데몬 관리 셸 스크립트 (`vis-daemon.sh` 대체)
+
+### Changed
+- CLI lazy import 적용: `vis --help` 7초 → 0.05초, `visd status` → 0.3초
+- `vis search`는 visd 데몬 필수 (로컬 폴백 제거)
+- `vis serve/stop/status` fast-path: config/vault/ML 로딩 없이 즉시 실행
+- TOCTOU PID 파일 체크 제거, `ServerNotRunning` 구체적 예외 처리
+- 문서 전체 `vis-daemon.sh` → `visd`, "투명한 폴백" → "데몬 필수"로 갱신
+
+### Removed
+- `vis-daemon.sh` (`visd`로 대체)
+- `vis search` 로컬 엔진 폴백 (데몬 미실행 시 에러 + 안내만 출력)
+
+## [2026-03-14]
+
+### Added
+- FastAPI 기반 데몬 서버 모드 (`vis serve`)
+- HTTP API 엔드포인트: `/health`, `/search`, `/reindex`
+- HTTP 클라이언트 (`src/client.py`)
+- 서버 프로세스 런처 (`src/server_runner.py`)
+- PID 파일(`~/.vis-server.pid`) 기반 서버 프로세스 관리
+- 서버 API 테스트 (`tests/test_server.py`)
+
+### Changed
+- `vis search`가 데몬 HTTP API 사용 (30-200배 성능 향상)
+- 서버 시작 시 기존 캐시 인덱스 활용으로 빠른 시작 지원
+
+### Dependencies
+- `fastapi>=0.104.0`, `uvicorn[standard]>=0.24.0`, `httpx>=0.25.0` 추가
+
 ## [2026-02-13]
 
 ### Added

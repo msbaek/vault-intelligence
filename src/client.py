@@ -14,7 +14,7 @@ from typing import List, Dict
 
 import httpx
 
-from .server import DEFAULT_PORT, PID_FILE
+from .constants import DEFAULT_PORT, PID_FILE
 
 logger = logging.getLogger(__name__)
 
