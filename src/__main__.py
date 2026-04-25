@@ -2095,6 +2095,16 @@ def _build_parser() -> "argparse.ArgumentParser":
     p.add_argument("--top-k", type=int, default=10, help="상위 K개 결과 (기본값: 10)")
     p.add_argument("--similarity-threshold", type=float, default=0.3, help="유사도 임계값 (기본값: 0.3)")
 
+    # --- get ---
+    p = subparsers.add_parser("get", help="단일/다중 문서 본문 fetch (progressive disclosure layer 3)")
+    p.add_argument("paths", nargs="+", help="문서 path(s) — 1개 이상")
+    p.add_argument(
+        "--format",
+        choices=["markdown", "json"],
+        default="markdown",
+        help="출력 포맷 (기본: markdown)",
+    )
+
     # --- collect ---
     p = subparsers.add_parser("collect", help="주제별 문서 수집")
     p.add_argument("topic", help="수집할 주제")
@@ -2296,6 +2306,41 @@ def main():
                 if include == "full" and r.get('snippet'):
                     print(f"   {r['snippet'][:150]}")
             print("\n✅ 검색 완료!")
+            return
+        except Exception as e:
+            print(f"❌ 오류: {e}")
+            sys.exit(1)
+
+    if args.command == "get":
+        from src.client import VisClient
+        import json as _json
+
+        client = VisClient()
+        try:
+            if len(args.paths) == 1:
+                doc = client.get_document(args.paths[0])
+                docs = [doc]
+                not_found: list[str] = []
+            else:
+                response = client.get_documents(args.paths)
+                docs = response.get("documents", [])
+                not_found = response.get("not_found", [])
+
+            if args.format == "json":
+                print(_json.dumps({"documents": docs, "not_found": not_found}, ensure_ascii=False, indent=2))
+            else:
+                for d in docs:
+                    print(f"\n# {d.get('title', d['path'])} ({d['path']})\n")
+                    fm = d.get("frontmatter", {})
+                    if fm:
+                        print("---")
+                        for k, v in fm.items():
+                            print(f"{k}: {v}")
+                        print("---\n")
+                    print(d.get("content", ""))
+                    print("\n" + "─" * 80)
+                if not_found:
+                    print(f"\n⚠️  Not found: {', '.join(not_found)}")
             return
         except Exception as e:
             print(f"❌ 오류: {e}")

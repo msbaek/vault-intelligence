@@ -38,3 +38,30 @@ def test_search_titles_and_full_mutually_exclusive():
     parser = _build_parser()
     with pytest.raises(SystemExit):
         parser.parse_args(["search", "x", "--titles-only", "--full-content"])
+
+
+def test_get_subcommand_single_path():
+    """vis get 단일 path 파싱."""
+    from src.__main__ import _build_parser
+    parser = _build_parser()
+    args = parser.parse_args(["get", "한글-문서.md"])
+    assert args.command == "get"
+    assert args.paths == ["한글-문서.md"]
+    assert args.format == "markdown"
+
+
+def test_get_subcommand_multiple_paths():
+    """vis get 다중 path + --format json 파싱."""
+    from src.__main__ import _build_parser
+    parser = _build_parser()
+    args = parser.parse_args(["get", "a.md", "b.md", "한글.md", "--format", "json"])
+    assert args.paths == ["a.md", "b.md", "한글.md"]
+    assert args.format == "json"
+
+
+def test_get_subcommand_default_format():
+    """기본 format은 markdown."""
+    from src.__main__ import _build_parser
+    parser = _build_parser()
+    args = parser.parse_args(["get", "x.md"])
+    assert args.format == "markdown"
