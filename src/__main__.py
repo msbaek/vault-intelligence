@@ -2043,8 +2043,8 @@ def run_moc_generation(
         return False
 
 
-def main():
-    """메인 함수"""
+def _build_parser() -> "argparse.ArgumentParser":
+    """argparse 파서를 빌드. 테스트에서 직접 호출 가능하도록 main()에서 분리."""
     parser = argparse.ArgumentParser(
         prog="vis",
         description="Vault Intelligence System - Sentence Transformers 기반 지능형 검색 시스템"
@@ -2072,6 +2072,22 @@ def main():
     p.add_argument("--centrality-weight", type=float, default=0.2, help="중심성 점수 가중치 (0.0-1.0, 기본값: 0.2)")
     p.add_argument("--sample-size", type=int, help="샘플링할 문서 수 (대규모 vault 성능 최적화용)")
     p.add_argument("--output", nargs='?', const="", help="출력 파일 저장 (--output만 사용하면 기본 파일명, --output FILE로 지정)")
+    # progressive disclosure: mutually exclusive group
+    include_group = p.add_mutually_exclusive_group()
+    include_group.add_argument(
+        "--titles-only",
+        action="store_true",
+        dest="titles_only",
+        default=False,
+        help="인덱스(path/score/title)만 출력 — 토큰 절감용",
+    )
+    include_group.add_argument(
+        "--full-content",
+        action="store_true",
+        dest="full_content",
+        default=False,
+        help="snippet 포함 (기본값과 동일)",
+    )
 
     # --- related ---
     p = subparsers.add_parser("related", help="관련 문서 찾기")
@@ -2218,6 +2234,12 @@ def main():
     # --- info ---
     subparsers.add_parser("info", help="시스템 정보 확인")
 
+    return parser
+
+
+def main():
+    """메인 함수"""
+    parser = _build_parser()
     args = parser.parse_args()
 
     if not args.command:
@@ -2259,17 +2281,19 @@ def main():
         from src.client import VisClient
         client = VisClient()
         try:
+            include = "index" if getattr(args, "titles_only", False) else "full"
             results = client.search(
                 query=args.query, top_k=args.top_k,
                 threshold=args.threshold,
                 search_method=args.search_method,
                 rerank=args.rerank,
+                include=include,
             )
             print(f"\n📄 검색 결과 ({len(results)}개):")
             print("-" * 80)
             for i, r in enumerate(results, 1):
                 print(f"\n{i}. [{r['score']:.4f}] {r['path']}")
-                if r.get('snippet'):
+                if include == "full" and r.get('snippet'):
                     print(f"   {r['snippet'][:150]}")
             print("\n✅ 검색 완료!")
             return
