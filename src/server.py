@@ -231,7 +231,7 @@ def create_app() -> FastAPI:
             document_count=_document_count()
         )
 
-    @app.get("/search", response_model=SearchResponse)
+    @app.get("/search", response_model=SearchResponse, response_model_exclude_none=True)
     async def search(
         query: str = Query(..., description="Search query"),
         top_k: int = Query(10, description="Number of results to return"),
