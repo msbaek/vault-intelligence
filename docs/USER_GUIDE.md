@@ -201,6 +201,92 @@ vis search \
 - ❌ **단순 키워드 검색** (단일 용어)
 - ❌ **실시간 검색** (응답 속도 중시)
 
+## 🪄 Progressive Disclosure 검색 (token 절감)
+
+대량의 검색 결과를 빠르게 탐색하고, 관심 있는 문서만 본문을 가져오는 3-layer 패턴입니다. Claude Code와 함께 사용할 때 특히 효과적입니다.
+
+### 왜 필요한가?
+
+일반 `vis search`는 각 결과의 snippet(~200자)까지 반환합니다. 30개 결과를 가져오면 응답이 크고, Claude의 컨텍스트를 많이 소비합니다. Progressive Disclosure는 이를 3단계로 분리합니다.
+
+### Layer 1: 인덱스 탐색 (--titles-only)
+
+```bash
+# path/score/title만 반환 — 응답 크기 ~64% 절감
+vis search "TDD 리팩토링" --titles-only --top-k 30
+
+# 출력 예시:
+# 1. [0.9234] 002-TDD/리팩토링-기법.md
+# 2. [0.8891] 002-TDD/extract-method.md
+# 3. [0.8720] 003-DESIGN/refactoring-patterns.md
+```
+
+`--titles-only`와 `--full-content`는 상호 배타적입니다:
+- `--titles-only` → `include=index` (snippet 없음)
+- `--full-content` → `include=full` (기본값과 동일)
+- 옵션 미지정 → 기본 full 출력 (기존 동작 유지)
+
+### Layer 2: 관련 문서 탐색 (vis related)
+
+```bash
+# 관심 문서의 의미적 이웃 확인
+vis related "002-TDD/리팩토링-기법.md" --top-k 5
+```
+
+### Layer 3: 본문 fetch (vis get)
+
+```bash
+# 단일 문서 본문 — markdown 포맷
+vis get "002-TDD/리팩토링-기법.md"
+
+# 다중 문서 batch fetch
+vis get "002-TDD/리팩토링-기법.md" "002-TDD/extract-method.md"
+
+# JSON 포맷 (파이프라인 입력, 프로그래밍 활용)
+vis get "경로.md" --format json
+```
+
+`vis get`이 반환하는 JSON 구조:
+```json
+{
+  "path": "002-TDD/리팩토링-기법.md",
+  "title": "리팩토링 기법",
+  "content": "# 리팩토링 기법\n...",
+  "frontmatter": {"tags": ["TDD", "refactoring"]},
+  "tags": ["TDD", "refactoring"],
+  "word_count": 1200,
+  "char_count": 6000
+}
+```
+
+### HTTP API (서버 모드)
+
+```bash
+# titles-only 검색
+curl -s "http://localhost:8741/search?query=TDD&include=index&top_k=30"
+
+# 단일 문서 fetch
+curl "http://localhost:8741/document?path=002-TDD/리팩토링-기법.md"
+
+# 다중 문서 batch fetch
+curl -X POST "http://localhost:8741/document/batch" \
+     -H "Content-Type: application/json" \
+     -d '{"paths": ["경로1.md", "경로2.md"]}'
+# 반환: {"documents": [...], "not_found": [...]}
+```
+
+### 실전 워크플로우 (Claude Code)
+
+```bash
+# Step 1: 30개 결과를 빠르게 훑기 (token 절감)
+vis search "리팩토링 패턴" --titles-only --top-k 30
+
+# Step 2: 관심 있는 2-3개 문서만 본문 가져오기
+vis get "002-TDD/extract-method.md" "003-DESIGN/refactoring-patterns.md"
+```
+
+이 패턴으로 Claude Code 세션에서 **컨텍스트 사용량을 60%+ 줄이면서** 동일한 탐색 깊이를 유지할 수 있습니다.
+
 ## 🕸️ 지식 그래프 기능 (Phase 6)
 
 ### 관련 문서 추천

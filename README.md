@@ -22,6 +22,11 @@ vis search "TDD" --search-method colbert      # ColBERT 토큰 검색
 vis search "TDD" --rerank                     # Cross-encoder 재순위화 (최고 품질)
 vis search "TDD" --rerank --expand            # 재순위화 + 쿼리 확장 (최대 포괄)
 
+# 문서 본문 fetch (progressive disclosure)
+vis search "TDD" --titles-only --top-k 30  # 인덱스만, ~64% 토큰 절감
+vis get "<path>"                            # 단일 문서 본문
+vis get "path1.md" "path2.md"              # 다중 batch fetch
+
 # 관련 문서 찾기
 vis related "문서명.md" --top-k 10
 
@@ -73,7 +78,7 @@ vis search "TDD" --output results.md
 대량 결과를 빠르게 훑은 뒤 관심 있는 문서만 본문을 가져오는 3-layer 패턴:
 
 ```bash
-# Layer 1: 인덱스만 (path/score/title) — 토큰 ~57% 절감
+# Layer 1: 인덱스만 (path/score/title) — 토큰 ~64% 절감
 vis search "TDD 리팩토링" --titles-only --top-k 30
 
 # Layer 2: 의미적 이웃 탐색 (기존 명령)
@@ -130,6 +135,8 @@ vis search "TDD" --rerank             # HTTP API로 즉시 응답
 
 # HTTP API 직접 호출
 curl -s "http://localhost:8741/search?query=TDD&rerank=true"
+curl -s "http://localhost:8741/search?query=TDD&include=index&top_k=30"   # titles-only
+curl "http://localhost:8741/document?path=문서경로.md"                     # 단일 문서 fetch
 curl http://localhost:8741/health
 ```
 

@@ -12,7 +12,8 @@
 
 1. [Claude Code 대화형 사용](#-claude-code-대화형-사용) ⭐ 권장
 2. [서버 모드 (Daemon) 활용 예제](#-서버-모드-daemon-활용-예제) 🆕
-3. [검색 예제](#-검색-예제)
+3. [Progressive Disclosure 패턴](#예제-5-progressive-disclosure-패턴-token-절감) 🆕
+4. [검색 예제](#-검색-예제)
 4. [중복 감지 예제](#-중복-감지-예제)
 5. [주제 수집 예제](#-주제-수집-예제)
 6. [MOC 자동 생성 예제](#-moc-자동-생성-예제)
@@ -147,6 +148,53 @@ for topic in topics:
 curl -s --get \
   --data-urlencode "query=핵심 키워드" \
   "http://localhost:8741/search?search_method=hybrid&rerank=true&top_k=10"
+```
+
+### 예제 5: Progressive Disclosure 패턴 (token 절감)
+
+```bash
+# Step 1: 인덱스만 가져오기 (~64% 토큰 절감)
+curl -s --get \
+  --data-urlencode "query=TDD 리팩토링" \
+  "http://localhost:8741/search?include=index&top_k=20" | jq '.results[] | "\(.rank). [\(.score)] \(.path)"'
+
+# Step 2: 관심 문서만 본문 fetch
+curl "http://localhost:8741/document?path=002-TDD/리팩토링-기법.md" | jq '{title, content}'
+
+# 다중 batch fetch
+curl -X POST "http://localhost:8741/document/batch" \
+  -H "Content-Type: application/json" \
+  -d '{"paths": ["002-TDD/리팩토링-기법.md", "003-DESIGN/patterns.md"]}' \
+  | jq '.documents[] | {path, title}'
+```
+
+### 예제 6: Python 클라이언트 Progressive Disclosure
+
+```python
+from src.client import VisClient
+
+client = VisClient()
+
+# Step 1: 인덱스 탐색 (빠르고 가벼움)
+index_results = client.search(
+    query="TDD 리팩토링",
+    top_k=20,
+    include="index",   # path/score/title만 반환
+)
+
+# Step 2: 관심 있는 문서만 선택
+interesting = [r["path"] for r in index_results[:3] if r["score"] > 0.8]
+
+# Step 3: 본문 batch fetch
+if len(interesting) == 1:
+    doc = client.get_document(interesting[0])
+    print(doc["content"])
+else:
+    result = client.get_documents(interesting)
+    for doc in result["documents"]:
+        print(f"\n## {doc['title']}\n{doc['content'][:500]}")
+    if result["not_found"]:
+        print(f"Not found: {result['not_found']}")
 ```
 
 ---
