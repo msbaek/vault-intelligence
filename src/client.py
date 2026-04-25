@@ -109,6 +109,7 @@ class VisClient:
         threshold: float = 0.0,
         search_method: str = "hybrid",
         rerank: bool = False,
+        include: str = "full",
         auto_start: bool = True
     ) -> List[Dict]:
         """
@@ -120,6 +121,7 @@ class VisClient:
             threshold: Similarity threshold
             search_method: Search method (semantic, keyword, hybrid, colbert)
             rerank: Enable reranking
+            include: Response depth — 'full'(default, snippet 포함) or 'index'(path/score/title/rank만)
             auto_start: Auto-start server if not running
 
         Returns:
@@ -140,7 +142,8 @@ class VisClient:
             "top_k": top_k,
             "threshold": threshold,
             "search_method": search_method,
-            "rerank": rerank
+            "rerank": rerank,
+            "include": include,
         }
 
         # Execute request
@@ -149,6 +152,49 @@ class VisClient:
             response.raise_for_status()
             data = response.json()
             return data.get("results", [])
+
+    def get_document(self, path: str, auto_start: bool = True) -> Dict:
+        """단일 문서 본문 fetch.
+
+        Args:
+            path: Document path (vault-relative)
+            auto_start: Auto-start server if not running
+
+        Returns:
+            Document dict (path, title, content, frontmatter, tags, word_count, char_count)
+        """
+        if not self.is_server_running():
+            if not auto_start:
+                raise ServerNotRunning("Server is not running.")
+            self._ensure_server()
+
+        with httpx.Client(timeout=30.0) as client:
+            response = client.get(f"{self.base_url}/document", params={"path": path})
+            response.raise_for_status()
+            return response.json()
+
+    def get_documents(self, paths: List[str], auto_start: bool = True) -> Dict:
+        """다중 문서 batch fetch.
+
+        Args:
+            paths: List of document paths (vault-relative)
+            auto_start: Auto-start server if not running
+
+        Returns:
+            Dict with 'documents' list and 'not_found' list
+        """
+        if not self.is_server_running():
+            if not auto_start:
+                raise ServerNotRunning("Server is not running.")
+            self._ensure_server()
+
+        with httpx.Client(timeout=30.0) as client:
+            response = client.post(
+                f"{self.base_url}/document/batch",
+                json={"paths": paths},
+            )
+            response.raise_for_status()
+            return response.json()
 
     def reindex(self, force: bool = False) -> Dict:
         """

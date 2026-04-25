@@ -37,3 +37,6 @@ include = ["src*"]
 
 [tool.setuptools.package-data]
 "*" = ["*.yaml", "*.yml"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]

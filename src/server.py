@@ -11,7 +11,7 @@ import sys
 import logging
 import signal
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict, List, Literal, Optional
 from contextlib import asynccontextmanager
 
 import yaml
@@ -46,13 +46,13 @@ def _document_count() -> int:
 
 # Pydantic models
 class SearchResultResponse(BaseModel):
-    """Single search result"""
+    """Single search result. snippet/match_type은 include=index 모드에서 생략됨."""
     path: str
     score: float
     title: str
-    snippet: str
     rank: int = 0
-    match_type: str = ""
+    snippet: Optional[str] = None
+    match_type: Optional[str] = None
 
 
 class SearchResponse(BaseModel):
@@ -74,6 +74,28 @@ class HealthResponse(BaseModel):
     status: str
     indexed: bool
     document_count: int
+
+
+class DocumentResponse(BaseModel):
+    """단일 문서 본문 응답."""
+    path: str
+    title: str
+    content: str
+    frontmatter: Dict
+    tags: List[str] = []
+    word_count: int = 0
+    char_count: int = 0
+
+
+class DocumentBatchRequest(BaseModel):
+    """다중 문서 batch fetch 요청."""
+    paths: List[str]
+
+
+class DocumentBatchResponse(BaseModel):
+    """다중 문서 batch fetch 응답."""
+    documents: List[DocumentResponse]
+    not_found: List[str] = []
 
 
 def _get_config() -> Dict:
@@ -120,18 +142,25 @@ def _init_engine() -> AdvancedSearchEngine:
     return engine
 
 
-def _convert_search_result(result: SearchResult, rank: int = 0) -> SearchResultResponse:
-    """Convert SearchResult to SearchResultResponse"""
-    # Extract document info
+def _convert_search_result(
+    result: SearchResult,
+    rank: int = 0,
+    include: Literal["full", "index"] = "full",
+) -> SearchResultResponse:
+    """Convert SearchResult to SearchResultResponse. include='index' omits snippet/match_type."""
     doc: Document = result.document
-
+    base = {
+        "path": doc.path,
+        "score": result.similarity_score,
+        "title": doc.title or Path(doc.path).stem,
+        "rank": rank,
+    }
+    if include == "index":
+        return SearchResultResponse(**base)
     return SearchResultResponse(
-        path=doc.path,
-        score=result.similarity_score,
-        title=doc.title,
-        snippet=result.snippet or "",
-        rank=rank,
-        match_type=result.match_type
+        **base,
+        snippet=result.snippet or None,
+        match_type=result.match_type or None,
     )
 
 
@@ -202,13 +231,17 @@ def create_app() -> FastAPI:
             document_count=_document_count()
         )
 
-    @app.get("/search", response_model=SearchResponse)
+    @app.get("/search", response_model=SearchResponse, response_model_exclude_none=True)
     async def search(
         query: str = Query(..., description="Search query"),
         top_k: int = Query(10, description="Number of results to return"),
         threshold: float = Query(0.0, description="Similarity threshold"),
         search_method: str = Query("hybrid", description="Search method: semantic, keyword, hybrid, colbert"),
-        rerank: bool = Query(False, description="Enable reranking")
+        rerank: bool = Query(False, description="Enable reranking"),
+        include: Literal["full", "index"] = Query(
+            "full",
+            description="Response depth: 'full'(snippet 포함) or 'index'(path/score/title/rank만)",
+        ),
     ):
         """Search endpoint"""
         if not _is_indexed():
@@ -244,7 +277,7 @@ def create_app() -> FastAPI:
 
             # Convert results
             response_results = [
-                _convert_search_result(r, rank=i+1)
+                _convert_search_result(r, rank=i+1, include=include)
                 for i, r in enumerate(results)
             ]
 
@@ -284,6 +317,59 @@ def create_app() -> FastAPI:
         except Exception as e:
             logger.error(f"Reindex failed: {e}")
             raise HTTPException(status_code=500, detail=f"Reindex failed: {str(e)}")
+
+    @app.get("/document", response_model=DocumentResponse)
+    async def get_document(path: str = Query(..., description="Document path (vault-relative)")):
+        """단일 문서 본문/frontmatter 반환."""
+        if not _is_indexed():
+            raise HTTPException(status_code=503, detail="Index not built yet")
+        engine: AdvancedSearchEngine = _state["engine"]
+        if engine is None:
+            raise HTTPException(status_code=503, detail="Search engine not initialized")
+
+        doc = next((d for d in engine.documents if d.path == path), None)
+        if doc is None:
+            raise HTTPException(status_code=404, detail=f"Document not found: {path}")
+
+        return DocumentResponse(
+            path=doc.path,
+            title=doc.title or "",
+            content=doc.content or "",
+            frontmatter=doc.frontmatter or {},
+            tags=list(doc.tags or []),
+            word_count=getattr(doc, "word_count", 0),
+            char_count=getattr(doc, "char_count", 0),
+        )
+
+    @app.post("/document/batch", response_model=DocumentBatchResponse)
+    async def get_document_batch(request: DocumentBatchRequest):
+        """다중 문서 batch fetch — not found는 not_found 배열로 반환."""
+        if not _is_indexed():
+            raise HTTPException(status_code=503, detail="Index not built yet")
+        engine: AdvancedSearchEngine = _state["engine"]
+        if engine is None:
+            raise HTTPException(status_code=503, detail="Search engine not initialized")
+
+        by_path = {d.path: d for d in engine.documents}
+        documents: List[DocumentResponse] = []
+        not_found: List[str] = []
+
+        for p in request.paths:
+            doc = by_path.get(p)
+            if doc is None:
+                not_found.append(p)
+                continue
+            documents.append(DocumentResponse(
+                path=doc.path,
+                title=doc.title or "",
+                content=doc.content or "",
+                frontmatter=doc.frontmatter or {},
+                tags=list(doc.tags or []),
+                word_count=getattr(doc, "word_count", 0),
+                char_count=getattr(doc, "char_count", 0),
+            ))
+
+        return DocumentBatchResponse(documents=documents, not_found=not_found)
 
     return app
 

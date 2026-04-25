@@ -366,5 +366,127 @@ def test_concurrent_searches(client):
         assert response.status_code == 200
 
 
+def test_search_result_response_optional_fields():
+    """SearchResultResponse는 snippet/match_type 없이도 직렬화 가능해야 한다."""
+    from src.server import SearchResultResponse
+
+    minimal = SearchResultResponse(path="ko/한글-문서.md", score=0.85, title="한글 문서", rank=1)
+    payload = minimal.model_dump(exclude_none=True)
+
+    assert "snippet" not in payload
+    assert "match_type" not in payload
+    assert payload["title"] == "한글 문서"
+    assert payload["path"] == "ko/한글-문서.md"
+
+
+def test_search_endpoint_include_index_excludes_snippet(client):
+    """include=index 모드에서 snippet/match_type이 응답에서 제외되어야 한다."""
+    response = client.get("/search", params={"query": "한글 검색", "include": "index"})
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["results"], "검색 결과가 비어있음"
+    for r in body["results"]:
+        assert r.get("snippet") is None
+        assert r.get("match_type") is None
+        assert {"path", "score", "title", "rank"}.issubset(r.keys())
+
+
+def test_search_endpoint_default_include_keeps_snippet(client):
+    """include 미지정(기본값) 시 기존 동작 유지 — snippet 포함."""
+    response = client.get("/search", params={"query": "python"})
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["results"]
+    assert body["results"][0].get("snippet") is not None
+
+
+def test_search_endpoint_include_full_explicit(client):
+    """include=full 명시 시에도 snippet 포함."""
+    response = client.get("/search", params={"query": "python", "include": "full"})
+
+    assert response.status_code == 200
+    assert response.json()["results"][0].get("snippet") is not None
+
+
+def test_search_endpoint_include_invalid_returns_422(client):
+    """잘못된 include 값은 422 반환."""
+    response = client.get("/search", params={"query": "x", "include": "garbage"})
+    assert response.status_code == 422
+
+
+def test_get_document_returns_full_content(client):
+    """GET /document?path=...로 본문/title 반환."""
+    response = client.get("/document", params={"path": "test_doc1.md"})
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["path"] == "test_doc1.md"
+    assert body["title"] == "Test Document 1"
+    assert "Python" in body["content"]
+    assert isinstance(body["frontmatter"], dict)
+    assert "test" in body["tags"]
+
+
+def test_get_document_not_found(client):
+    """존재하지 않는 path는 404."""
+    response = client.get("/document", params={"path": "does-not-exist.md"})
+    assert response.status_code == 404
+
+
+def test_get_document_503_when_not_indexed(client):
+    """엔진 미초기화 시 503.
+
+    Note: 현재 client fixture는 항상 mock_engine을 사용하므로
+    직접 _state["engine"] = None을 설정해야 함.
+    """
+    from src.server import _state
+    original = _state["engine"]
+    _state["engine"] = None
+    try:
+        response = client.get("/document", params={"path": "test_doc1.md"})
+        assert response.status_code == 503
+    finally:
+        _state["engine"] = original
+
+
+def test_get_document_batch_returns_multiple(client):
+    """POST /document/batch — 다중 path를 한 번에 가져온다."""
+    response = client.post(
+        "/document/batch",
+        json={"paths": ["test_doc1.md", "test_doc2.md"]},
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert len(body["documents"]) == 2
+    assert {d["path"] for d in body["documents"]} == {"test_doc1.md", "test_doc2.md"}
+    assert body["not_found"] == []
+
+
+def test_get_document_batch_partial_not_found(client):
+    """일부 path만 존재해도 200, 못 찾은 path는 not_found로."""
+    response = client.post(
+        "/document/batch",
+        json={"paths": ["test_doc1.md", "missing.md"]},
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert len(body["documents"]) == 1
+    assert body["documents"][0]["path"] == "test_doc1.md"
+    assert body["not_found"] == ["missing.md"]
+
+
+def test_get_document_batch_empty_paths(client):
+    """빈 paths는 200 with empty results."""
+    response = client.post("/document/batch", json={"paths": []})
+    assert response.status_code == 200
+    body = response.json()
+    assert body["documents"] == []
+    assert body["not_found"] == []
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
