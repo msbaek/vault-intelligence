@@ -2254,16 +2254,16 @@ def main():
             print("❌ 서버가 실행 중이 아닙니다. vis serve로 시작하세요.")
         return
 
-    # search: daemon required
+    # search: daemon required (auto-starts visd if not running)
     if args.command == "search":
-        from src.client import VisClient, ServerNotRunning
+        from src.client import VisClient
         client = VisClient()
         try:
             results = client.search(
                 query=args.query, top_k=args.top_k,
                 threshold=args.threshold,
                 search_method=args.search_method,
-                rerank=args.rerank, auto_start=False,
+                rerank=args.rerank,
             )
             print(f"\n📄 검색 결과 ({len(results)}개):")
             print("-" * 80)
@@ -2273,12 +2273,8 @@ def main():
                     print(f"   {r['snippet'][:150]}")
             print("\n✅ 검색 완료!")
             return
-        except ServerNotRunning:
-            print("❌ visd가 실행 중이 아닙니다.")
-            print("   visd start")
-            sys.exit(1)
         except Exception as e:
-            print(f"❌ 서버 통신 오류: {e}")
+            print(f"❌ 오류: {e}")
             sys.exit(1)
 
     # All other commands need config and vault path

@@ -55,45 +55,40 @@ class VisClient:
 
     def _start_server(self) -> None:
         """
-        Start server as background process.
+        Start server via visd shell script (handles logging and PID management).
 
         Raises:
-            RuntimeError: If server fails to start within 30 seconds
+            RuntimeError: If visd fails to start within 60 seconds
         """
-        logger.info(f"Starting vis server on {self.host}:{self.port}...")
+        import shutil
+        print("🚀 visd가 실행 중이 아닙니다. 자동으로 시작합니다...")
 
-        # Start server process
-        cmd = [
-            sys.executable,
-            "-m",
-            "src.server_runner",
-            "--host", self.host,
-            "--port", str(self.port)
-        ]
+        visd = shutil.which("visd")
+        if visd:
+            try:
+                result = subprocess.run([visd, "start"], capture_output=True, text=True, timeout=70)
+                if result.returncode == 0:
+                    print(f"✅ {result.stdout.strip()}")
+                    return
+                else:
+                    raise RuntimeError(f"visd start failed: {result.stderr.strip() or result.stdout.strip()}")
+            except subprocess.TimeoutExpired:
+                raise RuntimeError("visd start timed out after 70 seconds")
 
+        # Fallback: direct server_runner (no visd available)
+        logger.info(f"visd not found, starting server directly on {self.host}:{self.port}...")
+        cmd = [sys.executable, "-m", "src.server_runner", "--host", self.host, "--port", str(self.port)]
         try:
-            # Start process in new session (detached)
-            process = subprocess.Popen(
-                cmd,
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-                start_new_session=True
-            )
-            logger.info(f"Server process started with PID: {process.pid}")
-
+            subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
         except Exception as e:
             raise RuntimeError(f"Failed to start server process: {e}")
 
-        # Wait for server to be ready (up to 30 seconds)
-        max_wait = 30
+        max_wait = 60
         start_time = time.time()
-
         while time.time() - start_time < max_wait:
             if self.is_server_running():
-                logger.info("✅ Server is ready")
                 return
-
-            time.sleep(0.5)
+            time.sleep(1)
 
         raise RuntimeError(f"Server failed to start within {max_wait} seconds")
 

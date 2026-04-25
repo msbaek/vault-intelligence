@@ -5,6 +5,7 @@ FastAPI-based daemon server for Vault Intelligence System V2
 Keeps BGE-M3 model and index in memory for fast search responses.
 """
 
+import asyncio
 import os
 import sys
 import logging
@@ -29,6 +30,7 @@ logger = logging.getLogger(__name__)
 _state: Dict = {
     "engine": None,
     "config": None,
+    "initializing": False,
 }
 
 
@@ -133,40 +135,43 @@ def _convert_search_result(result: SearchResult, rank: int = 0) -> SearchResultR
     )
 
 
+async def _build_index_background():
+    """Build index in background thread so health endpoint responds immediately"""
+    _state["initializing"] = True
+    try:
+        engine = await asyncio.get_event_loop().run_in_executor(None, _init_engine)
+        _state["engine"] = engine
+
+        if engine.indexed:
+            logger.info("✅ Loaded existing index from cache")
+        else:
+            logger.info("Building search index...")
+            success = await asyncio.get_event_loop().run_in_executor(None, engine.build_index)
+            if not success:
+                logger.warning("⚠️  Index build failed or no documents found")
+
+        logger.info(f"✅ Index ready: {_document_count()} documents")
+    except Exception as e:
+        logger.error(f"Failed to initialize engine: {e}")
+    finally:
+        _state["initializing"] = False
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Lifespan context manager for startup/shutdown"""
-    # Startup
     logger.info("Starting Vault Intelligence Server...")
 
-    try:
-        config = _get_config()
-        _state["config"] = config
+    config = _get_config()
+    _state["config"] = config
 
-        logger.info("Initializing search engine...")
-        engine = _init_engine()
-        _state["engine"] = engine
-
-        # load_index()는 AdvancedSearchEngine 생성자에서 이미 호출됨
-        # 캐시로 복원 성공 시 build_index() 건너뜀
-        if engine.indexed:
-            logger.info("✅ Loaded existing index from cache")
-            success = True
-        else:
-            logger.info("Building search index...")
-            success = engine.build_index()
-
-        if success:
-            logger.info(f"✅ Index built successfully: {_document_count()} documents")
-        else:
-            logger.warning("⚠️  Index build failed or no documents found")
-
-    except Exception as e:
-        logger.error(f"Failed to initialize server: {e}")
+    # Start index building in background — health endpoint available immediately
+    task = asyncio.create_task(_build_index_background())
 
     yield
 
     # Shutdown
+    task.cancel()
     logger.info("Shutting down Vault Intelligence Server...")
     _state["engine"] = None
     _state["config"] = None
@@ -184,8 +189,15 @@ def create_app() -> FastAPI:
     @app.get("/health", response_model=HealthResponse)
     async def health_check():
         """Health check endpoint"""
+        if _state["initializing"]:
+            status = "initializing"
+        elif _is_indexed():
+            status = "ok"
+        else:
+            status = "not_indexed"
+
         return HealthResponse(
-            status="ok" if _is_indexed() else "not_indexed",
+            status=status,
             indexed=_is_indexed(),
             document_count=_document_count()
         )
