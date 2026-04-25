@@ -159,8 +159,8 @@ def _convert_search_result(
         return SearchResultResponse(**base)
     return SearchResultResponse(
         **base,
-        snippet=result.snippet or "",
-        match_type=result.match_type or "",
+        snippet=result.snippet or None,
+        match_type=result.match_type or None,
     )
 
 

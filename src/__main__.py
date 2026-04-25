@@ -2318,9 +2318,17 @@ def main():
         client = VisClient()
         try:
             if len(args.paths) == 1:
-                doc = client.get_document(args.paths[0])
-                docs = [doc]
-                not_found: list[str] = []
+                import httpx as _httpx
+                try:
+                    doc = client.get_document(args.paths[0])
+                    docs = [doc]
+                    not_found: list[str] = []
+                except _httpx.HTTPStatusError as e:
+                    if e.response.status_code == 404:
+                        docs = []
+                        not_found = [args.paths[0]]
+                    else:
+                        raise
             else:
                 response = client.get_documents(args.paths)
                 docs = response.get("documents", [])
@@ -2330,7 +2338,7 @@ def main():
                 print(_json.dumps({"documents": docs, "not_found": not_found}, ensure_ascii=False, indent=2))
             else:
                 for d in docs:
-                    print(f"\n# {d.get('title', d['path'])} ({d['path']})\n")
+                    print(f"\n# {d.get('title') or d['path']} ({d['path']})\n")
                     fm = d.get("frontmatter", {})
                     if fm:
                         print("---")
