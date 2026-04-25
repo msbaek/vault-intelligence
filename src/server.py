@@ -341,6 +341,36 @@ def create_app() -> FastAPI:
             char_count=getattr(doc, "char_count", 0),
         )
 
+    @app.post("/document/batch", response_model=DocumentBatchResponse)
+    async def get_document_batch(request: DocumentBatchRequest):
+        """다중 문서 batch fetch — not found는 not_found 배열로 반환."""
+        if not _is_indexed():
+            raise HTTPException(status_code=503, detail="Index not built yet")
+        engine: AdvancedSearchEngine = _state["engine"]
+        if engine is None:
+            raise HTTPException(status_code=503, detail="Search engine not initialized")
+
+        by_path = {d.path: d for d in engine.documents}
+        documents: List[DocumentResponse] = []
+        not_found: List[str] = []
+
+        for p in request.paths:
+            doc = by_path.get(p)
+            if doc is None:
+                not_found.append(p)
+                continue
+            documents.append(DocumentResponse(
+                path=doc.path,
+                title=doc.title or "",
+                content=doc.content or "",
+                frontmatter=doc.frontmatter or {},
+                tags=list(doc.tags or []),
+                word_count=getattr(doc, "word_count", 0),
+                char_count=getattr(doc, "char_count", 0),
+            ))
+
+        return DocumentBatchResponse(documents=documents, not_found=not_found)
+
     return app
 
 

@@ -451,5 +451,42 @@ def test_get_document_503_when_not_indexed(client):
         _state["engine"] = original
 
 
+def test_get_document_batch_returns_multiple(client):
+    """POST /document/batch — 다중 path를 한 번에 가져온다."""
+    response = client.post(
+        "/document/batch",
+        json={"paths": ["test_doc1.md", "test_doc2.md"]},
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert len(body["documents"]) == 2
+    assert {d["path"] for d in body["documents"]} == {"test_doc1.md", "test_doc2.md"}
+    assert body["not_found"] == []
+
+
+def test_get_document_batch_partial_not_found(client):
+    """일부 path만 존재해도 200, 못 찾은 path는 not_found로."""
+    response = client.post(
+        "/document/batch",
+        json={"paths": ["test_doc1.md", "missing.md"]},
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert len(body["documents"]) == 1
+    assert body["documents"][0]["path"] == "test_doc1.md"
+    assert body["not_found"] == ["missing.md"]
+
+
+def test_get_document_batch_empty_paths(client):
+    """빈 paths는 200 with empty results."""
+    response = client.post("/document/batch", json={"paths": []})
+    assert response.status_code == 200
+    body = response.json()
+    assert body["documents"] == []
+    assert body["not_found"] == []
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
