@@ -11,7 +11,7 @@ import sys
 import logging
 import signal
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict, List, Optional
 from contextlib import asynccontextmanager
 
 import yaml
@@ -46,13 +46,13 @@ def _document_count() -> int:
 
 # Pydantic models
 class SearchResultResponse(BaseModel):
-    """Single search result"""
+    """Single search result. snippet/match_type은 include=index 모드에서 생략됨."""
     path: str
     score: float
     title: str
-    snippet: str
     rank: int = 0
-    match_type: str = ""
+    snippet: Optional[str] = None
+    match_type: Optional[str] = None
 
 
 class SearchResponse(BaseModel):

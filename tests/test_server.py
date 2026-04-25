@@ -366,5 +366,18 @@ def test_concurrent_searches(client):
         assert response.status_code == 200
 
 
+def test_search_result_response_optional_fields():
+    """SearchResultResponse는 snippet/match_type 없이도 직렬화 가능해야 한다."""
+    from src.server import SearchResultResponse
+
+    minimal = SearchResultResponse(path="ko/한글-문서.md", score=0.85, title="한글 문서", rank=1)
+    payload = minimal.model_dump(exclude_none=True)
+
+    assert "snippet" not in payload
+    assert "match_type" not in payload
+    assert payload["title"] == "한글 문서"
+    assert payload["path"] == "ko/한글-문서.md"
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
