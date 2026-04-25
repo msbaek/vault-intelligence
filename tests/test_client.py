@@ -246,5 +246,55 @@ class TestVisClient:
             VisClient.stop_server()
 
 
+    @patch('httpx.Client')
+    def test_search_passes_include_param(self, mock_client_class):
+        """client.search(include='index')는 server에 include=index를 전달한다."""
+        client = VisClient()
+
+        mock_response = Mock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {
+            "results": [{"path": "x.md", "score": 0.9, "title": "x", "rank": 1}],
+            "query": "테스트",
+            "search_method": "hybrid",
+            "total": 1,
+        }
+        mock_client = MagicMock()
+        mock_client.__enter__.return_value.get.return_value = mock_response
+        mock_client_class.return_value = mock_client
+
+        with patch.object(client, 'is_server_running', return_value=True):
+            results = client.search(query="테스트", include="index", auto_start=False)
+
+        call_args = mock_client.__enter__.return_value.get.call_args
+        params = call_args[1].get("params", call_args[0][1] if len(call_args[0]) > 1 else {})
+        assert params.get("include") == "index"
+        assert results[0]["path"] == "x.md"
+
+    @patch('httpx.Client')
+    def test_search_default_include_is_full(self, mock_client_class):
+        """include 미지정 시 params에 include='full' 전달."""
+        client = VisClient()
+
+        mock_response = Mock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {
+            "results": [],
+            "query": "test",
+            "search_method": "hybrid",
+            "total": 0,
+        }
+        mock_client = MagicMock()
+        mock_client.__enter__.return_value.get.return_value = mock_response
+        mock_client_class.return_value = mock_client
+
+        with patch.object(client, 'is_server_running', return_value=True):
+            client.search(query="test", auto_start=False)
+
+        call_args = mock_client.__enter__.return_value.get.call_args
+        params = call_args[1].get("params", call_args[0][1] if len(call_args[0]) > 1 else {})
+        assert params.get("include") == "full"
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

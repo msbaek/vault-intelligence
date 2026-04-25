@@ -109,6 +109,7 @@ class VisClient:
         threshold: float = 0.0,
         search_method: str = "hybrid",
         rerank: bool = False,
+        include: str = "full",
         auto_start: bool = True
     ) -> List[Dict]:
         """
@@ -120,6 +121,7 @@ class VisClient:
             threshold: Similarity threshold
             search_method: Search method (semantic, keyword, hybrid, colbert)
             rerank: Enable reranking
+            include: Response depth — 'full'(default, snippet 포함) or 'index'(path/score/title/rank만)
             auto_start: Auto-start server if not running
 
         Returns:
@@ -140,7 +142,8 @@ class VisClient:
             "top_k": top_k,
             "threshold": threshold,
             "search_method": search_method,
-            "rerank": rerank
+            "rerank": rerank,
+            "include": include,
         }
 
         # Execute request
