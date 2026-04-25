@@ -296,5 +296,61 @@ class TestVisClient:
         assert params.get("include") == "full"
 
 
+    @patch('httpx.Client')
+    def test_get_document_returns_content(self, mock_client_class):
+        """get_document(path)는 단일 문서 본문을 반환."""
+        client = VisClient()
+
+        mock_response = Mock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {
+            "path": "한글-문서.md",
+            "title": "한글 문서",
+            "content": "본문 내용",
+            "frontmatter": {"tags": ["한글"]},
+            "tags": ["한글"],
+            "word_count": 5,
+            "char_count": 20,
+        }
+        mock_client = MagicMock()
+        mock_client.__enter__.return_value.get.return_value = mock_response
+        mock_client_class.return_value = mock_client
+
+        with patch.object(client, 'is_server_running', return_value=True):
+            doc = client.get_document("한글-문서.md")
+
+        call_args = mock_client.__enter__.return_value.get.call_args
+        assert call_args[0][0].endswith("/document")
+        assert call_args[1]["params"]["path"] == "한글-문서.md"
+        assert doc["content"] == "본문 내용"
+        assert doc["path"] == "한글-문서.md"
+
+    @patch('httpx.Client')
+    def test_get_documents_batch(self, mock_client_class):
+        """get_documents(paths)는 batch fetch."""
+        client = VisClient()
+
+        mock_response = Mock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {
+            "documents": [
+                {"path": "a.md", "title": "A", "content": "...", "frontmatter": {}, "tags": [], "word_count": 1, "char_count": 3},
+                {"path": "b.md", "title": "B", "content": "...", "frontmatter": {}, "tags": [], "word_count": 1, "char_count": 3},
+            ],
+            "not_found": ["missing.md"],
+        }
+        mock_client = MagicMock()
+        mock_client.__enter__.return_value.post.return_value = mock_response
+        mock_client_class.return_value = mock_client
+
+        with patch.object(client, 'is_server_running', return_value=True):
+            result = client.get_documents(["a.md", "b.md", "missing.md"])
+
+        call_args = mock_client.__enter__.return_value.post.call_args
+        assert call_args[0][0].endswith("/document/batch")
+        assert result["not_found"] == ["missing.md"]
+        assert len(result["documents"]) == 2
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
