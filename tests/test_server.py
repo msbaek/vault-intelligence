@@ -379,5 +379,42 @@ def test_search_result_response_optional_fields():
     assert payload["path"] == "ko/한글-문서.md"
 
 
+def test_search_endpoint_include_index_excludes_snippet(client):
+    """include=index 모드에서 snippet/match_type이 응답에서 제외되어야 한다."""
+    response = client.get("/search", params={"query": "한글 검색", "include": "index"})
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["results"], "검색 결과가 비어있음"
+    for r in body["results"]:
+        assert r.get("snippet") is None
+        assert r.get("match_type") is None
+        assert {"path", "score", "title", "rank"}.issubset(r.keys())
+
+
+def test_search_endpoint_default_include_keeps_snippet(client):
+    """include 미지정(기본값) 시 기존 동작 유지 — snippet 포함."""
+    response = client.get("/search", params={"query": "python"})
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["results"]
+    assert body["results"][0].get("snippet") is not None
+
+
+def test_search_endpoint_include_full_explicit(client):
+    """include=full 명시 시에도 snippet 포함."""
+    response = client.get("/search", params={"query": "python", "include": "full"})
+
+    assert response.status_code == 200
+    assert response.json()["results"][0].get("snippet") is not None
+
+
+def test_search_endpoint_include_invalid_returns_422(client):
+    """잘못된 include 값은 422 반환."""
+    response = client.get("/search", params={"query": "x", "include": "garbage"})
+    assert response.status_code == 422
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

@@ -11,7 +11,7 @@ import sys
 import logging
 import signal
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Dict, List, Literal, Optional
 from contextlib import asynccontextmanager
 
 import yaml
@@ -120,18 +120,25 @@ def _init_engine() -> AdvancedSearchEngine:
     return engine
 
 
-def _convert_search_result(result: SearchResult, rank: int = 0) -> SearchResultResponse:
-    """Convert SearchResult to SearchResultResponse"""
-    # Extract document info
+def _convert_search_result(
+    result: SearchResult,
+    rank: int = 0,
+    include: Literal["full", "index"] = "full",
+) -> SearchResultResponse:
+    """Convert SearchResult to SearchResultResponse. include='index' omits snippet/match_type."""
     doc: Document = result.document
-
+    base = {
+        "path": doc.path,
+        "score": result.similarity_score,
+        "title": doc.title or Path(doc.path).stem,
+        "rank": rank,
+    }
+    if include == "index":
+        return SearchResultResponse(**base)
     return SearchResultResponse(
-        path=doc.path,
-        score=result.similarity_score,
-        title=doc.title,
+        **base,
         snippet=result.snippet or "",
-        rank=rank,
-        match_type=result.match_type
+        match_type=result.match_type or "",
     )
 
 
@@ -208,7 +215,11 @@ def create_app() -> FastAPI:
         top_k: int = Query(10, description="Number of results to return"),
         threshold: float = Query(0.0, description="Similarity threshold"),
         search_method: str = Query("hybrid", description="Search method: semantic, keyword, hybrid, colbert"),
-        rerank: bool = Query(False, description="Enable reranking")
+        rerank: bool = Query(False, description="Enable reranking"),
+        include: Literal["full", "index"] = Query(
+            "full",
+            description="Response depth: 'full'(snippet 포함) or 'index'(path/score/title/rank만)",
+        ),
     ):
         """Search endpoint"""
         if not _is_indexed():
@@ -244,7 +255,7 @@ def create_app() -> FastAPI:
 
             # Convert results
             response_results = [
-                _convert_search_result(r, rank=i+1)
+                _convert_search_result(r, rank=i+1, include=include)
                 for i, r in enumerate(results)
             ]
 
