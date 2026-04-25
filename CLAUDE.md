@@ -22,6 +22,21 @@ vis search "TDD" --search-method hybrid     # 하이브리드 (기본값)
 vis search "TDD" --search-method colbert    # ColBERT 토큰 검색
 ```
 
+### Progressive Disclosure 검색 (token 절감)
+```bash
+# Layer 1: 인덱스만 반환 (path/score/title) — 응답 ~64% 절감
+vis search "TDD" --titles-only
+vis search "TDD" --titles-only --top-k 30
+
+# Layer 1 명시: snippet 포함 전체 응답 (기본값과 동일)
+vis search "TDD" --full-content
+
+# Layer 3: 관심 문서 본문 fetch
+vis get "문서경로.md"                          # 단일 문서 (markdown 출력)
+vis get "경로1.md" "경로2.md" "경로3.md"      # 다중 batch fetch
+vis get "경로.md" --format json                # JSON 포맷 (파이프라인용)
+```
+
 ### 고급 검색 옵션
 ```bash
 # 재순위화 (정확도 향상)
@@ -51,6 +66,11 @@ vis search "TDD" --data-dir /custom/path
 
 ### 기타 주요 명령어
 ```bash
+# 문서 본문 fetch (progressive disclosure layer 3)
+vis get "문서경로.md"                          # 단일 문서 본문
+vis get "경로1.md" "경로2.md"                  # 다중 batch
+vis get "경로.md" --format json                # JSON 포맷
+
 # 관련 문서 찾기
 vis related "문서명.md" --top-k 10
 
@@ -99,6 +119,10 @@ visd logs 30                           # 최근 로그 30줄
 # HTTP API 직접 호출
 curl http://localhost:8741/health
 curl -s --get --data-urlencode "query=TDD" "http://localhost:8741/search?rerank=true&top_k=10"
+curl -s --get --data-urlencode "query=TDD" "http://localhost:8741/search?include=index&top_k=30"  # titles-only
+curl "http://localhost:8741/document?path=경로.md"                                                 # 단일 문서 fetch
+curl -X POST "http://localhost:8741/document/batch" -H "Content-Type: application/json" \
+     -d '{"paths":["경로1.md","경로2.md"]}'                                                        # batch fetch
 curl -X POST "http://localhost:8741/reindex?force=true"
 ```
 
@@ -128,6 +152,7 @@ vis search "TDD" --rerank                 # --rerank (O)
 | `colbert` | 긴 문장, 복합 개념 | ⚡⚡ | ⭐⭐⭐⭐ |
 | `--rerank` | 고정확도 필요 시 | ⚡⚡ | ⭐⭐⭐⭐⭐ |
 | `--expand` | 포괄적 검색 필요 시 | ⚡ | ⭐⭐⭐⭐ |
+| `--titles-only` | 대량 결과 빠른 탐색, token 절감 (~64%) | ⚡⚡⚡ | — |
 
 ## 📖 문서 구조
 
