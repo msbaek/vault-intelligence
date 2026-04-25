@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- `vis search --titles-only` / `--full-content` 옵션으로 progressive disclosure 검색 지원 (토큰 ~57% 절감)
+- `vis get <path>` 서브커맨드 — 단일/다중 문서 본문 fetch (`--format markdown|json`)
+- HTTP API: `GET /search?include=index|full`, `GET /document?path=`, `POST /document/batch`
+- Pydantic 모델: `DocumentResponse`, `DocumentBatchRequest`, `DocumentBatchResponse`
+- `_build_parser()` 함수 분리로 argparse 파서 단위 테스트 가능
+
+### Changed
+- `SearchResultResponse.snippet` / `match_type`을 `Optional[str] = None`으로 변경 (backward compatible)
+- `VisClient.search()`에 `include` 파라미터 추가 (기본값 `"full"`, 기존 호출 영향 없음)
+
 ## [2026-03-15]
 
 ### Added

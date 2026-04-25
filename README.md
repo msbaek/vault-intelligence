@@ -68,6 +68,25 @@ vis search "TDD" --with-centrality
 vis search "TDD" --output results.md
 ```
 
+### Progressive Disclosure 검색 워크플로우 (token 절감)
+
+대량 결과를 빠르게 훑은 뒤 관심 있는 문서만 본문을 가져오는 3-layer 패턴:
+
+```bash
+# Layer 1: 인덱스만 (path/score/title) — 토큰 ~57% 절감
+vis search "TDD 리팩토링" --titles-only --top-k 30
+
+# Layer 2: 의미적 이웃 탐색 (기존 명령)
+vis related "<관심 path>" --top-k 5
+
+# Layer 3: 본문 fetch (단일 또는 batch)
+vis get "<관심 path>"
+vis get "path1.md" "path2.md" "path3.md"
+vis get "<path>" --format json   # 파이프라인 입력용
+```
+
+기본 `vis search` 호출은 변경 없음 — 옵션 미지정 시 snippet까지 출력된다.
+
 ### 문서 관계 그래프
 
 ![Knowledge Graph Preview](docs/graph-preview.png)
