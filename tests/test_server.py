@@ -416,5 +416,40 @@ def test_search_endpoint_include_invalid_returns_422(client):
     assert response.status_code == 422
 
 
+def test_get_document_returns_full_content(client):
+    """GET /document?path=...로 본문/title 반환."""
+    response = client.get("/document", params={"path": "test_doc1.md"})
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["path"] == "test_doc1.md"
+    assert body["title"] == "Test Document 1"
+    assert "Python" in body["content"]
+    assert isinstance(body["frontmatter"], dict)
+    assert "test" in body["tags"]
+
+
+def test_get_document_not_found(client):
+    """존재하지 않는 path는 404."""
+    response = client.get("/document", params={"path": "does-not-exist.md"})
+    assert response.status_code == 404
+
+
+def test_get_document_503_when_not_indexed(client):
+    """엔진 미초기화 시 503.
+
+    Note: 현재 client fixture는 항상 mock_engine을 사용하므로
+    직접 _state["engine"] = None을 설정해야 함.
+    """
+    from src.server import _state
+    original = _state["engine"]
+    _state["engine"] = None
+    try:
+        response = client.get("/document", params={"path": "test_doc1.md"})
+        assert response.status_code == 503
+    finally:
+        _state["engine"] = original
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

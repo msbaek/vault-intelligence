@@ -76,6 +76,28 @@ class HealthResponse(BaseModel):
     document_count: int
 
 
+class DocumentResponse(BaseModel):
+    """단일 문서 본문 응답."""
+    path: str
+    title: str
+    content: str
+    frontmatter: Dict
+    tags: List[str] = []
+    word_count: int = 0
+    char_count: int = 0
+
+
+class DocumentBatchRequest(BaseModel):
+    """다중 문서 batch fetch 요청."""
+    paths: List[str]
+
+
+class DocumentBatchResponse(BaseModel):
+    """다중 문서 batch fetch 응답."""
+    documents: List[DocumentResponse]
+    not_found: List[str] = []
+
+
 def _get_config() -> Dict:
     """Load configuration from settings.yaml"""
     # Get data directory from environment or use default
@@ -295,6 +317,29 @@ def create_app() -> FastAPI:
         except Exception as e:
             logger.error(f"Reindex failed: {e}")
             raise HTTPException(status_code=500, detail=f"Reindex failed: {str(e)}")
+
+    @app.get("/document", response_model=DocumentResponse)
+    async def get_document(path: str = Query(..., description="Document path (vault-relative)")):
+        """단일 문서 본문/frontmatter 반환."""
+        if not _is_indexed():
+            raise HTTPException(status_code=503, detail="Index not built yet")
+        engine: AdvancedSearchEngine = _state["engine"]
+        if engine is None:
+            raise HTTPException(status_code=503, detail="Search engine not initialized")
+
+        doc = next((d for d in engine.documents if d.path == path), None)
+        if doc is None:
+            raise HTTPException(status_code=404, detail=f"Document not found: {path}")
+
+        return DocumentResponse(
+            path=doc.path,
+            title=doc.title or "",
+            content=doc.content or "",
+            frontmatter=doc.frontmatter or {},
+            tags=list(doc.tags or []),
+            word_count=getattr(doc, "word_count", 0),
+            char_count=getattr(doc, "char_count", 0),
+        )
 
     return app
 
