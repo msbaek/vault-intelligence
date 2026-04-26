@@ -95,4 +95,10 @@ rm -f ~/.claude/state/vis-backlink/history/dummy-20260426-000000-test.json
 
 ## 수동 시뮬레이션 결과
 
-(Task 3 SKILL.md 구현 후 재실행)
+### 2026-04-26 — SKILL.md 사전 가드 구현 완료 (논리 검증)
+
+- **T6.5 (ENV_DISABLED)**: Step 1 에서 `.disabled` 마커 확인 → `DISABLED` 출력 → 즉시 종료. vis /search 미호출 (비용 zero). forward 는 스킬 호출 전 명령어에서 완료됨 → 영향 없음. ✅ 논리 검증 통과
+- **T6.6 (ENV_VIS_DOWN)**: Step 2 에서 `curl --max-time 5` → 5초 timeout → 알림 + 종료. ✅ 논리 검증 통과
+- **T6.7 (동시성)**: Step 3 에서 active/*.json 감지 → 2초 polling × max 5초 → completed/crashed 시 해제. ✅ 논리 검증 통과
+
+실제 Claude 세션에서 end-to-end 검증은 Task 9 E2E 시나리오에서 수행.
