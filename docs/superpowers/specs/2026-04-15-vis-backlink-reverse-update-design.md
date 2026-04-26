@@ -101,6 +101,7 @@ backward:         # 신규
     first_run_policy: "sync_dryrun_once"   # .trusted 없으면 강제 sync
     concurrency: "sequential"     # P1.a
   steps:
+    0: .disabled 마커 체크 → ENV_DISABLED 시 backward 스킵, forward 유지, 인라인 안내
     1: git dirty-tree guard
     2: active/*.json 있으면 polling (P1.a)
     3: .trusted 없으면 → sync dry-run 모드 (C6)
@@ -371,6 +372,7 @@ dispatched → processing → completed      (→ history/)
 
 | 코드 | 발생 | 감지 | 복구 | 사용자 |
 |---|---|---|---|---|
+| `ENV_DISABLED` | 메인 가드 | `.disabled` 마커 | Abort (backward만), forward 유지 | 인라인 안내 |
 | `ENV_DIRTY_TREE` | 메인 가드 | `git status` | Abort | 안내 |
 | `ENV_VIS_DOWN` | Subagent curl | timeout 5s | Abort | Notification |
 | `ENV_NO_TRUSTED` | 메인 체크 | `.trusted` 부재 | 동기 dry-run | 대화형 |
@@ -494,6 +496,7 @@ dispatched → processing → completed      (→ history/)
 - **v2e**: `bootstrap_mode = "full"` 전환 후 관찰된 compounding 속도 측정
 - **v2f**: 모순 감지 pass (Karpathy 원칙의 별도 기능)
 - **v2g**: 수동 편집 보존 강화 (pinned 주석 지원)
+- **v2h (구현됨)**: 사용자 토글 (`.disabled` 마커 + `/vis-backlink-toggle`) — backward 만 일시 정지. 사전 가드 0번으로 통합. 시나리오: `tests/scenarios/11-toggle.md`.
 
 ---
 
