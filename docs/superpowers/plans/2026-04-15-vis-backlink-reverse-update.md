@@ -14,6 +14,8 @@
 - 결정성은 T2 샌드박스 시나리오로 검증
 - v2 에서 파서 재사용 요구가 명확해지면 그때 `scripts/related_notes_parser.py` 로 추출
 
+> ⚠️ **Risk R3 — VAULT_ROOT 환경변수 미지원**: 훅이 환경변수 기반 vault 전환을 지원하지 않으므로 Task 1~12 의 샌드박스 검증은 "수동 시뮬레이션" 형태(훅 텍스트를 따라가며 `/tmp/vault-test/` 경로 직접 호출). Task 4 진입 시 `VAULT_ROOT` 분기를 Task 2 훅에 추가할지 결정해야 한다. 추가하면 Task 2 로 루프백 필요.
+
 **Spec 참조:** `docs/superpowers/specs/2026-04-15-vis-backlink-reverse-update-design.md` (approved 2026-04-15).
 
 **Failure Conditions (전체 plan):**
@@ -370,6 +372,8 @@ git commit -m "test(sandbox): add vault fixture and test vis launcher for vis-ba
 
 ## Task 2 — CLAUDE.md backward 블록 확장 (C1~C9)
 
+> ⚠️ **Risk R1 — LLM 절차 지시문 복잡성 + 루프백 정책**: C3 파서 규칙이 훅 텍스트로만 존재해 유지보수는 텍스트 수정으로만 가능. **Task 4(T2.1 파서 시나리오)에서 케이스 누락이 발견되면 이 Task 로 루프백하여 규칙 재작성**. 실행 에이전트는 Task 4 실패 시 자동으로 Task 2 수정 → Task 4 재실행 사이클을 한 번 허용한다. 두 번째 실패는 사용자에게 에스컬레이션.
+
 **Why this matters:** 본 기능의 오케스트레이터. LLM 이 읽고 그대로 수행하므로 **절차·조건·에러 처리가 명시적**이어야 한다. 빠진 분기 하나가 Flow 4 에러로 이어진다.
 
 **Files:**
@@ -398,15 +402,10 @@ Obsidian 문서를 생성하거나 정리한 후, vis daemon HTTP API로 관련 
 
 Use Edit tool on `~/.claude/CLAUDE.md`:
 
-**old_string** (exact 265-272 block):
+**old_string** (현재 CLAUDE.md 실제 내용, 2026-04-26 확인):
 ```
 <when-creating-obsidian-document>
-Obsidian 문서를 생성하거나 정리한 후, vis daemon HTTP API로 관련 문서를 검색하여 Related Notes 섹션을 추가한다.
-1. `curl -s --get --data-urlencode "query=핵심 키워드" "http://localhost:8741/search?search_method=hybrid&rerank=true&top_k=10"` 실행 (서버 미실행 시 fallback: `vis search`)
-2. 자기 자신, daily notes 제외하고 관련도 높은 후보 선별
-3. 상위 5개를 자동 추가 (사용자가 inbox 검토 시 수정하므로 별도 승인 불필요)
-4. 문서 하단에 `## Related Notes` 섹션으로 추가 (각 링크에 한 줄 맥락 설명 포함)
-5. frontmatter `related:` 필드는 명시적 요청 시에만 업데이트
+After creating: `curl -s --get --data-urlencode "query=키워드" "http://localhost:8741/search?search_method=hybrid&rerank=true&top_k=10"` (fallback: `vis search`). Add top 5 as `## Related Notes` (exclude self/daily, 1-line context each). No `related:` frontmatter unless asked.
 </when-creating-obsidian-document>
 ```
 
@@ -525,11 +524,13 @@ Obsidian 문서 A 를 생성하거나 정리한 후 수행한다. forward 는 �
 | `LLM_DESC_GEN_FAIL` | 응답 파싱 | snippet fallback |
 | `IO_WRITE_FAIL` | MultiEdit | skip, notification |
 | `CONCURRENT_DISPATCH` | active/ 존재 | polling |
-| `SUBAGENT_CRASH` | Claude Code | phase=crashed, 수동 정리 힌트 |
+| `SUBAGENT_CRASH` | Claude Code | phase=crashed, 수동 정리 힌트 (`/vis-backlink-status --clear-failed` 안내, 인라인 알림 즉시 출력) |
 
 **상태 조회:** `/vis-backlink-status` 스킬 사용 (별도 파일).
 </when-creating-obsidian-document>
 ```
+
+> ⚠️ **Risk R2 — `.trusted` 부재 시 무한 dry-run**: 사용자가 계속 거부하면 매 문서 생성마다 동기 dry-run이 강제된다. 탈출구: `touch ~/.claude/state/vis-backlink/.trusted` 수동 실행으로 dry-run 건너뛰기. 이 명령은 Task 13 production 체크리스트에도 명시할 것.
 
 - [ ] **Step 2.3: Verify the edit**
 
@@ -1108,6 +1109,8 @@ Task 2 의 "Async dispatch 프로시저" 재작성.
 
 ## Task 10 — T2.4 Flow 3 sequential polling
 
+> ⚠️ **Risk R5 — 5초 timeout UX**: 연속 문서 생성 시 2초 주기 polling → 5초 경과 후 "대기 중" 1회 알림. 이후에도 대기 중이면 사용자는 `/vis-backlink-status` 를 수동 호출해야 한다. 이는 현재 scope 한계이며 v2d(병렬 subagent)로 해결 예정. 시나리오 검증 시 UX 이슈로 **Task fail 처리하지 말 것** — 설계 제약으로 기록만.
+
 **Why this matters:** 연속 문서 생성 시 backward 큐가 안전하게 직렬화되는지. P1.a (순차 실행) 결정의 정확성 확인.
 
 **Files:**
@@ -1265,6 +1268,13 @@ Write `tests/scenarios/10-production-rollout.md`:
 5. diff 를 섹션별로 읽고 수동 검토.
 6. 승인 → MultiEdit 적용 → `.trusted` 생성.
 7. `/vis-backlink-status` 로 첫 job 확인.
+
+> ⚠️ dry-run 을 반복 거부하고 싶지 않을 때 수동 우회:
+> ```bash
+> mkdir -p ~/.claude/state/vis-backlink
+> touch ~/.claude/state/vis-backlink/.trusted
+> ```
+> 단, 이 경우 최초 실사용 diff 검토를 생략하므로 **권장하지 않음**.
 
 ## 1주 실사용 후 후속
 
