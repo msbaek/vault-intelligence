@@ -94,4 +94,10 @@ cd /tmp/vault-test && git status --porcelain 001-INBOX/uncommitted-new.md
 
 ## 수동 시뮬레이션 결과
 
-(Task 5 휴리스틱 구현 후 재실행)
+### 2026-04-26 — 휴리스틱 평가기 구현 완료 (논리 검증)
+
+- **T6.2 (S4 veto)**: Step 5 에서 자동 제외율 계산 → ≥60% 시 hard veto 발화 → skip 추천 + `[y/N]` prompt. ✅ 논리 검증 통과
+- **T6.3 (S5 veto)**: Step 5 에서 A frontmatter `status: draft` 감지 → S5 발화 → skip 추천. `y` 입력 시 user_override_skip 으로 dispatch. ✅ 논리 검증 통과
+- **T6.9 (uncommitted 비간주)**: git uncommitted 상태 무관, frontmatter draft 없으면 S5 미발화 → proceed 추천. ENV_DIRTY_TREE 가드 없음 확인. ✅ 논리 검증 통과
+
+실제 Claude 세션에서 end-to-end 검증은 Task 9 E2E 시나리오에서 수행.
