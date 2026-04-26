@@ -10,7 +10,7 @@ vis-backlink reverse update 훅 검증용 미니 vault. `scripts/sync-sandbox.sh
 | `003-RESOURCES/bar.md` | 정상 B 후보 | 있음 (3 links) | — |
 | `003-RESOURCES/baz.md` | 정상 C 후보 | 있음 (1 link) | — |
 | `003-RESOURCES/deviant-multiline.md` | 파서 skip 대상 | 있음 (multi-line desc) | multi-line description |
-| `003-RESOURCES/deviant-image.md` | 필터 대상 | 있음 | `![[pic.png]]` 링크 포함 |
+| `003-RESOURCES/deviant-image.md` | 필터 대상 | 있음 | `![[diagram.png]]` 링크 포함 |
 | `003-RESOURCES/no-section.md` | bootstrap 대상 | 없음 | — |
 | `997-BOOKS/quux.md` | 정상 후보 | 없음 | — |
 | `work-log/2026-04-14.md` | 자동 제외 대상 | 없음 | `work-log/**` |
