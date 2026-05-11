@@ -469,12 +469,12 @@
 
 - [ ] 라이브 데모 전체 리허설 1회 (시간 측정 + 실패 지점 기록)
 - [ ] 핵심 6개 데모 recorded fallback 영상 제작:
-  - `/recall yesterday`
-  - `/skillify` ISMS 사례
-  - `vis search` + `vis generate-moc`
-  - `/weekly-newsletter`
-  - `/tdd-rgb` 사이클
-  - `/extract-sql-log`
+  - `/recall yesterday` + `morning-auto.sh` (Act 1)
+  - `/skillify` ISMS 메타 모먼트 (Act 2 전반)
+  - `/weekly-newsletter` (Act 2 운영화)
+  - `/tdd-rgb` 사이클 (Act 2 후반)
+  - `vis search` + `vis generate-moc` (Act 3 Phase 1)
+  - `ccup` cc-orchestra (Act 3 Phase 3) ★
 - [ ] 청중 take-home PDF 1장 — "5개 즉시 시도 거리 + 30일 로드맵 + QR(repo)"
 - [ ] 슬라이드 작성 (Open 8장 / 미니강의 12장 / Act별 5–10장 / Close 5장)
 - [ ] `msbaek-claude-plugins` README 영문판 점검 (외부 청중 대비)
