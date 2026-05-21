@@ -18,6 +18,7 @@ import numpy as np
 from ..core.vault_processor import Document
 from ..features.advanced_search import SearchResult
 from .topic_collector import TopicCollector, DocumentCollection
+from ..utils.ofm import to_wikilink
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -605,7 +606,7 @@ class MOCGenerator:
                 lines.append("이 주제에서 가장 중요하고 핵심적인 문서들입니다:")
                 lines.append("")
                 for i, doc in enumerate(moc_data.core_documents, 1):
-                    lines.append(f"{i}. **[[{doc.path}]]**")
+                    lines.append(f"{i}. **{to_wikilink(doc.path, self.search_engine.vault_path)}**")
                     if doc.word_count:
                         lines.append(f"   - {doc.word_count:,} 단어")
                     if doc.tags:
@@ -625,7 +626,7 @@ class MOCGenerator:
                     lines.append("")
                     
                     for doc in category.documents:
-                        lines.append(f"- **[[{doc.path}]]**")
+                        lines.append(f"- **{to_wikilink(doc.path, self.search_engine.vault_path)}**")
                         info_parts = []
                         if doc.word_count:
                             info_parts.append(f"{doc.word_count:,} 단어")
@@ -654,7 +655,7 @@ class MOCGenerator:
                     lines.append("**추천 문서:**")
                     
                     for doc in step.documents:
-                        lines.append(f"- [[{doc.path}]]")
+                        lines.append(f"- {to_wikilink(doc.path, self.search_engine.vault_path)}")
                     
                     lines.append("")
             
@@ -679,7 +680,7 @@ class MOCGenerator:
                 
                 for doc in moc_data.recent_updates:
                     update_date = doc.modified_at.strftime('%Y-%m-%d')
-                    lines.append(f"- **[[{doc.path}]]** ({update_date})")
+                    lines.append(f"- **{to_wikilink(doc.path, self.search_engine.vault_path)}** ({update_date})")
                 
                 lines.append("")
             
@@ -692,7 +693,8 @@ class MOCGenerator:
                 
                 for rel in moc_data.relationships[:10]:  # 상위 10개만
                     strength_emoji = "🔗" if rel.strength > 0.8 else "↔️"
-                    lines.append(f"- {strength_emoji} [[{rel.source_doc.path}]] ↔ [[{rel.target_doc.path}]] ({rel.strength:.2f})")
+                    vp = self.search_engine.vault_path
+                    lines.append(f"- {strength_emoji} {to_wikilink(rel.source_doc.path, vp)} ↔ {to_wikilink(rel.target_doc.path, vp)} ({rel.strength:.2f})")
                 
                 lines.append("")
             
