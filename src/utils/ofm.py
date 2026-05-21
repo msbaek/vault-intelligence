@@ -10,9 +10,10 @@ callout/embed helpers are NOT here (YAGNI).
 
 from datetime import datetime
 from pathlib import Path
+from typing import Optional
 
 
-def to_wikilink(path: str, vault_path: str, alias: str = None) -> str:
+def to_wikilink(path: str, vault_path: str, alias: Optional[str] = None) -> str:
     """Convert a file path to an Obsidian vault-relative wikilink.
 
     SSOT: ~/.claude/commands/obsidian/ofm-rules.md §1-Wikilink
@@ -38,7 +39,7 @@ def to_wikilink(path: str, vault_path: str, alias: str = None) -> str:
     return f"[[{wikilink_path}]]"
 
 
-def format_frontmatter_timestamp(dt: datetime = None) -> str:
+def format_frontmatter_timestamp(dt: Optional[datetime] = None) -> str:
     """Return a frontmatter-safe timestamp string.
 
     SSOT: ~/.claude/commands/obsidian/ofm-rules.md §2-Frontmatter
