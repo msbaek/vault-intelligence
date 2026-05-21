@@ -159,6 +159,38 @@ conda activate vault-intelligence
 pip install -r requirements.txt
 ```
 
+### 소스를 수정했는데 `vis` 명령에 반영되지 않음
+
+**증상**: `~/git/vault-intelligence/src/...` 의 코드를 고쳤는데도 `vis` / `visd` 명령의
+동작이 그대로다 (예: 버그 수정 후에도 옛 동작 유지).
+
+**원인**: pipx 설치 방식의 차이.
+
+| 방식 | 동작 | 코드 수정 시 |
+|---|---|---|
+| 일반 설치 (`pipx install <path>`) | 설치 시점에 소스를 **복사** | 원본을 고쳐도 반영 안 됨 — 재설치 필요 |
+| editable 설치 (`pipx install -e <path>`) | 원본 위치를 **링크**만 함 | 원본을 고치면 **즉시 반영** |
+
+이 프로젝트는 editable 설치(`pipx install -e`)를 권장한다 (README·QUICK_START 참조).
+일반 설치 상태이거나, `-e` 없이 `pipx reinstall`·`pipx upgrade` 를 한 뒤
+editable 링크가 끊긴 경우 위 증상이 발생한다.
+
+**현재 설치 방식 확인**:
+```bash
+ls ~/.local/pipx/venvs/vault-intelligence/lib/python*/site-packages/ | grep editable
+```
+- `__editable__...` 로 시작하는 파일이 보이면 → editable (정상, 추가 조치 불필요)
+- 아무것도 안 나오면 → 일반 설치
+
+**해결 방법** (editable 로 재설치):
+```bash
+pipx install --editable ~/git/vault-intelligence --force
+```
+`--editable`(=`-e`) 가 핵심이고, `--force` 는 기존 설치를 덮어쓴다.
+
+> 참고: `visd` 데몬이 떠 있으면 코드 변경 후 데몬 재시작(`visd restart`)도 필요하다 —
+> 데몬은 기동 시점의 모델·엔진을 메모리에 상주시키기 때문이다.
+
 ## 로그 확인
 
 문제 진단을 위한 상세 로그:
