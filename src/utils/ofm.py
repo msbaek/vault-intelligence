@@ -31,7 +31,7 @@ def to_wikilink(path: str, vault_path: str, alias: Optional[str] = None) -> str:
 
     # Build wikilink path: strip .md suffix from final component
     parts = rel.parts
-    stem = Path(parts[-1]).stem  # removes .md (or any extension)
+    stem = parts[-1].removesuffix(".md")  # only removes .md, never other extensions
     wikilink_path = "/".join(list(parts[:-1]) + [stem])
 
     if alias:
