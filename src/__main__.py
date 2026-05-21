@@ -10,7 +10,7 @@ import os
 import argparse
 import logging
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Union
 
 # 데이터 디렉토리 결정 (캐시, 설정, 모델 저장 위치)
 # 우선순위: 환경변수 VAULT_INTELLIGENCE_HOME > 기본값 ~/git/vault-intelligence
@@ -1166,7 +1166,7 @@ def run_document_clustering(
         
         # 결과 저장 (요청 시)
         if output_file:
-            save_clustering_results(clustering_result, output_file, topic)
+            save_clustering_results(clustering_result, output_file, search_engine.vault_path, topic)
             print(f"💾 결과가 {output_file}에 저장되었습니다.")
         
         return True
@@ -1213,9 +1213,10 @@ def print_clustering_results(clustering_result):
             print(f"     ... 및 {cluster.size - 3}개 더")
 
 
-def save_clustering_results(clustering_result, output_file: str, topic: Optional[str] = None):
+def save_clustering_results(clustering_result, output_file: str, vault_path: Union[str, Path], topic: Optional[str] = None):
     """클러스터링 결과를 마크다운 파일로 저장"""
     from datetime import datetime
+    from .utils.ofm import to_wikilink
     
     content = []
     
@@ -1251,9 +1252,8 @@ def save_clustering_results(clustering_result, output_file: str, topic: Optional
         
         content.append(f"\n#### 📚 포함 문서:")
         for j, doc in enumerate(cluster.documents, 1):
-            # Obsidian 링크 형식으로 저장
-            title = doc.title.replace('[', '').replace(']', '')  # 대괄호 제거
-            content.append(f"{j}. [[{title}]]")
+            # Obsidian wikilink - vault-relative 경로 사용
+            content.append(f"{j}. {to_wikilink(doc.path, vault_path)}")
     
     # 파일 저장
     with open(output_file, 'w', encoding='utf-8') as f:
@@ -1270,9 +1270,10 @@ def run_learning_review(
     output_file: str = None
 ):
     """학습 리뷰 실행"""
+    from datetime import datetime
     try:
         print(f"📚 {period} 학습 리뷰 생성 시작...")
-        
+
         # 날짜 파싱
         start_date = None
         end_date = None

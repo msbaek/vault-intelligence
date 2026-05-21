@@ -15,6 +15,7 @@ from collections import defaultdict, Counter
 
 from ..core.vault_processor import Document
 from ..features.advanced_search import SearchResult
+from ..utils.ofm import to_wikilink
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -420,7 +421,7 @@ total_documents: {metadata.total_documents}
                 sorted_docs = sorted(docs, key=lambda d: d.word_count, reverse=True)
                 
                 for doc in sorted_docs:
-                    content += f"- **[[{doc.path}]]**"
+                    content += f"- **{to_wikilink(doc.path, self.search_engine.vault_path)}**"
                     
                     if doc.word_count:
                         content += f" ({doc.word_count:,} 단어)"

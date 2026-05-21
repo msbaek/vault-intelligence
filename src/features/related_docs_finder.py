@@ -15,6 +15,7 @@ from datetime import datetime
 
 from ..core.vault_processor import Document
 from .advanced_search import AdvancedSearchEngine, SearchResult
+from ..utils.ofm import to_wikilink
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -132,8 +133,8 @@ class RelatedDocsFinder:
             for result in related_docs:
                 doc = result.document
                 
-                # 위키링크 형식으로 문서 제목 생성
-                link_text = f"[[{doc.title}]]"
+                # 위키링크 형식으로 문서 제목 생성 (vault-relative 경로 사용)
+                link_text = to_wikilink(doc.path, self.search_engine.vault_path)
                 
                 if format_style == "simple":
                     # 간단한 형식: - [[문서제목]]
