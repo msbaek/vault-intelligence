@@ -10,10 +10,10 @@ callout/embed helpers are NOT here (YAGNI).
 
 from datetime import datetime
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Union
 
 
-def to_wikilink(path: str, vault_path: str, alias: Optional[str] = None) -> str:
+def to_wikilink(path: Union[str, Path], vault_path: Union[str, Path], alias: Optional[str] = None) -> str:
     """Convert a file path to an Obsidian vault-relative wikilink.
 
     SSOT: ~/.claude/commands/obsidian/ofm-rules.md §1-Wikilink

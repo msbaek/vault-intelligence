@@ -10,7 +10,7 @@ import os
 import argparse
 import logging
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Union
 
 # 데이터 디렉토리 결정 (캐시, 설정, 모델 저장 위치)
 # 우선순위: 환경변수 VAULT_INTELLIGENCE_HOME > 기본값 ~/git/vault-intelligence
@@ -1213,10 +1213,10 @@ def print_clustering_results(clustering_result):
             print(f"     ... 및 {cluster.size - 3}개 더")
 
 
-def save_clustering_results(clustering_result, output_file: str, vault_path: str, topic: Optional[str] = None):
+def save_clustering_results(clustering_result, output_file: str, vault_path: Union[str, Path], topic: Optional[str] = None):
     """클러스터링 결과를 마크다운 파일로 저장"""
     from datetime import datetime
-    from src.utils.ofm import to_wikilink
+    from .utils.ofm import to_wikilink
     
     content = []
     
@@ -1270,9 +1270,10 @@ def run_learning_review(
     output_file: str = None
 ):
     """학습 리뷰 실행"""
+    from datetime import datetime
     try:
         print(f"📚 {period} 학습 리뷰 생성 시작...")
-        
+
         # 날짜 파싱
         start_date = None
         end_date = None
