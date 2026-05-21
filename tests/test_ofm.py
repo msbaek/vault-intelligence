@@ -4,7 +4,6 @@ SSOT: ~/.claude/commands/obsidian/ofm-rules.md
 Rule: wikilink is vault-relative path, no .md extension.
 """
 import re
-import pytest
 from datetime import datetime
 from src.utils.ofm import to_wikilink, format_frontmatter_timestamp
 
