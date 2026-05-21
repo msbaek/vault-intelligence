@@ -15,7 +15,7 @@ from collections import defaultdict, Counter
 
 from ..core.vault_processor import Document
 from ..features.advanced_search import SearchResult
-from src.utils.ofm import to_wikilink
+from ..utils.ofm import to_wikilink
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
