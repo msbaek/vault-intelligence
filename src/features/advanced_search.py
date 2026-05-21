@@ -8,6 +8,7 @@ Sentence Transformers 기반 의미적 검색 및 하이브리드 검색 엔진
 import os
 import re
 import logging
+import threading
 from typing import List, Dict, Optional, Tuple, Union
 from pathlib import Path
 from dataclasses import dataclass, asdict
@@ -100,6 +101,10 @@ class AdvancedSearchEngine:
         self.indexed = False
         self.is_sampled = False
         self.sample_size = None
+
+        # Reranker 인스턴스 캐시 — 호출마다 모델을 재로드(~12s)하지 않도록 lazy-init 후 재사용
+        self._reranker = None
+        self._reranker_lock = threading.Lock()
         
         logger.info(f"고급 검색 엔진 초기화: {vault_path}")
         
@@ -745,16 +750,20 @@ class AdvancedSearchEngine:
             try:
                 from .reranker import BGEReranker, RerankerPipeline
                 
-                # 설정에서 reranker 정보 가져오기
-                reranker_config = self.config.get('reranker', {})
-                
-                # Reranker 초기화
-                reranker = BGEReranker(
-                    model_name=reranker_config.get('model_name', 'BAAI/bge-reranker-v2-m3'),
-                    use_fp16=reranker_config.get('use_fp16', True),
-                    cache_folder=reranker_config.get('cache_folder', self.config.get('model', {}).get('cache_folder')),
-                    device=reranker_config.get('device', self.config.get('model', {}).get('device'))
-                )
+                # Reranker 초기화 (캐시된 인스턴스 재사용 — 최초 1회만 모델 로드)
+                reranker = self._reranker
+                if reranker is None:
+                    # double-checked locking — 동시 첫 요청이 모델을 중복 로드하지 않도록
+                    with self._reranker_lock:
+                        if self._reranker is None:
+                            reranker_config = self.config.get('reranker', {})
+                            self._reranker = BGEReranker(
+                                model_name=reranker_config.get('model_name', 'BAAI/bge-reranker-v2-m3'),
+                                use_fp16=reranker_config.get('use_fp16', True),
+                                cache_folder=reranker_config.get('cache_folder', self.config.get('model', {}).get('cache_folder')),
+                                device=reranker_config.get('device', self.config.get('model', {}).get('device'))
+                            )
+                        reranker = self._reranker
                 
                 if reranker.is_available():
                     # 파이프라인 생성 및 실행
