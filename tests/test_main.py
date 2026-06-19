@@ -65,3 +65,43 @@ def test_get_subcommand_default_format():
     parser = _build_parser()
     args = parser.parse_args(["get", "x.md"])
     assert args.format == "markdown"
+
+
+# --- vis stop 핸들러: 서버 미실행 상태를 stack trace 없이 처리 ---
+
+def test_handle_stop_when_no_pid_file_prints_friendly_message(capsys):
+    """vis stop: PID 파일이 없으면(서버 미실행) stack trace 없이 친절히 안내."""
+    from src.__main__ import _handle_stop
+    with patch("src.client.VisClient.stop_server",
+               side_effect=FileNotFoundError("PID file not found")):
+        _handle_stop()  # 예외가 전파되면 안 됨
+    out = capsys.readouterr().out
+    assert "실행 중이 아닙니다" in out
+
+
+def test_handle_stop_when_process_already_gone(capsys):
+    """vis stop: stale PID(ProcessLookupError)도 친절히 처리."""
+    from src.__main__ import _handle_stop
+    with patch("src.client.VisClient.stop_server",
+               side_effect=ProcessLookupError()):
+        _handle_stop()
+    out = capsys.readouterr().out
+    assert "stale PID" in out
+
+
+def test_handle_stop_when_pid_corrupt(capsys):
+    """vis stop: 손상된 PID 파일(ValueError)도 친절히 처리."""
+    from src.__main__ import _handle_stop
+    with patch("src.client.VisClient.stop_server",
+               side_effect=ValueError("Invalid PID in file")):
+        _handle_stop()
+    out = capsys.readouterr().out
+    assert "손상" in out
+
+
+def test_handle_stop_success_calls_stop_server():
+    """vis stop: 정상 종료 시 stop_server를 호출하고 예외가 없어야 함."""
+    from src.__main__ import _handle_stop
+    with patch("src.client.VisClient.stop_server") as mock_stop:
+        _handle_stop()
+        mock_stop.assert_called_once()

@@ -2248,6 +2248,27 @@ def _build_parser() -> "argparse.ArgumentParser":
     return parser
 
 
+def _handle_stop() -> None:
+    """`vis stop` 핸들러.
+
+    서버가 실행 중이 아닌 상태(PID 파일 없음·죽은 프로세스·손상된 PID)는
+    오류가 아니라 정상적인 no-op이므로 raw traceback 대신 친절한 안내를 출력한다.
+    (low-level primitive인 ``VisClient.stop_server()``는 계속 예외를 던지며,
+    사용자 노출 메시지는 CLI 계층인 이 함수가 책임진다.)
+    """
+    from src.client import VisClient
+    try:
+        VisClient.stop_server()
+    except FileNotFoundError:
+        # PID 파일 없음 = 서버 미실행
+        print("ℹ️  서버가 실행 중이 아닙니다.")
+    except ProcessLookupError:
+        # PID는 있었으나 프로세스가 이미 종료됨 (stale PID 파일은 제거됨)
+        print("ℹ️  서버 프로세스가 이미 종료되어 stale PID 파일을 정리했습니다.")
+    except ValueError as e:
+        print(f"❌ PID 파일이 손상되었습니다: {e}")
+
+
 def main():
     """메인 함수"""
     parser = _build_parser()
@@ -2271,8 +2292,7 @@ def main():
         return
 
     if args.command == "stop":
-        from src.client import VisClient
-        VisClient.stop_server()
+        _handle_stop()
         return
 
     if args.command == "status":
