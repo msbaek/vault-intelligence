@@ -116,3 +116,82 @@ def test_deterministic_sample_is_stable_and_even():
 def test_deterministic_sample_n_larger_than_corpus():
     docs = ["b.md", "a.md"]
     assert deterministic_sample(docs, 8) == ["a.md", "b.md"]
+
+
+# ── Finding 1: to_absolute helper ────────────────────────────────────────────
+
+from src.features.graph_related import to_absolute
+
+def test_to_absolute_joins_vault_and_relative():
+    vault = "/Users/x/vault"
+    rel = "003-RESOURCES/DDD/Aggregate.md"
+    assert to_absolute(vault, rel) == "/Users/x/vault/003-RESOURCES/DDD/Aggregate.md"
+
+def test_to_absolute_trailing_slash_vault():
+    # Path handles trailing slash cleanly
+    vault = "/Users/x/vault/"
+    rel = "003-RESOURCES/DDD/X.md"
+    assert to_absolute(vault, rel) == "/Users/x/vault/003-RESOURCES/DDD/X.md"
+
+
+# ── Finding 2: directed graph normalization ───────────────────────────────────
+
+DIRECTED_FIXTURE = {
+    "directed": True, "multigraph": False, "graph": {},
+    "nodes": [
+        {"id": "seed_node", "label": "Seed", "source_file": "Seed.md"},
+        {"id": "nbr_node",  "label": "Nbr",  "source_file": "Nbr.md"},
+    ],
+    "links": [
+        # Edge goes seed_node → nbr_node only (directed)
+        {"source": "seed_node", "target": "nbr_node", "relation": "references",
+         "confidence": "EXTRACTED", "confidence_score": 1.0, "weight": 1.0},
+    ],
+}
+
+MULTIGRAPH_FIXTURE = {
+    "directed": False, "multigraph": True, "graph": {},
+    "nodes": [
+        {"id": "A", "label": "A", "source_file": "A.md"},
+        {"id": "B", "label": "B", "source_file": "B.md"},
+    ],
+    "links": [
+        # Two parallel edges A─B; second has higher confidence_score
+        {"source": "A", "target": "B", "key": 0, "relation": "references",
+         "confidence": "INFERRED", "confidence_score": 0.7, "weight": 1.0},
+        {"source": "A", "target": "B", "key": 1, "relation": "semantically_similar_to",
+         "confidence": "INFERRED", "confidence_score": 0.9, "weight": 1.0},
+    ],
+}
+
+@pytest.fixture
+def directed_graph_file(tmp_path):
+    p = tmp_path / "directed.json"
+    p.write_text(json.dumps(DIRECTED_FIXTURE))
+    return str(p)
+
+@pytest.fixture
+def multigraph_file(tmp_path):
+    p = tmp_path / "multi.json"
+    p.write_text(json.dumps(MULTIGRAPH_FIXTURE))
+    return str(p)
+
+def test_directed_graph_normalized_to_undirected(directed_graph_file):
+    """After normalization, filtered_neighbors works from the directed-source side."""
+    idx = GraphIndex(directed_graph_file, confidence_threshold=0.8)
+    neighbors = dict(idx.filtered_neighbors("seed_node"))
+    # EXTRACTED edge → neighbor must appear
+    assert "nbr_node" in neighbors
+
+def test_directed_graph_bidirectional_after_normalization(directed_graph_file):
+    """Normalization makes the edge bidirectional: lookup from nbr_node must also find seed_node."""
+    idx = GraphIndex(directed_graph_file, confidence_threshold=0.8)
+    neighbors = dict(idx.filtered_neighbors("nbr_node"))
+    assert "seed_node" in neighbors
+
+def test_multigraph_collapses_keeping_highest_confidence_score(multigraph_file):
+    """Parallel edges are collapsed; the edge with confidence_score=0.9 survives (>= 0.8 threshold)."""
+    idx = GraphIndex(multigraph_file, confidence_threshold=0.8)
+    neighbors = dict(idx.filtered_neighbors("A"))
+    # The higher-score INFERRED edge (0.9) should survive the threshold and collapse
+    assert "B" in neighbors

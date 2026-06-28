@@ -7,6 +7,7 @@ import os
 from dataclasses import dataclass, field
 from pathlib import Path
 
+import networkx as nx
 from networkx.readwrite import json_graph
 
 logger = logging.getLogger(__name__)
@@ -21,7 +22,23 @@ class GraphIndex:
     def __init__(self, graph_path: str, confidence_threshold: float = 0.8):
         self.confidence_threshold = confidence_threshold
         data = json.loads(Path(graph_path).read_text())
-        self._graph = json_graph.node_link_graph(data, edges="links")
+        g = json_graph.node_link_graph(data, edges="links")
+        # Normalize to simple undirected graph so filtered_neighbors works
+        # bidirectionally regardless of the graphify output format.
+        if g.is_multigraph():
+            # Collapse parallel edges; keep the edge with highest confidence_score.
+            simple = nx.DiGraph() if g.is_directed() else nx.Graph()
+            simple.add_nodes_from(g.nodes(data=True))
+            for u, v, edata in g.edges(data=True):
+                if simple.has_edge(u, v):
+                    if edata.get("confidence_score", 0.0) > simple[u][v].get("confidence_score", 0.0):
+                        simple[u][v].update(edata)
+                else:
+                    simple.add_edge(u, v, **edata)
+            g = simple
+        if g.is_directed():
+            g = g.to_undirected()
+        self._graph = g
 
     @property
     def node_ids(self) -> list:
@@ -50,6 +67,15 @@ class GraphIndex:
                 score = float(edata.get("weight", 1.0)) * float(edata.get("confidence_score", 1.0))
                 out.append((nbr, score))
         return out
+
+
+def to_absolute(vault_path: str, vault_relative: str) -> str:
+    """vault-relative 경로를 절대 경로로 변환.
+
+    AdvancedSearchEngine 의 doc.path 는 절대 경로이므로,
+    find_related_docs 에 vault-relative 를 직접 전달하면 매칭에 실패한다.
+    """
+    return str(Path(vault_path) / vault_relative)
 
 
 def to_vault_relative(source_file: str, corpus_prefix: str) -> str:
@@ -170,7 +196,7 @@ def run_graph_related_worksheet(vault_path: str, config: dict, data_dir,
         graph_results = project(index, doc, corpus_prefix, top_k=top_k)
         if not graph_results:
             continue
-        vector_results = finder.find_related_docs(doc, top_k=top_k)
+        vector_results = finder.find_related_docs(to_absolute(vault_path, doc), top_k=top_k)
         vector_docs = vector_paths_vault_relative(vector_results, vault_path)
         novel = compute_novelty([r.doc_path for r in graph_results], vector_docs)
         for d in novel:
@@ -206,7 +232,7 @@ def run_graph_related(vault_path: str, file_path: str, config: dict, data_dir, t
     if not engine.indexed:
         engine.build_index()
     finder = RelatedDocsFinder(engine, config)
-    vector_results = finder.find_related_docs(file_path, top_k=top_k)
+    vector_results = finder.find_related_docs(to_absolute(vault_path, target), top_k=top_k)
     vector_docs = vector_paths_vault_relative(vector_results, vault_path)
 
     print(f"\n=== graph-related: {target} ===")

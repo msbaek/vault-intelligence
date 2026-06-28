@@ -2498,6 +2498,8 @@ def main():
             sys.exit(1)
 
     elif args.command == "graph-related":
+        if not check_dependencies():
+            sys.exit(1)
         if args.sample and args.sample > 0:
             # lazy import — run_graph_related_worksheet 는 Task 7 에서 정의됨.
             # --sample 분기 진입 시에만 import 하여 Task 6 단독 스모크(--sample 없이)가
