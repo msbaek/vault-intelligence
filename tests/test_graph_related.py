@@ -74,3 +74,14 @@ def test_project_maps_concepts_to_docs_and_ranks(graph_file):
 def test_project_unknown_doc_returns_empty(graph_file):
     idx = GraphIndex(graph_file, confidence_threshold=0.8)
     assert project(idx, "003-RESOURCES/DDD/Nonexistent.md", "003-RESOURCES/DDD") == []
+
+
+from src.features.graph_related import compute_novelty
+
+def test_compute_novelty_returns_graph_minus_vector():
+    graph = ["a.md", "b.md", "c.md"]
+    vector = ["b.md", "x.md"]
+    assert compute_novelty(graph, vector) == ["a.md", "c.md"]
+
+def test_compute_novelty_preserves_graph_order():
+    assert compute_novelty(["c.md", "a.md"], []) == ["c.md", "a.md"]

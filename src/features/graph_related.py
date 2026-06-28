@@ -105,3 +105,9 @@ def project(index, target_doc: str, corpus_prefix: str, top_k: int = 10) -> list
 
     ranked = sorted(doc_score.items(), key=lambda kv: kv[1], reverse=True)[:top_k]
     return [GraphRelatedDoc(doc_path=d, score=s, contributors=doc_contrib[d]) for d, s in ranked]
+
+
+def compute_novelty(graph_docs: list, vector_docs: list) -> list:
+    """graph 에는 있고 vector top-k 에는 없는 문서(graph 순서 보존)."""
+    vset = set(vector_docs)
+    return [d for d in graph_docs if d not in vset]
