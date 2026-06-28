@@ -85,3 +85,19 @@ def test_compute_novelty_returns_graph_minus_vector():
 
 def test_compute_novelty_preserves_graph_order():
     assert compute_novelty(["c.md", "a.md"], []) == ["c.md", "a.md"]
+
+
+from src.features.graph_related import vector_paths_vault_relative
+
+class _Doc:
+    def __init__(self, path): self.path = path
+
+class _Res:
+    def __init__(self, path, score): self.document = _Doc(path); self.similarity_score = score
+
+def test_vector_paths_vault_relative_strips_vault_prefix():
+    vault = "/Users/x/vault"
+    results = [_Res("/Users/x/vault/003-RESOURCES/DDD/Entity.md", 0.7),
+               _Res("003-RESOURCES/DDD/Repository.md", 0.6)]
+    assert vector_paths_vault_relative(results, vault) == [
+        "003-RESOURCES/DDD/Entity.md", "003-RESOURCES/DDD/Repository.md"]

@@ -3,6 +3,7 @@
 
 import json
 import logging
+import os
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -111,3 +112,65 @@ def compute_novelty(graph_docs: list, vector_docs: list) -> list:
     """graph 에는 있고 vector top-k 에는 없는 문서(graph 순서 보존)."""
     vset = set(vector_docs)
     return [d for d in graph_docs if d not in vset]
+
+
+def vector_paths_vault_relative(results: list, vault_path: str) -> list:
+    """벡터 SearchResult 의 document.path 를 vault-relative 로 정규화."""
+    out = []
+    for r in results:
+        p = r.document.path
+        if os.path.isabs(p):
+            p = os.path.relpath(p, vault_path)
+        out.append(p.lstrip("./"))
+    return out
+
+
+def run_graph_related(vault_path: str, file_path: str, config: dict, data_dir, top_k: int = 10) -> bool:
+    """graph-related 단일 문서 A/B 뷰: vector / graph / novel 3블록 출력."""
+    gconf = config.get("graph_related", {})
+    corpus_prefix = gconf.get("corpus_prefix", "003-RESOURCES/DDD")
+    threshold = gconf.get("confidence_threshold", 0.8)
+    graph_path = Path(data_dir) / gconf.get("graph_path", "cache/graph/ddd/graph.json")
+
+    target = to_vault_relative(file_path, corpus_prefix) if not file_path.startswith(corpus_prefix) else file_path.lstrip("./")
+
+    # Vector baseline (reuse existing engine)
+    from .advanced_search import AdvancedSearchEngine
+    from .related_docs_finder import RelatedDocsFinder
+    cache_dir = str(Path(data_dir) / "cache")
+    engine = AdvancedSearchEngine(vault_path, cache_dir, config)
+    if not engine.indexed:
+        engine.build_index()
+    finder = RelatedDocsFinder(engine, config)
+    vector_results = finder.find_related_docs(file_path, top_k=top_k)
+    vector_docs = vector_paths_vault_relative(vector_results, vault_path)
+
+    print(f"\n=== graph-related: {target} ===")
+    print(f"\n[VECTOR top-{top_k}]  (기존 vis related)")
+    for d in vector_docs:
+        print(f"  - {d}")
+
+    if not graph_path.exists():
+        print(f"\n[GRAPH] graph.json 없음: {graph_path}")
+        print("  → /graphify 003-RESOURCES/DDD 먼저 실행 후 cache/graph/ddd/ 에 배치")
+        return True
+
+    index = GraphIndex(str(graph_path), confidence_threshold=threshold)
+    graph_results = project(index, target, corpus_prefix, top_k=top_k)
+    if not graph_results:
+        print(f"\n[GRAPH] 이 문서는 graph corpus 에 없음 (개념 노드 없음): {target}")
+        return True
+
+    graph_docs = [r.doc_path for r in graph_results]
+    print(f"\n[GRAPH top-{top_k}]  (개념 엣지 투영)")
+    for r in graph_results:
+        print(f"  - {r.doc_path}  (score={r.score:.2f})  via {', '.join(r.contributors[:3])}")
+
+    novel = compute_novelty(graph_docs, vector_docs)
+    print(f"\n[NOVEL]  graph 에만 있고 vector top-{top_k} 엔 없는 이웃 (판정 대상)")
+    if not novel:
+        print("  (없음 — 이 문서에선 graph 가 새 연결을 추가하지 못함)")
+    for d in novel:
+        gr = next(r for r in graph_results if r.doc_path == d)
+        print(f"  - {d}  via {', '.join(gr.contributors[:3])}")
+    return True

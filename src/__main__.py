@@ -2096,6 +2096,13 @@ def _build_parser() -> "argparse.ArgumentParser":
     p.add_argument("--top-k", type=int, default=10, help="상위 K개 결과 (기본값: 10)")
     p.add_argument("--similarity-threshold", type=float, default=0.3, help="유사도 임계값 (기본값: 0.3)")
 
+    # --- graph-related (vis × graphify Tier 1) ---
+    p = subparsers.add_parser("graph-related", help="개념 그래프 기반 관련 문서 (vector A/B 비교)")
+    p.add_argument("file", help="기준 파일 경로 (vault-relative)")
+    p.add_argument("--top-k", type=int, default=10, help="상위 K개 (기본 10)")
+    p.add_argument("--sample", type=int, default=0, help="N개 표본 판정 워크시트 생성")
+    p.add_argument("--output", default=None, help="워크시트 출력 경로 (--sample 과 함께)")
+
     # --- get ---
     p = subparsers.add_parser("get", help="단일/다중 문서 본문 fetch (progressive disclosure layer 3)")
     p.add_argument("paths", nargs="+", help="문서 path(s) — 1개 이상")
@@ -2489,7 +2496,24 @@ def main():
         else:
             print("❌ 관련 문서 찾기 실패!")
             sys.exit(1)
-    
+
+    elif args.command == "graph-related":
+        if args.sample and args.sample > 0:
+            # lazy import — run_graph_related_worksheet 는 Task 7 에서 정의됨.
+            # --sample 분기 진입 시에만 import 하여 Task 6 단독 스모크(--sample 없이)가
+            # ImportError 없이 동작하도록 한다.
+            from src.features.graph_related import run_graph_related_worksheet
+            run_graph_related_worksheet(
+                vault_path=vault_path, config=config, data_dir=data_dir,
+                sample_n=args.sample, top_k=args.top_k, output=args.output,
+            )
+        else:
+            from src.features.graph_related import run_graph_related
+            run_graph_related(
+                vault_path=vault_path, file_path=args.file, config=config,
+                data_dir=data_dir, top_k=args.top_k,
+            )
+
     elif args.command == "analyze-gaps":
         if not check_dependencies():
             sys.exit(1)
