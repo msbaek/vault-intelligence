@@ -287,3 +287,11 @@ semantic_tagging:
   cache_semantic_analysis: true     # 의미 분석 결과 캐싱
   parallel_processing: true         # 병렬 처리 활성화
   memory_limit_mb: 2048            # 메모리 제한 (MB)
+
+# graph-related (vis × graphify Tier 1 walking skeleton)
+graph_related:
+  graph_path: "cache/graph/ddd/graph.json"
+  corpus_prefix: "003-RESOURCES/DDD"
+  confidence_threshold: 0.8
+  default_top_k: 10
+  default_sample: 8
