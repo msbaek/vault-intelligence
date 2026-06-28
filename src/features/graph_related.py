@@ -125,6 +125,70 @@ def vector_paths_vault_relative(results: list, vault_path: str) -> list:
     return out
 
 
+def deterministic_sample(docs: list, n: int) -> list:
+    """Sort then pick N items at even stride — result is input-order-independent."""
+    uniq = sorted(set(docs))
+    if n <= 0 or len(uniq) <= n:
+        return uniq
+    step = len(uniq) / n
+    return [uniq[int(i * step)] for i in range(n)]
+
+
+def run_graph_related_worksheet(vault_path: str, config: dict, data_dir,
+                                sample_n: int = 8, top_k: int = 10, output=None) -> bool:
+    """Sample N corpus docs, compute novel neighbors for each, write markdown judgment worksheet."""
+    gconf = config.get("graph_related", {})
+    corpus_prefix = gconf.get("corpus_prefix", "003-RESOURCES/DDD")
+    threshold = gconf.get("confidence_threshold", 0.8)
+    graph_path = Path(data_dir) / gconf.get("graph_path", "cache/graph/ddd/graph.json")
+    if not graph_path.exists():
+        print(f"graph.json not found: {graph_path} — run /graphify first")
+        return False
+
+    index = GraphIndex(str(graph_path), confidence_threshold=threshold)
+    corpus_docs = sorted({to_vault_relative(index.source_file_of(n), corpus_prefix)
+                          for n in index.node_ids if index.source_file_of(n)})
+    sample = deterministic_sample(corpus_docs, sample_n)
+
+    from .advanced_search import AdvancedSearchEngine
+    from .related_docs_finder import RelatedDocsFinder
+    cache_dir = str(Path(data_dir) / "cache")
+    engine = AdvancedSearchEngine(vault_path, cache_dir, config)
+    if not engine.indexed:
+        engine.build_index()
+    finder = RelatedDocsFinder(engine, config)
+
+    lines = ["# graph-related 판정 워크시트",
+             "",
+             f"corpus: {corpus_prefix} · 표본 {len(sample)}개 · threshold {threshold}",
+             "각 행의 [판정] 칸에 O(관련) / X(무관) 입력 후 채팅에 보고.",
+             "",
+             "| 대상문서 | 신규이웃(graph만) | 기여 개념·엣지 | 판정 |",
+             "|---|---|---|---|"]
+    total_novel = 0
+    for doc in sample:
+        graph_results = project(index, doc, corpus_prefix, top_k=top_k)
+        if not graph_results:
+            continue
+        vector_results = finder.find_related_docs(doc, top_k=top_k)
+        vector_docs = vector_paths_vault_relative(vector_results, vault_path)
+        novel = compute_novelty([r.doc_path for r in graph_results], vector_docs)
+        for d in novel:
+            gr = next(r for r in graph_results if r.doc_path == d)
+            contrib = "; ".join(gr.contributors[:2])
+            lines.append(f"| {doc} | {d} | {contrib} | |")
+            total_novel += 1
+    lines += ["", f"총 신규이웃 쌍: {total_novel}"]
+    content = "\n".join(lines)
+
+    if output:
+        Path(output).write_text(content)
+        print(f"워크시트 생성: {output} (신규이웃 {total_novel}쌍)")
+    else:
+        print(content)
+    return True
+
+
 def run_graph_related(vault_path: str, file_path: str, config: dict, data_dir, top_k: int = 10) -> bool:
     """graph-related 단일 문서 A/B 뷰: vector / graph / novel 3블록 출력."""
     gconf = config.get("graph_related", {})

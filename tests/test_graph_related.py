@@ -101,3 +101,18 @@ def test_vector_paths_vault_relative_strips_vault_prefix():
                _Res("003-RESOURCES/DDD/Repository.md", 0.6)]
     assert vector_paths_vault_relative(results, vault) == [
         "003-RESOURCES/DDD/Entity.md", "003-RESOURCES/DDD/Repository.md"]
+
+
+from src.features.graph_related import deterministic_sample
+
+def test_deterministic_sample_is_stable_and_even():
+    docs = [f"{i}.md" for i in range(20)]
+    s1 = deterministic_sample(docs, 4)
+    s2 = deterministic_sample(list(reversed(docs)), 4)
+    assert s1 == s2            # input order independent (sort-based)
+    assert len(s1) == 4
+    assert s1 == sorted(s1)   # sorted
+
+def test_deterministic_sample_n_larger_than_corpus():
+    docs = ["b.md", "a.md"]
+    assert deterministic_sample(docs, 8) == ["a.md", "b.md"]
