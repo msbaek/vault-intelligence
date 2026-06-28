@@ -54,3 +54,23 @@ def test_to_vault_relative_partial_prefix():
 
 def test_to_vault_relative_strips_leading_dotslash():
     assert to_vault_relative("./Aggregate.md", "003-RESOURCES/DDD") == "003-RESOURCES/DDD/Aggregate.md"
+
+
+from src.features.graph_related import project, GraphRelatedDoc
+
+def test_project_maps_concepts_to_docs_and_ranks(graph_file):
+    idx = GraphIndex(graph_file, confidence_threshold=0.8)
+    results = project(idx, "003-RESOURCES/DDD/Aggregate.md", "003-RESOURCES/DDD", top_k=10)
+    paths = [r.doc_path for r in results]
+    # entity(1.0), value_object(0.85) included; repository(0.6<0.8) excluded; self excluded
+    assert "003-RESOURCES/DDD/Entity.md" in paths
+    assert "003-RESOURCES/DDD/ValueObject.md" in paths
+    assert "003-RESOURCES/DDD/Repository.md" not in paths
+    assert "003-RESOURCES/DDD/Aggregate.md" not in paths
+    # descending score
+    assert results[0].doc_path == "003-RESOURCES/DDD/Entity.md"
+    assert results[0].score >= results[1].score
+
+def test_project_unknown_doc_returns_empty(graph_file):
+    idx = GraphIndex(graph_file, confidence_threshold=0.8)
+    assert project(idx, "003-RESOURCES/DDD/Nonexistent.md", "003-RESOURCES/DDD") == []

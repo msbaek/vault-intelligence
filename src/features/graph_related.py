@@ -67,3 +67,41 @@ def to_vault_relative(source_file: str, corpus_prefix: str) -> str:
     if s.startswith(last_seg + "/"):
         s = s[len(last_seg) + 1:]
     return f"{prefix}/{s}"
+
+
+@dataclass
+class GraphRelatedDoc:
+    doc_path: str
+    score: float
+    contributors: list = field(default_factory=list)
+
+
+def project(index, target_doc: str, corpus_prefix: str, top_k: int = 10) -> list:
+    """대상 문서 D 의 개념 엣지를 문서 관계로 투영.
+
+    1) seed = source_file 이 D 인 노드들
+    2) 각 seed 의 1-hop 필터 통과 이웃
+    3) 이웃 개념 → source_file 문서로 역매핑 (D 자신 제외)
+    4) 문서별 score 합산 (weight*confidence_score)
+    """
+    seeds = [n for n in index.node_ids
+             if index.source_file_of(n)
+             and to_vault_relative(index.source_file_of(n), corpus_prefix) == target_doc]
+    if not seeds:
+        return []
+
+    doc_score: dict = {}
+    doc_contrib: dict = {}
+    for seed in seeds:
+        for nbr, score in index.filtered_neighbors(seed):
+            src = index.source_file_of(nbr)
+            if not src:
+                continue
+            doc = to_vault_relative(src, corpus_prefix)
+            if doc == target_doc:
+                continue
+            doc_score[doc] = doc_score.get(doc, 0.0) + score
+            doc_contrib.setdefault(doc, []).append(f"{seed} -> {nbr} ({score:.2f})")
+
+    ranked = sorted(doc_score.items(), key=lambda kv: kv[1], reverse=True)[:top_k]
+    return [GraphRelatedDoc(doc_path=d, score=s, contributors=doc_contrib[d]) for d, s in ranked]
