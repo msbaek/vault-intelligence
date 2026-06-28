@@ -573,19 +573,23 @@ Expected: PASS (1 passed)
 `src/__main__.py` 의 `elif args.command == "related":` 블록(약 2476행) 직후에 추가:
 ```python
     elif args.command == "graph-related":
-        from src.features.graph_related import run_graph_related, run_graph_related_worksheet
         if args.sample and args.sample > 0:
+            # lazy import — run_graph_related_worksheet 는 Task 7 에서 정의됨.
+            # --sample 분기 진입 시에만 import 하여 Task 6 단독 스모크(--sample 없이)가
+            # ImportError 없이 동작하도록 한다.
+            from src.features.graph_related import run_graph_related_worksheet
             run_graph_related_worksheet(
                 vault_path=vault_path, config=config, data_dir=data_dir,
                 sample_n=args.sample, top_k=args.top_k, output=args.output,
             )
         else:
+            from src.features.graph_related import run_graph_related
             run_graph_related(
                 vault_path=vault_path, file_path=args.file, config=config,
                 data_dir=data_dir, top_k=args.top_k,
             )
 ```
-(주의: `vault_path`, `config`, `data_dir` 는 main() 내에서 이미 정의된 변수 — `related` 분기와 동일하게 참조. `run_graph_related_worksheet` 는 Task 7 에서 구현하므로, 이 import 는 Task 7 완료 전까지 `--sample` 미사용 시 실행되지 않음.)
+(주의: `vault_path`, `config`, `data_dir` 는 main() 내에서 이미 정의된 변수 — `related` 분기와 동일하게 참조. worksheet import 는 `--sample` 분기 안에서만 실행되므로 Task 6 단계에서 `run_graph_related_worksheet` 미정의여도 안전.)
 
 - [ ] **Step 7: 실제 graph.json 으로 integration 스모크 (수동)**
 
