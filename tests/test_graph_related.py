@@ -39,3 +39,18 @@ def test_filter_keeps_extracted_and_high_inferred_drops_rest(graph_file):
 def test_source_file_lookup(graph_file):
     idx = GraphIndex(graph_file, confidence_threshold=0.8)
     assert idx.source_file_of("entity") == "Entity.md"
+
+
+from src.features.graph_related import to_vault_relative
+
+def test_to_vault_relative_bare_filename():
+    assert to_vault_relative("Aggregate.md", "003-RESOURCES/DDD") == "003-RESOURCES/DDD/Aggregate.md"
+
+def test_to_vault_relative_already_prefixed():
+    assert to_vault_relative("003-RESOURCES/DDD/Aggregate.md", "003-RESOURCES/DDD") == "003-RESOURCES/DDD/Aggregate.md"
+
+def test_to_vault_relative_partial_prefix():
+    assert to_vault_relative("DDD/Aggregate.md", "003-RESOURCES/DDD") == "003-RESOURCES/DDD/Aggregate.md"
+
+def test_to_vault_relative_strips_leading_dotslash():
+    assert to_vault_relative("./Aggregate.md", "003-RESOURCES/DDD") == "003-RESOURCES/DDD/Aggregate.md"

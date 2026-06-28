@@ -49,3 +49,21 @@ class GraphIndex:
                 score = float(edata.get("weight", 1.0)) * float(edata.get("confidence_score", 1.0))
                 out.append((nbr, score))
         return out
+
+
+def to_vault_relative(source_file: str, corpus_prefix: str) -> str:
+    """graphify source_file 을 vault-relative 경로로 정규화.
+
+    graphify 는 입력 디렉토리 기준 상대경로를 저장한다(bare filename / 부분 prefix /
+    full prefix 모두 가능). corpus_prefix(vault-relative)를 기준으로 일관된
+    vault-relative 경로를 만든다. Task 1 에서 확인한 실제 형태에 맞춰 조정할 것.
+    """
+    s = source_file.strip().lstrip("./")
+    prefix = corpus_prefix.strip("/")
+    if s == prefix or s.startswith(prefix + "/"):
+        return s
+    # 부분 prefix(예: 'DDD/...') 처리: corpus_prefix 의 마지막 segment 와 겹치면 제거
+    last_seg = prefix.split("/")[-1]
+    if s.startswith(last_seg + "/"):
+        s = s[len(last_seg) + 1:]
+    return f"{prefix}/{s}"
