@@ -118,6 +118,36 @@ vis graph "문서명.md" --depth 3 --expand-threshold 0.6  # 확장 기준 강�
 - **score 기반 확장**: parent score에 비례한 top-k 자동 조절, `--expand-threshold`로 확장 기준 설정
 - Obsidian 다크 테마 스타일, 물리 시뮬레이션 레이아웃
 
+### 개념 그래프 (graphify) 시각화
+
+`vis graph`(위)가 **문서 사이의 관계**(임베딩 유사도·wikilink)를 보여준다면, 이쪽은
+graphify 가 LLM 으로 추출한 **개념 노드와 개념 사이의 관계**(graph.json)를 Obsidian
+graph view 처럼 보여준다. 두 그래프는 서로 다르다(문서 단위 vs 개념 단위).
+
+**전제**: graphify 로 corpus 를 분석해 `graph.json` 이 있어야 한다
+(예: `cache/graph/ddd/graph.json`). 이 파일은 networkx node_link 포맷이며 개념
+노드 + EXTRACTED/INFERRED 관계 엣지를 담는다.
+
+```bash
+# graph.json → 인터랙티브 HTML (외부 의존성 0, 완전 self-contained·오프라인)
+python3 scripts/graphify_view.py cache/graph/ddd/graph.json
+
+# 생성과 동시에 브라우저로 열기
+python3 scripts/graphify_view.py cache/graph/ddd/graph.json --open
+
+# 출력 경로·제목 지정
+python3 scripts/graphify_view.py cache/graph/ddd/graph.json \
+    -o /tmp/ddd-concepts.html -t "DDD 개념 그래프"
+```
+
+- 출력은 기본적으로 graph.json 과 같은 폴더의 `graph-view.html`
+- **노드**: 개념(색=graphify 클러스터, 크기=연결 수), **엣지**: 실선=EXTRACTED(명시
+  추출) / 점선=INFERRED(추론, confidence≥0.8)
+- **조작**: 노드 드래그=이동·고정, 배경 드래그=패닝, 휠=줌, 노드 호버=이웃 강조,
+  우상단 검색=개념 필터, 노드 클릭=상세(source_file·클러스터·이웃 목록)
+- 외부 CDN·라이브러리 없이 단일 HTML 에 데이터까지 임베드 → 오프라인에서 그대로 열림
+- 어떤 graphify `graph.json` 에도 동작 — corpus 를 확장하면 그 graph.json 만 넘기면 된다
+
 ### 데몬 (visd)
 
 `vis search`는 visd 데몬이 필요합니다. BGE-M3 모델과 인덱스를 메모리에 상주시켜 **0.1-0.5초** 응답.
