@@ -124,7 +124,13 @@ START=$(date +%s)
   echo "=================================================="
 } | tee -a "$RUN_LOG"
 
-# --- 1. reindex ---
+# --- 1. 데몬 정지 (reindex와 동시 실행 시 BGE-M3 모델/인덱스 이중 로딩으로 OOM 발생 이력 있음) ---
+if [[ "$DRYRUN" != "1" ]]; then
+  echo "[$(ts)] visd stop (reindex 중 메모리 이중 사용 방지)..." >> "$RUN_LOG"
+  "$VISD" stop >> "$RUN_LOG" 2>&1
+fi
+
+# --- 2. reindex ---
 rc=0
 if [[ "$DRYRUN" == "1" ]]; then
   echo "[$(ts)] (dry-run) vis reindex $FORCE_FLAG --with-colbert 생략" | tee -a "$RUN_LOG"
@@ -135,11 +141,11 @@ else
   echo "[$(ts)] reindex 종료코드: $rc" >> "$RUN_LOG"
 fi
 
-# --- 2. 데몬 재시작 (reindex 성공 시) ---
+# --- 3. 데몬 재시작 (reindex 성공/실패 무관 — 1단계에서 정지시켰으므로 항상 복구) ---
 restart_ok="skip"
-if [[ "$DRYRUN" != "1" && $rc -eq 0 ]]; then
-  echo "[$(ts)] visd restart..." >> "$RUN_LOG"
-  if "$VISD" restart >> "$RUN_LOG" 2>&1; then restart_ok="ok"; else restart_ok="fail"; fi
+if [[ "$DRYRUN" != "1" ]]; then
+  echo "[$(ts)] visd start..." >> "$RUN_LOG"
+  if "$VISD" start >> "$RUN_LOG" 2>&1; then restart_ok="ok"; else restart_ok="fail"; fi
   # 인덱싱 완료(indexed=true) 대기 (최대 30s)
   for _ in $(seq 1 30); do
     h=$(curl -sf "$HEALTH_URL" 2>/dev/null)
