@@ -38,7 +38,7 @@ def _load_deps():
     """Load heavy ML dependencies on demand. Returns True if available."""
     global _deps_loaded, DEPENDENCIES_AVAILABLE
     global SentenceTransformerEngine, EmbeddingCache, VaultProcessor
-    global AdvancedSearchEngine, SearchQuery, DuplicateDetector
+    global AdvancedSearchEngine, SearchQuery, DuplicateDetector, normalize_search_method
     global TopicCollector, TopicAnalyzer, SemanticTagger, TaggingResult
     global MOCGenerator, ContentClusterer, LearningReviewer
     global TagAnalyzer, TopicConnector, resolve_output_path, yaml
@@ -51,7 +51,7 @@ def _load_deps():
         from src.core.sentence_transformer_engine import SentenceTransformerEngine
         from src.core.embedding_cache import EmbeddingCache
         from src.core.vault_processor import VaultProcessor
-        from src.features.advanced_search import AdvancedSearchEngine, SearchQuery
+        from src.features.advanced_search import AdvancedSearchEngine, SearchQuery, normalize_search_method
         from src.features.duplicate_detector import DuplicateDetector
         from src.features.topic_collector import TopicCollector
         from src.features.topic_analyzer import TopicAnalyzer
@@ -273,27 +273,19 @@ def show_system_info():
         stats = cache.get_statistics()
         print(f"- Dense 임베딩: {stats.get('total_embeddings', 0):,}개")
         
-        colbert_stats = cache.get_colbert_statistics()
-        print(f"- ColBERT 임베딩: {colbert_stats.get('total_colbert_embeddings', 0):,}개")
         print(f"- 캐시 DB 크기: {stats.get('db_size', 0) / (1024*1024):.1f}MB")
-        
+
     except Exception as e:
         print(f"\n💾 캐시 상태: 확인 불가 ({e})")
-    
+
     print("\n🎯 완료된 기능 (Phase 1-7):")
-    print("- BGE-M3 기반 Dense + Sparse + ColBERT 검색")
+    print("- BGE-M3 기반 Dense + Sparse 검색")
     print("- Cross-encoder 재순위화 (BGE Reranker V2-M3)")
     print("- 쿼리 확장 (동의어 + HyDE)")
     print("- 중복 문서 감지 및 그룹화")
     print("- 주제별 클러스터링 및 분석")
     print("- 지식 그래프 및 관련 문서 추천")
     print("- 자동 태깅 시스템")
-    print("- ColBERT 증분 캐싱 시스템 (신규!)")
-    print()
-    print("⚡ ColBERT 검색 명령어:")
-    print("  vis reindex --with-colbert     # ColBERT 포함 인덱싱")
-    print("  vis reindex --colbert-only     # ColBERT만 인덱싱")
-    print("  vis search --query 'TDD' --search-method colbert")
     print()
     print("⚡ 기본 명령어:")
     print("  vis search --query 'TDD'")
@@ -305,6 +297,7 @@ def run_search(vault_path: str, query: str, top_k: int, threshold: float, config
     """검색 실행 (로컬 엔진). 서버 모드 검색은 main()에서 처리."""
     try:
         print(f"🔍 검색 시작: '{query}'")
+        search_method = normalize_search_method(search_method)
         if sample_size:
             print(f"📊 샘플링 모드: {sample_size}개 문서만 처리")
         if use_reranker:
@@ -366,8 +359,6 @@ def run_search(vault_path: str, query: str, top_k: int, threshold: float, config
                 results = search_engine.semantic_search(query, top_k=top_k, threshold=threshold)
             elif search_method == "keyword":
                 results = search_engine.keyword_search(query, top_k=top_k)
-            elif search_method == "colbert":
-                results = search_engine.colbert_search(query, top_k=top_k, threshold=threshold)
             else:  # hybrid
                 results = search_engine.hybrid_search(query, top_k=top_k, threshold=threshold)
         
@@ -756,9 +747,8 @@ def run_clean_tags(vault_path: str, config: dict, dry_run: bool = True, top_k: i
 
 
 def run_reindex(vault_path: str, force: bool, config: dict, sample_size: Optional[int] = None,
-                include_folders: Optional[list] = None, exclude_folders: Optional[list] = None,
-                with_colbert: bool = False, colbert_only: bool = False):
-    """전체 재인덱싱 실행 (ColBERT 지원)"""
+                include_folders: Optional[list] = None, exclude_folders: Optional[list] = None):
+    """전체 재인덱싱 실행"""
     try:
         print("🔄 전체 재인덱싱 시작...")
         if force:
@@ -769,14 +759,10 @@ def run_reindex(vault_path: str, force: bool, config: dict, sample_size: Optiona
             print(f"📁 폴더 필터: {', '.join(include_folders)} 포함")
         if exclude_folders:
             print(f"🚫 폴더 제외: {', '.join(exclude_folders)}")
-        if with_colbert:
-            print("🎯 ColBERT 인덱싱 포함")
-        if colbert_only:
-            print("🎯 ColBERT만 재인덱싱 (Dense 임베딩 제외)")
-        
+
         # 검색 엔진 초기화 (폴더 필터링 설정)
         cache_dir = str(data_dir / "cache")
-        
+
         # 임시로 vault 설정에 폴더 필터 추가
         temp_config = config.copy()
         if include_folders or exclude_folders:
@@ -785,105 +771,37 @@ def run_reindex(vault_path: str, force: bool, config: dict, sample_size: Optiona
                 temp_config['vault']['include_folders'] = include_folders
             if exclude_folders:
                 temp_config['vault']['exclude_folders'] = exclude_folders
-        
+
         search_engine = AdvancedSearchEngine(vault_path, cache_dir, temp_config)
-        
+
         # 진행률 표시 함수
         def progress_callback(current, total):
             percentage = (current / total) * 100
             print(f"📊 진행률: {current}/{total} ({percentage:.1f}%)")
-        
-        # Dense 임베딩 인덱스 구축 (colbert_only가 아닌 경우)
-        if not colbert_only:
-            print("📚 Dense 임베딩 인덱스 구축 중...")
-            success = search_engine.build_index(
-                force_rebuild=force, 
-                progress_callback=progress_callback,
-                sample_size=sample_size
-            )
-            
-            if not success:
-                print("❌ Dense 임베딩 인덱싱 실패!")
-                return False
-        
-        # ColBERT 인덱싱
-        if with_colbert or colbert_only:
-            print("🎯 ColBERT 인덱싱 시작...")
-            try:
-                from .features.colbert_search import ColBERTSearchEngine
-                
-                colbert_config = temp_config.get('colbert', {})
-                colbert_engine = ColBERTSearchEngine(
-                    model_name=colbert_config.get('model_name', 'BAAI/bge-m3'),
-                    device=colbert_config.get('device', temp_config.get('model', {}).get('device')),
-                    use_fp16=colbert_config.get('use_fp16', True),
-                    cache_folder=colbert_config.get('cache_folder', temp_config.get('model', {}).get('cache_folder')),
-                    max_length=colbert_config.get('max_length', temp_config.get('model', {}).get('max_length', 4096)),
-                    cache_dir=cache_dir,
-                    enable_cache=colbert_config.get('enable_cache', True)
-                )
-                
-                if colbert_engine.is_available():
-                    # 문서 로드 (search_engine에서 가져오기)
-                    if hasattr(search_engine, 'documents') and search_engine.documents:
-                        documents = search_engine.documents
-                    else:
-                        # 문서를 직접 로드
-                        from .core.vault_processor import VaultProcessor
-                        vault_config = temp_config.get('vault', {})
-                        vault_processor = VaultProcessor(
-                            vault_path=vault_path,
-                            excluded_dirs=vault_config.get('excluded_dirs', None),
-                            excluded_files=vault_config.get('excluded_files', None), 
-                            file_extensions=vault_config.get('file_extensions', None)
-                        )
-                        documents = vault_processor.process_files()
-                        if sample_size:
-                            documents = documents[:sample_size]
-                    
-                    colbert_success = colbert_engine.build_index(
-                        documents=documents,
-                        batch_size=colbert_config.get('batch_size', 8),
-                        max_documents=colbert_config.get('max_documents', None),
-                        force_rebuild=force
-                    )
-                    
-                    if colbert_success:
-                        print(f"✅ ColBERT 인덱싱 완료!")
-                    else:
-                        print("⚠️ ColBERT 인덱싱 실패, 계속 진행...")
-                else:
-                    print("⚠️ ColBERT 엔진을 사용할 수 없습니다.")
-                    
-            except Exception as e:
-                print(f"⚠️ ColBERT 인덱싱 중 오류: {e}")
-        
+
+        # Dense 임베딩 인덱스 구축
+        print("📚 Dense 임베딩 인덱스 구축 중...")
+        success = search_engine.build_index(
+            force_rebuild=force,
+            progress_callback=progress_callback,
+            sample_size=sample_size
+        )
+
+        if not success:
+            print("❌ Dense 임베딩 인덱싱 실패!")
+            return False
+
         # 결과 통계 출력
-        if not colbert_only:
-            stats = search_engine.get_search_statistics()
-            print(f"\n✅ 재인덱싱 완료!")
-            print(f"📊 Dense 임베딩 결과:")
-            print(f"  - 인덱싱된 문서: {stats['indexed_documents']:,}개")
-            print(f"  - 임베딩 차원: {stats['embedding_dimension']}차원")
-            print(f"  - 캐시된 임베딩: {stats['cache_statistics']['total_embeddings']:,}개")
-            print(f"  - Vault 크기: {stats['vault_statistics']['total_size_mb']:.1f}MB")
-        
-        # ColBERT 캐시 통계
-        if with_colbert or colbert_only:
-            try:
-                from .core.embedding_cache import EmbeddingCache
-                cache = EmbeddingCache(cache_dir)
-                colbert_stats = cache.get_colbert_statistics()
-                if colbert_stats.get('total_colbert_embeddings', 0) > 0:
-                    print(f"🎯 ColBERT 캐시 결과:")
-                    print(f"  - ColBERT 임베딩: {colbert_stats['total_colbert_embeddings']:,}개")
-                    print(f"  - 평균 토큰 수: {colbert_stats['avg_tokens']}개")
-                    print(f"  - 캐시 파일 크기: {colbert_stats['total_file_size']:,} bytes")
-            except Exception as e:
-                logger.debug(f"ColBERT 통계 조회 실패: {e}")
-        
+        stats = search_engine.get_search_statistics()
+        print(f"\n✅ 재인덱싱 완료!")
+        print(f"📊 Dense 임베딩 결과:")
+        print(f"  - 인덱싱된 문서: {stats['indexed_documents']:,}개")
+        print(f"  - 임베딩 차원: {stats['embedding_dimension']}차원")
+        print(f"  - 캐시된 임베딩: {stats['cache_statistics']['total_embeddings']:,}개")
+        print(f"  - Vault 크기: {stats['vault_statistics']['total_size_mb']:.1f}MB")
+
         return True
-        
+
     except Exception as e:
         print(f"❌ 재인덱싱 실패: {e}")
         return False
@@ -2060,12 +1978,12 @@ def _build_parser() -> "argparse.ArgumentParser":
     subparsers = parser.add_subparsers(dest="command", title="commands")
 
     # --- search ---
-    p = subparsers.add_parser("search", help="하이브리드 검색 (semantic, keyword, colbert)")
+    p = subparsers.add_parser("search", help="하이브리드 검색 (semantic, keyword, hybrid)")
     p.add_argument("query", help="검색 쿼리")
     p.add_argument("--top-k", type=int, default=10, help="상위 K개 결과 (기본값: 10)")
     p.add_argument("--threshold", type=float, default=0.3, help="유사도 임계값 (기본값: 0.3)")
     p.add_argument("--rerank", action="store_true", help="재순위화 활성화 (BGE Reranker V2-M3)")
-    p.add_argument("--search-method", choices=["semantic", "keyword", "hybrid", "colbert"], default="hybrid", help="검색 방법 (기본값: hybrid)")
+    p.add_argument("--search-method", choices=["semantic", "keyword", "hybrid", "colbert"], default="hybrid", help="검색 방법 (기본값: hybrid). colbert는 2026-08-13 제거되어 hybrid로 자동 대체됩니다.")
     p.add_argument("--expand", action="store_true", help="쿼리 확장 활성화 (동의어 + HyDE)")
     p.add_argument("--no-synonyms", action="store_true", help="동의어 확장 비활성화")
     p.add_argument("--no-hyde", action="store_true", help="HyDE 확장 비활성화")
@@ -2140,8 +2058,6 @@ def _build_parser() -> "argparse.ArgumentParser":
     p.add_argument("--sample-size", type=int, help="샘플링할 문서 수")
     p.add_argument("--include-folders", nargs="+", help="포함할 폴더 목록")
     p.add_argument("--exclude-folders", nargs="+", help="제외할 폴더 목록")
-    p.add_argument("--with-colbert", action="store_true", help="ColBERT 인덱싱 포함")
-    p.add_argument("--colbert-only", action="store_true", help="ColBERT만 재인덱싱 (Dense 제외)")
 
     # --- tag ---
     p = subparsers.add_parser("tag", help="자동 태깅")
@@ -2472,9 +2388,7 @@ def main():
         if run_reindex(vault_path, args.force, config,
                       args.sample_size,
                       args.include_folders,
-                      args.exclude_folders,
-                      args.with_colbert,
-                      args.colbert_only):
+                      args.exclude_folders):
             print("✅ 재인덱싱 완료!")
         else:
             print("❌ 재인덱싱 실패!")
