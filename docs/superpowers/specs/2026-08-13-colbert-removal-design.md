@@ -115,15 +115,24 @@ colbert 권장문이 남아 있으면 에이전트가 계속 호출한다. 별�
 ## 5. 승인 조건 (acceptance criteria)
 
 1. `vis search "TDD" --rerank` 정상 동작, 결과 개수·점수 이상 없음
+   ✅ 실측: 5개 결과 정상 반환, 에러 없음 (2026-08-13)
 2. `vis search "TDD" --search-method colbert` → 경고 1줄 + hybrid 결과 반환 (에러 아님)
+   ✅ 실측: 경고 로그 출력 후 hybrid 결과 정상 반환, exit 0 (2026-08-13)
 3. `vis reindex` 완료 후 검색 50회를 돌려도 데몬 `phys_footprint` **8 GB 미만** 유지
    (기존 27 GB / peak 68 GB). 기준선 실측: ColBERT를 한 번도 부르지 않은 신규 데몬이
    6,445 MB — 대부분 BGE-M3 모델과 reranker이며 dense 인덱스는 17 MB에 불과하다.
    따라서 "0에 가깝게"가 아니라 "기준선에서 자라지 않음"이 판정 기준이다.
+   ✅ 실측: ~65회 누적 검색 후 phys_footprint 5,926~5,933 MB (peak 7,138 MB) 유지 (2026-08-13)
 4. `cache/embeddings.db` **100 MB 미만** (기존 34,037 MB)
+   ✅ 실측: 21 MB (dense 4,438건, 원본과 row count 일치·integrity_check ok 확인 후 교체) (2026-08-13)
 5. `launchctl start com.msbaek.vis-reindex` 실행 성공 — foreground 테스트가 아니라
    **실제 launchd 경로**로 검증 (2026-07-08 cwd=`/` 버그 교훈)
+   ⚠️ 부분 통과: 실제 launchd 경로 시작은 확인됨(cwd 버그 재발 없음, `vis reindex`가
+   `--with-colbert` 없이 정상 호출됨). 완주는 확인 못함 — §8의 새 dense 임베딩 메모리
+   문제로 2h23m 지점에서 의도적으로 종료(kill -TERM). ColBERT/cwd 회귀가 원인이 아님.
 6. 레포 전체에 `colbert` 잔존 참조 없음 (archive·private 등 과거 기록 문서 제외)
+   ✅ 실측: 남은 6개 파일 매치 전부 의도적(정규화 코드·테스트명·역사 기록·무관한
+   라이브러리 파라미터명) — 상세는 SDD 진행 로그 참조 (2026-08-13)
 
 ## 6. 되돌리기
 
@@ -136,3 +145,26 @@ colbert 권장문이 남아 있으면 에이전트가 계속 호출한다. 별�
 - `~/.vis-server.pid` 유실 시 `visd stop`이 프로세스를 못 찾고 `visd restart`가
   조용히 no-op가 되는 버그 — 이번 조치 중 실제로 발생
 - `fit_documents`의 캐시 미존중으로 인한 dense 전체 재인코딩 (4.3 참조)
+
+## 8. 검증 중 새로 발견한 인시던트 (이번 plan 범위 밖)
+
+구현 완료 후 실제 launchd 경로로 재인덱싱을 검증하던 중(§5 AC5), ColBERT를 전혀
+호출하지 않는 dense 전용 코드에서 **별개의 메모리 문제**를 발견했다. `vis reindex`
+프로세스가 2h23m 실행 후 `phys_footprint` 42-48 GB, 시스템 스왑 여유 807 MB까지
+도달 — 이번 사고와 같은 신호(낮은 RSS, 거대한 footprint)였다. `kill -TERM`으로
+즉시 종료해 스왑을 회복시켰다.
+
+핵심 확인: 이 문제는 이번 plan이 고친 것(검색·데몬 경로의 ColBERT 캐시 적재)과는
+무관하다 — 종료 후 데몬은 정상(5.9 GB, 검색 정상)이었고, 로그의 유일한 "colbert"
+문자열은 BGE-M3 모델이 원래 다기능 가중치를 로딩할 때 찍는 무해한 메시지였다.
+
+원인 가설(미확정): `sentence_transformer_engine.py:186`의 `self.model.encode()`
+반복 호출 사이에 `torch.mps.empty_cache()` 호출이 없다 — Apple Silicon PyTorch
+MPS 백엔드가 반복 추론 사이 메모리를 해제하지 않는 알려진 패턴과 신호가 일치한다.
+확정되지 않았으므로 이번 plan에서 성급히 고치지 않고 별도 `brainstorming`
+세션으로 넘긴다(사용자 결정, 2026-08-13).
+
+임시 조치: 근본 원인 해결 전까지 오늘 밤 재발을 막기 위해
+`launchctl unload ~/Library/LaunchAgents/com.msbaek.vis-reindex.plist`로 야간
+job을 다시 정지했다(사용자 결정) — Task 6이 만든 코드 자체는 정상이며, 이 정지는
+새 인시던트에 대한 임시 조치일 뿐 Task 6의 결함이 아니다.
