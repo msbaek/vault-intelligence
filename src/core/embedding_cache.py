@@ -86,7 +86,10 @@ class EmbeddingCache:
                 cursor.execute("""
                     CREATE INDEX IF NOT EXISTS idx_model_name ON embeddings(model_name)
                 """)
-                
+
+                # ColBERT was removed 2026-08-13 — self-heal any DB that still has the old cache table
+                cursor.execute("DROP TABLE IF EXISTS colbert_embeddings")
+
                 conn.commit()
                 logger.info("데이터베이스 초기화 완료")
         

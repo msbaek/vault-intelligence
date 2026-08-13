@@ -18,6 +18,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `SearchResultResponse.snippet` / `match_type`을 `Optional[str] = None`으로 변경 (backward compatible)
 - `VisClient.search()`에 `include` 파라미터 추가 (기본값 `"full"`, 기존 호출 영향 없음)
 
+### Removed
+- ColBERT 검색 전면 제거 (`src/features/colbert_search.py`, `colbert_embeddings` 캐시 테이블, `config/settings.yaml`의 `colbert:` 섹션)
+- `vis reindex --with-colbert` / `--colbert-only` 옵션 제거
+- `--search-method colbert`는 더 이상 동작하지 않고 경고 후 `hybrid`로 폴백 (에러는 아니지만 문서화된 동작과 다름)
+- 제거 사유: ColBERT 검색 비중 0.04%인데 반해 reindex 시마다 32GB+ 캐시 전체를 메모리에 로딩해 시스템 OOM을 유발
+
 ## [2026-03-15]
 
 ### Added
