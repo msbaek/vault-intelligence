@@ -30,6 +30,22 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
+def normalize_search_method(search_method: str) -> str:
+    """ColBERT 요청을 hybrid로 안전하게 대체한다.
+
+    ColBERT는 재인덱싱마다 문서 전량을 메모리에 적재해(2026-08-13 기준
+    캐시 32GB) 시스템 OOM을 유발했고, 실사용은 전체 검색의 0.04%뿐이라
+    제거되었다. 호출부를 깨뜨리지 않도록 에러 대신 경고 후 hybrid로
+    폴백한다.
+    """
+    if search_method == "colbert":
+        logger.warning(
+            "search_method='colbert'는 제거되었습니다 (2026-08-13). hybrid로 대체합니다."
+        )
+        return "hybrid"
+    return search_method
+
+
 @dataclass
 class SearchResult:
     """검색 결과"""
@@ -745,6 +761,8 @@ class AdvancedSearchEngine:
         Returns:
             재순위화된 검색 결과 (SearchResult 형태로 변환)
         """
+        search_method = normalize_search_method(search_method)
+
         # Reranker가 요청되었지만 사용 불가능한 경우
         if use_reranker:
             try:
@@ -805,80 +823,10 @@ class AdvancedSearchEngine:
             return self.semantic_search(query, top_k=final_k, threshold=threshold, **search_kwargs)
         elif search_method == "keyword":
             return self.keyword_search(query, top_k=final_k, **search_kwargs)
-        elif search_method == "colbert":
-            return self.colbert_search(query, top_k=final_k, threshold=threshold, **search_kwargs)
         elif search_method == "hybrid":
             return self.hybrid_search(query, top_k=final_k, threshold=threshold, **search_kwargs)
         else:
             raise ValueError(f"지원하지 않는 검색 방법: {search_method}")
-    
-    def colbert_search(
-        self,
-        query: str,
-        top_k: int = 10,
-        threshold: float = 0.0
-    ) -> List[SearchResult]:
-        """
-        ColBERT 기반 토큰 수준 late interaction 검색
-        
-        Args:
-            query: 검색 쿼리
-            top_k: 반환할 상위 결과 수
-            threshold: 유사도 임계값
-            
-        Returns:
-            ColBERT 검색 결과
-        """
-        try:
-            from .colbert_search import ColBERTSearchEngine
-            
-            # ColBERT 엔진 설정
-            colbert_config = self.config.get('colbert', {})
-            
-            # ColBERT 엔진 초기화 (캐시 포함)
-            colbert_engine = ColBERTSearchEngine(
-                model_name=colbert_config.get('model_name', 'BAAI/bge-m3'),
-                device=colbert_config.get('device', self.config.get('model', {}).get('device')),
-                use_fp16=colbert_config.get('use_fp16', True),
-                cache_folder=colbert_config.get('cache_folder', self.config.get('model', {}).get('cache_folder')),
-                max_length=colbert_config.get('max_length', self.config.get('model', {}).get('max_length', 4096)),
-                cache_dir=self.cache_dir,
-                enable_cache=colbert_config.get('enable_cache', True)
-            )
-            
-            if not colbert_engine.is_available():
-                logger.warning("ColBERT 엔진을 사용할 수 없습니다. 의미적 검색으로 대체합니다.")
-                return self.semantic_search(query, top_k, threshold)
-            
-            # 인덱스가 없으면 구축 (캐시를 활용하여 전체 문서 처리 가능)
-            if not colbert_engine.is_indexed:
-                logger.info("ColBERT 인덱스 구축 중...")
-                max_docs = colbert_config.get('max_documents', None)  # None이면 전체 문서
-                force_rebuild = False  # 기본적으로 캐시 활용
-                
-                if not colbert_engine.build_index(
-                    self.documents, 
-                    max_documents=max_docs,
-                    force_rebuild=force_rebuild
-                ):
-                    logger.error("ColBERT 인덱스 구축 실패")
-                    return self.semantic_search(query, top_k, threshold)
-            
-            # ColBERT 검색 수행
-            colbert_results = colbert_engine.search(query, top_k, threshold)
-            
-            # SearchResult 형태로 변환
-            search_results = colbert_engine.convert_to_search_results(colbert_results)
-            
-            logger.info(f"ColBERT 검색 완료: {len(search_results)}개 결과")
-            return search_results
-            
-        except ImportError:
-            logger.warning("ColBERT 모듈을 가져올 수 없습니다. 의미적 검색으로 대체합니다.")
-            return self.semantic_search(query, top_k, threshold)
-        except Exception as e:
-            logger.error(f"ColBERT 검색 실패: {e}. 의미적 검색으로 대체합니다.")
-            return self.semantic_search(query, top_k, threshold)
     
     def expanded_search(
         self,
@@ -892,10 +840,10 @@ class AdvancedSearchEngine:
     ) -> List[SearchResult]:
         """
         쿼리 확장을 포함한 고급 검색
-        
+
         Args:
             query: 검색 쿼리
-            search_method: 검색 방법 ("semantic", "keyword", "hybrid", "colbert")
+            search_method: 검색 방법 ("semantic", "keyword", "hybrid")
             top_k: 반환할 상위 결과 수
             threshold: 유사도 임계값
             include_synonyms: 동의어 포함 여부
@@ -905,6 +853,8 @@ class AdvancedSearchEngine:
         Returns:
             확장된 쿼리로 검색한 결과
         """
+        search_method = normalize_search_method(search_method)
+
         try:
             from .query_expansion import QueryExpansionEngine
             
@@ -949,8 +899,6 @@ class AdvancedSearchEngine:
                         results = self.keyword_search(search_query, top_k * 2, **search_kwargs)
                     elif search_method == "hybrid":
                         results = self.hybrid_search(search_query, top_k * 2, threshold, **search_kwargs)
-                    elif search_method == "colbert":
-                        results = self.colbert_search(search_query, top_k * 2, threshold, **search_kwargs)
                     else:
                         continue
                     
@@ -1000,8 +948,6 @@ class AdvancedSearchEngine:
                 return self.keyword_search(query, top_k, **search_kwargs)
             elif search_method == "hybrid":
                 return self.hybrid_search(query, top_k, threshold, **search_kwargs)
-            elif search_method == "colbert":
-                return self.colbert_search(query, top_k, threshold, **search_kwargs)
             else:
                 raise ValueError(f"지원하지 않는 검색 방법: {search_method}")
         except Exception as e:
@@ -1013,11 +959,9 @@ class AdvancedSearchEngine:
                 return self.keyword_search(query, top_k, **search_kwargs)
             elif search_method == "hybrid":
                 return self.hybrid_search(query, top_k, threshold, **search_kwargs)
-            elif search_method == "colbert":
-                return self.colbert_search(query, top_k, threshold, **search_kwargs)
             else:
                 raise ValueError(f"지원하지 않는 검색 방법: {search_method}")
-    
+
     def get_related_documents(
         self,
         document_path: str,
@@ -1151,6 +1095,8 @@ class AdvancedSearchEngine:
         Returns:
             (주요 검색 결과, 관련 문서 목록) 튜플
         """
+        search_method = normalize_search_method(search_method)
+
         try:
             # 기본 검색 수행
             if search_method == "semantic":
@@ -1159,8 +1105,6 @@ class AdvancedSearchEngine:
                 main_results = self.keyword_search(query, top_k, **search_kwargs)
             elif search_method == "hybrid":
                 main_results = self.hybrid_search(query, top_k, **search_kwargs)
-            elif search_method == "colbert":
-                main_results = self.colbert_search(query, top_k, **search_kwargs)
             else:
                 raise ValueError(f"지원하지 않는 검색 방법: {search_method}")
             
@@ -1266,19 +1210,20 @@ class AdvancedSearchEngine:
     ) -> List[SearchResult]:
         """
         중심성 점수를 반영한 검색
-        
+
         Args:
             query: 검색 쿼리
-            search_method: 검색 방법 ("semantic", "keyword", "hybrid", "colbert")
+            search_method: 검색 방법 ("semantic", "keyword", "hybrid")
             top_k: 반환할 상위 결과 수
             centrality_weight: 중심성 점수 가중치 (0.0 - 1.0)
             **search_kwargs: 추가 검색 매개변수
-            
+
         Returns:
             중심성 점수가 반영된 검색 결과
         """
-        # threshold는 semantic/colbert만 지원
+        # threshold는 semantic만 지원
         threshold = search_kwargs.pop('threshold', 0.0)
+        search_method = normalize_search_method(search_method)
 
         try:
             # 기본 검색 수행
@@ -1288,8 +1233,6 @@ class AdvancedSearchEngine:
                 results = self.keyword_search(query, top_k * 2, **search_kwargs)
             elif search_method == "hybrid":
                 results = self.hybrid_search(query, top_k * 2, **search_kwargs)
-            elif search_method == "colbert":
-                results = self.colbert_search(query, top_k * 2, threshold=threshold, **search_kwargs)
             else:
                 raise ValueError(f"지원하지 않는 검색 방법: {search_method}")
             
@@ -1354,8 +1297,6 @@ class AdvancedSearchEngine:
                 return self.keyword_search(query, top_k, **search_kwargs)
             elif search_method == "hybrid":
                 return self.hybrid_search(query, top_k, **search_kwargs)
-            elif search_method == "colbert":
-                return self.colbert_search(query, top_k, threshold=threshold, **search_kwargs)
             else:
                 return []
     
