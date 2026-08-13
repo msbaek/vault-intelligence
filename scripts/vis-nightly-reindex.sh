@@ -2,8 +2,8 @@
 # vis-nightly-reindex.sh — 야간 자동 증분/전체 재인덱싱 (launchd에서 매일 01:00 실행)
 #
 # 동작:
-#   - 평일: `vis reindex --with-colbert`      (증분, 캐시 기반)
-#   - 일요일: `vis reindex --force --with-colbert` (전체 재구축)
+#   - 평일: `vis reindex`      (증분, 캐시 기반)
+#   - 일요일: `vis reindex --force` (전체 재구축)
 #   - reindex 성공 시 `visd restart` 로 데몬 인메모리 인덱스 갱신
 #   - 실행 결과를 로그 + terminal-notifier 알림으로 보고
 #
@@ -133,10 +133,10 @@ fi
 # --- 2. reindex ---
 rc=0
 if [[ "$DRYRUN" == "1" ]]; then
-  echo "[$(ts)] (dry-run) vis reindex $FORCE_FLAG --with-colbert 생략" | tee -a "$RUN_LOG"
+  echo "[$(ts)] (dry-run) vis reindex $FORCE_FLAG 생략" | tee -a "$RUN_LOG"
 else
-  echo "[$(ts)] vis reindex $FORCE_FLAG --with-colbert 실행..." >> "$RUN_LOG"
-  "$VIS" reindex $FORCE_FLAG --with-colbert >> "$RUN_LOG" 2>&1
+  echo "[$(ts)] vis reindex $FORCE_FLAG 실행..." >> "$RUN_LOG"
+  "$VIS" reindex $FORCE_FLAG >> "$RUN_LOG" 2>&1
   rc=$?
   echo "[$(ts)] reindex 종료코드: $rc" >> "$RUN_LOG"
 fi
@@ -162,10 +162,6 @@ if [[ -n "$health" ]]; then
   indexed=$(echo "$health" | jq -r '.indexed // "?"' 2>/dev/null)
 fi
 
-# 이번 실행 로그에서 ColBERT 저장 경합(파일 이동/삭제) 건수 집계
-colbert_err=$(grep -c "ColBERT 임베딩 저장 실패" "$RUN_LOG" 2>/dev/null || true)
-colbert_err=${colbert_err:-0}
-
 END=$(date +%s); DUR=$((END - START))
 
 # --- 4. 요약 + 알림 ---
@@ -183,7 +179,6 @@ summary=$(cat <<EOF
 소요    : ${DUR}s
 문서수  : $docs (indexed=$indexed)
 데몬    : restart=$restart_ok
-ColBERT 저장실패(경합): ${colbert_err}건
 reindex exit: $rc
 로그    : $RUN_LOG
 EOF
@@ -192,7 +187,6 @@ echo "$summary" | tee "$LATEST" >> "$RUN_LOG"
 echo "$summary"
 
 msg="모드=$mode_ko · 문서=$docs · ${DUR}s · 데몬=$restart_ok"
-[[ "$colbert_err" != "0" ]] && msg="$msg · ColBERT경합 ${colbert_err}건"
 notify "vis reindex $status" "$msg" "$sound"
 notify_slack "*vis reindex $status* ($mode_ko)" "$summary"
 
