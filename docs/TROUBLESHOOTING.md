@@ -205,65 +205,6 @@ logging.basicConfig(level=logging.DEBUG)
 "
 ```
 
-## ColBERT 관련 문제
-
-### ColBERT 배열 크기 불일치 경고
-
-**증상**: ColBERT 검색 시 다음과 같은 경고 메시지 대량 발생
-```
-WARNING:src.core.embedding_cache:ColBERT 배열 크기 불일치: 2444288 != 524288
-```
-
-**원인**: 이전 버전에서 생성된 ColBERT 캐시의 메타데이터 불일치
-
-**해결 방법**: ✅ **2025-08-27 완전 수정됨**
-```bash
-# 캐시 완전 초기화 후 재인덱싱
-rm -rf cache/
-vis reindex --with-colbert --force
-
-# 수정된 코드로 새로 생성되는 모든 임베딩은 정상
-```
-
-### ColBERT + 재순위화 오류
-
-**증상**: `--rerank` 옵션과 ColBERT 함께 사용 시 오류
-```
-❌ 지원하지 않는 검색 방법: colbert
-❌ 검색 실패!
-```
-
-**해결 방법**: ✅ **2025-08-27 수정 완료**
-```bash
-# 이제 모든 검색 방법에서 재순위화 지원
-vis search "TDD" --search-method colbert --rerank ✅
-vis search "TDD" --search-method hybrid --rerank ✅ 
-vis search "TDD" --search-method semantic --rerank ✅
-```
-
-### ColBERT 검색 결과 품질 문제
-
-**증상**: 단일 키워드(예: "YAGNI") 검색 시 관련 없는 결과 많이 반환
-
-**원인**: ColBERT의 토큰 레벨 매칭 특성상 단일 약어는 많은 무관한 토큰과 유사도 매칭
-
-**해결 방법**:
-```bash
-# 1. 하이브리드 검색 사용 (권장)
-vis search "YAGNI" --search-method hybrid
-
-# 2. 확장된 쿼리 사용  
-vis search "YAGNI You Aren't Going to Need It principle" --search-method colbert
-
-# 3. 재순위화 적용
-vis search "YAGNI" --search-method hybrid --rerank
-```
-
-**ColBERT 적합한 사용 케이스**:
-- ✅ 긴 문장: "test driven development best practices"
-- ✅ 복합 개념: "clean architecture dependency inversion"  
-- ❌ 단일 약어: "TDD", "YAGNI", "DDD"
-
 ## 서버 모드 (Daemon) 문제
 
 ### 데몬이 시작되지 않는 경우
@@ -334,7 +275,6 @@ engine.build_index(sample_size=50)  # 50개 문서만 사용
 - **일반 검색**: `--search-method hybrid` (기본값, 추천)
 - **개념 검색**: `--search-method semantic` 
 - **정확한 용어**: `--search-method keyword`
-- **긴 문장**: `--search-method colbert`
 - **고품질 검색**: `--rerank` 추가 (모든 방법과 조합 가능)
 
 ### Q: 재순위화(--rerank)는 언제 사용하나요?

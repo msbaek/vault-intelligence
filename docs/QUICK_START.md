@@ -100,9 +100,6 @@ vis search "TDD" --rerank
 
 # 쿼리 확장 (최대 포괄성)  
 vis search "TDD" --expand
-
-# ColBERT 토큰 검색
-vis search "TDD" --search-method colbert
 ```
 
 ### 유사도 임계값 조정

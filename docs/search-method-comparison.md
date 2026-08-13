@@ -4,7 +4,7 @@
 
 ---
 
-Vault Intelligence는 4가지 검색 방법을 제공합니다. 이 문서는 각 방법의 원리, 적합한 상황, 사용법을 설명합니다.
+Vault Intelligence는 3가지 검색 방법을 제공합니다. 이 문서는 각 방법의 원리, 적합한 상황, 사용법을 설명합니다.
 
 ## 목차
 
@@ -12,7 +12,6 @@ Vault Intelligence는 4가지 검색 방법을 제공합니다. 이 문서는 �
 - [Keyword 검색](#keyword-검색)
 - [Semantic 검색](#semantic-검색)
 - [Hybrid 검색](#hybrid-검색)
-- [ColBERT 검색](#colbert-검색)
 - [옵션 조합 가이드](#옵션-조합-가이드)
 - [검색 방법별 최적 쿼리 길이](#검색-방법별-최적-쿼리-길이)
 
@@ -24,23 +23,21 @@ Vault Intelligence는 4가지 검색 방법을 제공합니다. 이 문서는 �
 flowchart TD
     Start["검색하고 싶다"] --> Q1{"정확한 용어나\n고유명사를 찾는가?"}
     Q1 -->|"Yes"| Keyword["Keyword 검색"]
-    Q1 -->|"No"| Q2{"여러 개념을 나열한\n체크리스트형 쿼리인가?"}
-    Q2 -->|"Yes"| ColBERT["ColBERT 검색"]
-    Q2 -->|"No"| Q3{"최고 정확도가\n필요한가?"}
+    Q1 -->|"No"| Q3{"최고 정확도가\n필요한가?"}
     Q3 -->|"Yes"| SemanticRerank["Semantic + --rerank"]
     Q3 -->|"No"| Hybrid["Hybrid 검색 (기본값)"]
 ```
 
 ### 비교 요약
 
-| | Keyword | Semantic | Hybrid | ColBERT |
-|---|---|---|---|---|
-| **비유** | 사전에서 단어 찾기 | 사서에게 주제 설명하기 | 사서 + 사전 동시 활용 | 사서에게 체크리스트 주기 |
-| **원리** | 정확한 단어 매칭 (BM25) | 의미 벡터 유사도 (Dense) | Keyword + Semantic 결합 | 토큰별 독립 매칭 |
-| **최적 쿼리** | 1-3단어 | 10-15단어 | 5-15단어 | 15-25단어 |
-| **속도** | 빠름 | 빠름 | 빠름 | 보통 |
-| **정확도** | 중간 | 높음 | 높음 | 높음 |
-| **추천 상황** | 고유명사, 파일명 | 개념적 검색 | 일반적 모든 검색 | 복합 개념 검색 |
+| | Keyword | Semantic | Hybrid |
+|---|---|---|---|
+| **비유** | 사전에서 단어 찾기 | 사서에게 주제 설명하기 | 사서 + 사전 동시 활용 |
+| **원리** | 정확한 단어 매칭 (BM25) | 의미 벡터 유사도 (Dense) | Keyword + Semantic 결합 |
+| **최적 쿼리** | 1-3단어 | 10-15단어 | 5-15단어 |
+| **속도** | 빠름 | 빠름 | 빠름 |
+| **정확도** | 중간 | 높음 | 높음 |
+| **추천 상황** | 고유명사, 파일명 | 개념적 검색 | 일반적 모든 검색 |
 
 ---
 
@@ -189,53 +186,6 @@ vis search "TDD Red Green Refactor" --search-method hybrid
 
 ---
 
-## ColBERT 검색
-
-> 사서에게 체크리스트를 주듯이, 쿼리의 각 단어가 독립적으로 문서의 가장 가까운 단어를 찾아 매칭합니다.
-
-### 원리
-
-ColBERT(Contextualized Late Interaction over BERT)는 쿼리와 문서를 각각 **토큰 단위 벡터 집합**으로 표현한 뒤, 각 쿼리 토큰이 가장 가까운 문서 토큰을 찾아 매칭하는 방식입니다.
-
-```
-Semantic:  Query → [하나의 벡터]     ↔  Doc → [하나의 벡터]
-           "여러 개념이 하나로 뭉개짐"
-
-ColBERT:   Query → [토큰1][토큰2][토큰3]...
-           Doc   → [토큰A][토큰B][토큰C]...
-           각 쿼리 토큰이 가장 가까운 문서 토큰과 매칭
-           "개념별로 독립 매칭 → 합산"
-```
-
-Semantic 검색이 문서 전체를 하나의 벡터로 압축하는 것과 달리, ColBERT는 개별 토큰별로 독립 매칭한 뒤 점수를 합산합니다. 이 덕분에 "Kent Beck", "TDD", "Red Green Refactor", "리팩토링" 처럼 여러 개념을 나열한 **체크리스트형 쿼리**에서 강력한 성능을 발휘합니다.
-
-### 적합한 상황
-
-- 여러 개념을 나열한 체크리스트형 쿼리: `"Kent Beck TDD Red Green Refactor 리팩토링 설계 개선"`
-- 긴 문장 검색: `"test driven development with refactoring and clean code practices"`
-- 복합 개념 검색: `"dependency injection inversion of control spring framework"`
-
-### CLI 사용법
-
-```bash
-vis search "Kent Beck TDD Red Green Refactor 리팩토링" --search-method colbert
-vis search "clean code refactoring design patterns SOLID" --search-method colbert
-```
-
-### 강점과 한계
-
-| 강점 | 한계 |
-|------|------|
-| 여러 개념이 뭉개지지 않고 독립 매칭 | 다른 방법보다 속도가 느림 |
-| 체크리스트형 쿼리에서 최강 | 짧은 쿼리에서는 Hybrid보다 이점 없음 |
-| 긴 문장에 최적화 | 초기 인덱싱 시간이 김 (1-2시간, 1회만) |
-
-### 옵션별 효과
-
-- **`--rerank`**: 효과적입니다. ColBERT의 넓은 후보에서 정밀도를 높여줍니다.
-
----
-
 ## 옵션 조합 가이드
 
 ### `--rerank` (재순위화)
@@ -251,7 +201,6 @@ vis search "검색어" --rerank
 | 조합 | 효과 | 권장 |
 |------|------|------|
 | Semantic + Rerank | 매우 효과적 (넓은 후보 + 정밀 필터) | 정밀 검색이 필요할 때 |
-| ColBERT + Rerank | 효과적 | 복합 개념의 정밀 검색 |
 | Hybrid + Rerank | 효과 작음 (이미 깨끗한 결과) | 비용 대비 효과 낮음 |
 | Keyword + Rerank | 역효과 가능 (짧은 쿼리 시) | 권장하지 않음 |
 
@@ -291,7 +240,6 @@ vis search "TDD" --with-centrality
 | 정밀 검색 | `vis search "검색어" --search-method semantic --rerank` | 넓은 후보 + 정밀 필터링 |
 | 정확한 용어 | `vis search "용어" --search-method keyword` | 고유명사, 파일명 등 |
 | 포괄적 검색 | `vis search "검색어" --expand` | 동의어 + HyDE로 범위 확장 |
-| 복합 개념 | `vis search "개념1 개념2 개념3" --search-method colbert` | 체크리스트형 쿼리 |
 | 최고 품질 | `vis search "검색어" --rerank --expand` | 모든 기능 결합 (가장 느림) |
 
 ---
@@ -303,4 +251,3 @@ vis search "TDD" --with-centrality
 | Keyword | `TDD`, `Clean Code` (1-3단어) | 사전에서 단어 찾기 |
 | Semantic | `테스트 주도 개발 방법론과 설계 개선` (10-15단어) | 사서에게 주제 설명하기 |
 | Hybrid | `TDD Red Green Refactor 사이클` (5-15단어) | 사서에게 주제 + 키워드 함께 전달 |
-| ColBERT | `Kent Beck TDD Red Green Refactor 리팩토링 설계 개선` (15-25단어) | 사서에게 체크리스트 주기 |

@@ -49,7 +49,6 @@ vis test
 ```bash
 # Phase 5/6 고급 기능 개별 테스트
 python -c "from src.features.reranker import test_reranker; test_reranker()"
-python -c "from src.features.colbert_search import test_colbert_search; test_colbert_search()"
 python -c "from src.features.query_expansion import test_query_expansion; test_query_expansion()"
 python -c "from src.features.knowledge_graph import test_knowledge_graph; test_knowledge_graph()"
 ```
@@ -71,9 +70,6 @@ vis search "TDD" --search-method semantic
 
 # 3. 키워드 검색 (정확한 매칭)
 vis search "리팩토링" --search-method keyword
-
-# 4. ColBERT 토큰 수준 검색 (세밀한 매칭)
-vis search "클린 코드" --search-method colbert
 ```
 
 ### 🎯 고급 검색 기능 (Phase 5)
@@ -114,22 +110,10 @@ vis search "TDD" --expand --no-synonyms
 # 개념적 유사성 포착
 ```
 
-#### 5️⃣ **ColBERT 토큰 수준 검색** (`--search-method colbert`)
-```bash
-vis search "test driven development refactoring" --search-method colbert
-
-# ColBERT 토큰 레벨 late interaction
-# 긴 문장과 복합 개념에 최적화
-# 정밀한 토큰 매칭, 2-4초 소요
-```
-
 #### 6️⃣ **재순위화 모드** (`--rerank`)
 ```bash
 # 하이브리드 + 재순위화 (추천)
 vis search "clean architecture" --search-method hybrid --rerank
-
-# ColBERT + 재순위화 (정밀 검색)
-vis search "SOLID principles" --search-method colbert --rerank
 
 # 의미적 + 재순위화
 vis search "design patterns" --search-method semantic --rerank
@@ -179,7 +163,6 @@ vis search \
 - **`semantic`**: 의미적 검색 (개념 기반, Dense embedding)
 - **`keyword`**: 키워드 검색 (정확한 단어 매칭, BM25 기반)
 - **`hybrid`**: 하이브리드 검색 (의미적 + 키워드 결합, 추천 ⭐)
-- **`colbert`**: ColBERT 토큰 수준 검색 (late interaction, 정밀 매칭)
 - **`*_reranked`**: Cross-encoder(BGE Reranker V2-M3)로 재순위화된 결과 (정확도 향상)
 - **`*_expanded_*`**: 쿼리 확장이 적용된 결과
   - **`*_original`**: 원본 쿼리 결과
@@ -191,7 +174,6 @@ vis search \
 |-----------|-------------|------|------|
 | **Hybrid** | 일반적인 모든 검색 | Dense + BM25 결합, 균형 잡힌 성능 | 빠름 ⚡ |
 | **Semantic** | 개념적, 의미적 검색 | 유사한 개념 문서 발견 | 빠름 ⚡ |
-| **ColBERT** | 긴 문장, 복합 개념 | 토큰 레벨 정밀 매칭 | 보통 🐌 |
 | **Keyword** | 정확한 용어 검색 | 명시적 키워드 매칭 | 빠름 ⚡ |
 
 #### 재순위화(--rerank) 사용 권장
@@ -1035,15 +1017,6 @@ vis search "첫 검색"
 
 ### 수동 재인덱싱
 ```bash
-# 🆕 ColBERT 포함 통합 인덱싱 (권장!)
-vis reindex --with-colbert
-
-# ColBERT만 재인덱싱 (Dense 임베딩 제외)
-vis reindex --colbert-only
-
-# ColBERT 강제 재인덱싱
-vis reindex --with-colbert --force
-
 # 기본 재인덱싱 (Dense 임베딩만)
 vis reindex
 
@@ -1059,26 +1032,6 @@ vis reindex --exclude-folders "ATTACHMENTS" "temp"
 
 # 상세 진행률 표시
 vis reindex --force --verbose
-```
-
-### 폴더별 점진적 색인
-
-### 🎯 ColBERT 증분 캐싱 시스템 (신규!)
-
-#### 주요 장점
-- **전체 문서 지원**: max_documents 제한 제거로 vault 전체에서 ColBERT 검색
-- **영구 캐싱**: SQLite 기반으로 재계산 불필요 
-- **증분 처리**: 변경된 문서만 자동 감지하여 재인덱싱
-- **빠른 검색**: 캐시 활용으로 즉시 검색 결과 제공
-
-#### 성능 비교
-- **첫 인덱싱**: 1-2시간 (전체 vault, 1회만)
-- **이후 검색**: 즉시 (캐시 활용)
-- **증분 업데이트**: 변경된 파일만 처리
-
-#### 캐시 상태 확인
-```bash
-vis info  # Dense + ColBERT 캐시 통계 포함
 ```
 
 ### 폴더별 점진적 색인
@@ -1153,11 +1106,6 @@ reranker:
   use_fp16: true
   batch_size: 4
   cache_folder: "models"
-
-colbert:
-  batch_size: 4
-  max_length: 4096
-  max_documents: 20                 # ColBERT 처리 문서 수 제한 (성능 최적화)
 
 query_expansion:
   use_synonyms: true
@@ -1416,10 +1364,6 @@ model:
 
 reranker:
   batch_size: 2   # 재순위화 배치 크기 감소
-
-colbert:
-  batch_size: 2
-  max_documents: 10  # ColBERT 처리 문서 수 감소
 ```
 
 #### 4. 캐시 파일 손상
@@ -1481,8 +1425,6 @@ search:
   default_top_k: 10
 reranker:
   batch_size: 4
-colbert:
-  max_documents: 20
 ```
 
 #### 중규모 vault (1,000 ~ 5,000 문서)
@@ -1493,8 +1435,6 @@ search:
   default_top_k: 20
 reranker:
   batch_size: 4
-colbert:
-  max_documents: 20
 ```
 
 #### 대규모 vault (> 5,000 문서)
@@ -1507,8 +1447,6 @@ duplicates:
   min_word_count: 100  # 짧은 문서 제외로 성능 향상
 reranker:
   batch_size: 6
-colbert:
-  max_documents: 30
 ```
 
 ### Phase 5 성능 가이드
@@ -1519,7 +1457,6 @@ colbert:
 | `hybrid` | ⚡⚡⚡ | ⭐⭐⭐ | 💾 | 일반적 검색 |
 | `--rerank` | ⚡⚡ | ⭐⭐⭐⭐⭐ | 💾💾 | 고정확도 필요 |
 | `--expand` | ⚡ | ⭐⭐⭐⭐ | 💾💾 | 포괄적 검색 |
-| `colbert` | ⚡ | ⭐⭐⭐⭐ | 💾💾💾 | 토큰 수준 매칭 |
 | `--rerank --expand` | ⚡ | ⭐⭐⭐⭐⭐ | 💾💾💾 | 최고 품질 |
 
 ### Phase 6 성능 가이드
@@ -1675,7 +1612,7 @@ GPU 메모리: 24.0GB                   # 통합 메모리
 
 📋 완료된 기능 (Phase 6):
 - BGE-M3 기반 1024차원 임베딩
-- 다층 하이브리드 검색 (Dense + Sparse + ColBERT + Reranking)
+- 다층 하이브리드 검색 (Dense + Sparse + Reranking)
 - 지식 그래프 분석 (관련성, 중심성, 공백 분석)
 - 쿼리 확장 (동의어 + HyDE)
 - SQLite 기반 영구 캐싱
@@ -1700,7 +1637,6 @@ time vis search "performance test"
 
 # 개별 모듈 테스트
 python -c "from src.features.reranker import test_reranker; test_reranker()"
-python -c "from src.features.colbert_search import test_colbert_search; test_colbert_search()"
 python -c "from src.features.query_expansion import test_query_expansion; test_query_expansion()"
 ```
 
@@ -1830,7 +1766,6 @@ vis search "개발"  # 대신 "소프트웨어 개발" 권장
 
 ### 이전 업데이트 (V2.5)
 - 🎯 **Cross-encoder Reranking**: BGE Reranker V2-M3 기반 정밀 재순위화
-- 🔍 **ColBERT Search**: 토큰 수준 late interaction 검색
 - 🔄 **Query Expansion**: 한영 동의어 확장 + HyDE 가상 문서 생성
 - ⚙️ **File Exclusion**: glob 패턴 기반 파일 제외 기능
 - 📊 **Performance Optimization**: 다양한 검색 모드별 성능 최적화

@@ -19,7 +19,6 @@ vis search "TDD"
 vis search "TDD" --search-method semantic   # 의미적 검색
 vis search "TDD" --search-method keyword    # 키워드 검색
 vis search "TDD" --search-method hybrid     # 하이브리드 (기본값)
-vis search "TDD" --search-method colbert    # ColBERT 토큰 검색
 ```
 
 ### Progressive Disclosure 검색 (token 절감)
@@ -89,7 +88,6 @@ vis tag "폴더명/" --recursive
 
 # 인덱싱
 vis reindex                    # 기본 재인덱싱
-vis reindex --with-colbert     # ColBERT 포함
 vis reindex --force            # 강제 전체 재인덱싱
 
 # 태그 분석
@@ -149,7 +147,6 @@ vis search "TDD" --rerank                 # --rerank (O)
 | `semantic` | 개념적, 의미적 검색 | ⚡⚡⚡ | ⭐⭐⭐ |
 | `keyword` | 정확한 용어 검색 | ⚡⚡⚡ | ⭐⭐ |
 | `hybrid` | 일반적인 모든 검색 (권장) | ⚡⚡⚡ | ⭐⭐⭐⭐ |
-| `colbert` | 긴 문장, 복합 개념 | ⚡⚡ | ⭐⭐⭐⭐ |
 | `--rerank` | 고정확도 필요 시 | ⚡⚡ | ⭐⭐⭐⭐⭐ |
 | `--expand` | 포괄적 검색 필요 시 | ⚡ | ⭐⭐⭐⭐ |
 | `--titles-only` | 대량 결과 빠른 탐색, token 절감 (~64%) | ⚡⚡⚡ | — |
@@ -179,7 +176,6 @@ src/
 ├── features/                       # 기능 모듈
 │   ├── advanced_search.py              # 다층 검색 엔진
 │   ├── reranker.py                     # Cross-encoder 재순위화
-│   ├── colbert_search.py               # ColBERT 토큰 검색
 │   ├── query_expansion.py              # 쿼리 확장 (동의어 + HyDE)
 │   ├── semantic_tagger.py              # 자동 태깅 시스템
 │   ├── content_clusterer.py            # 문서 클러스터링 (Phase 9)
@@ -291,7 +287,6 @@ search:
 # 캐싱 설정
 caching:
   enable_dense: true
-  enable_colbert: true
   enable_metadata: true
 
 # Phase 9 설정
@@ -371,12 +366,11 @@ engine.build_index()
 # 다양한 검색 방법
 results = engine.hybrid_search("query", top_k=10)
 results = engine.semantic_search("query", top_k=5)
-results = engine.colbert_search("query", top_k=10)
 
 # 재순위화를 포함한 고급 검색 (권장)
 results = engine.search_with_reranking(
     query="test driven development",
-    search_method="hybrid",  # semantic, keyword, colbert, hybrid
+    search_method="hybrid",  # semantic, keyword, hybrid
     initial_k=30,           # 1차 검색 후보 수
     final_k=10,             # 최종 반환 수
     use_reranker=True       # BGE Reranker V2-M3 활용
@@ -494,8 +488,6 @@ logger.error("오류 메시지")
 - **검색 결과 없음**: similarity_threshold 조정 (기본: 0.3)
 - **인덱싱 실패**: 캐시 디렉토리 권한 확인, 강제 재인덱싱
 - **모델 로딩 실패**: 네트워크 연결 확인, HuggingFace 캐시 확인
-- **ColBERT 경고 메시지**: 캐시 초기화 후 재인덱싱 (`rm -rf cache/ && vis reindex --with-colbert`)
-- **ColBERT 재순위화 오류**: 2025-08-27 수정 완료, 모든 검색 방법에서 --rerank 옵션 지원
 
 ### 성능 프로파일링
 
@@ -518,7 +510,7 @@ stats.print_stats(10)
 ### ✅ 완료된 Phase들 (Phase 1-9 + 긴급 수정)
 
 - **Phase 1-4**: 기본 BGE-M3 검색 시스템
-- **Phase 5**: 고급 검색 (Reranking, ColBERT, 쿼리 확장)
+- **Phase 5**: 고급 검색 (Reranking, 쿼리 확장)
 - **Phase 6**: 지식 그래프 및 관련성 분석
 - **Phase 7**: 자동 태깅 시스템
 - **Phase 8**: MOC 자동 생성

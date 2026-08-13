@@ -231,19 +231,7 @@ vis search "SOLID principles" --top-k 3
 vis search "마이크로서비스 도메인 주도 설계" --threshold 0.5
 ```
 
-### 예제 4: ColBERT 정밀 검색
-
-```bash
-# 긴 문장을 사용한 ColBERT 검색 (권장)
-vis search "test driven development refactoring clean code practices" --search-method colbert --top-k 5
-
-# 복합 개념 검색
-vis search "dependency injection inversion of control spring framework" --search-method colbert
-```
-
-**사용 팁:** ColBERT는 단일 키워드보다 긴 문장에서 성능이 우수합니다.
-
-### 예제 5: 재순위화로 정확도 향상
+### 예제 4: 재순위화로 정확도 향상
 
 ```bash
 # 하이브리드 + 재순위화 (최고 정확도)
@@ -255,7 +243,7 @@ vis search "design patterns strategy factory" --search-method semantic --rerank
 
 **기대 효과:** 정확도 15-25% 향상, 처리 시간 2-3배 증가
 
-### 예제 6: 검색 방법별 비교 테스트
+### 예제 5: 검색 방법별 비교 테스트
 
 ```bash
 # 같은 쿼리로 각 방법 비교
@@ -264,25 +252,21 @@ query="SOLID principles object oriented design"
 vis search "$query" --search-method semantic   # 의미적
 vis search "$query" --search-method keyword    # 키워드
 vis search "$query" --search-method hybrid     # 하이브리드 (추천)
-vis search "$query" --search-method colbert    # ColBERT
 
 # 재순위화 비교
 vis search "$query" --search-method hybrid             # 기본
 vis search "$query" --search-method hybrid --rerank   # 재순위화
 ```
 
-### 예제 7: 단일 키워드 최적 검색법
+### 예제 6: 단일 키워드 최적 검색법
 
 ```bash
-# 단일 약어/키워드는 ColBERT보다 하이브리드가 효과적
+# 단일 약어/키워드는 하이브리드가 효과적
 vis search "YAGNI" --search-method hybrid           # ✅ 추천
 vis search "TDD" --search-method hybrid --rerank   # ✅ 더 정확
-
-# ColBERT용으로 쿼리 확장
-vis search "YAGNI You Aren't Going to Need It agile principle" --search-method colbert
 ```
 
-### 예제 8: 정확도 조절
+### 예제 7: 정확도 조절
 
 ```bash
 # 낮은 임계값 - 더 많은 결과
@@ -303,39 +287,6 @@ vis search "Spring Boot 아키텍처"
 
 # 데이터베이스 관련
 vis search "JPA 성능 최적화"
-```
-
-### 🆕 예제 6: ColBERT 토큰 수준 검색 (신규!)
-
-```bash
-# ColBERT 검색 - 세밀한 토큰 매칭
-vis search "TDD" --search-method colbert
-
-# ColBERT 검색과 재순위화 결합 - 최고 품질
-vis search "클린 코드" --search-method colbert --rerank
-
-# ColBERT 검색에서 더 많은 결과
-vis search "리팩토링" --search-method colbert --top-k 15
-```
-
-**ColBERT vs 다른 검색 방법 비교:**
-
-```bash
-# 동일한 쿼리로 다양한 검색 방법 테스트
-vis search "테스트 주도 개발" --search-method semantic
-vis search "테스트 주도 개발" --search-method keyword
-vis search "테스트 주도 개발" --search-method hybrid
-vis search "테스트 주도 개발" --search-method colbert
-```
-
-### 예제 7: 초기 ColBERT 인덱싱
-
-```bash
-# 🎯 처음 사용 시 ColBERT 전체 인덱싱 (1회, 1-2시간)
-vis reindex --with-colbert
-
-# ✅ 이후로는 캐시 활용으로 즉시 검색 가능!
-vis search "아무 검색어" --search-method colbert
 ```
 
 ---

@@ -1,6 +1,6 @@
 # Vault Intelligence - Semantic Search for Obsidian
 
-Obsidian vault를 위한 로컬 시맨틱 검색 엔진. BGE-M3 임베딩 기반으로 Dense, Sparse, ColBERT, Cross-encoder Reranking을 결합한 다층 하이브리드 검색을 제공합니다. 한국어 최적화 포함.
+Obsidian vault를 위한 로컬 시맨틱 검색 엔진. BGE-M3 임베딩 기반으로 Dense, Sparse, Cross-encoder Reranking을 결합한 다층 하이브리드 검색을 제공합니다. 한국어 최적화 포함.
 
 변경 이력은 [CHANGELOG](CHANGELOG.md)에서 확인할 수 있습니다.
 
@@ -18,7 +18,6 @@ vis reindex
 vis search "TDD"                              # 하이브리드 검색 (기본)
 vis search "TDD" --search-method semantic     # 의미적 검색
 vis search "TDD" --search-method keyword      # 키워드 검색
-vis search "TDD" --search-method colbert      # ColBERT 토큰 검색
 vis search "TDD" --rerank                     # Cross-encoder 재순위화 (최고 품질)
 vis search "TDD" --rerank --expand            # 재순위화 + 쿼리 확장 (최대 포괄)
 
@@ -188,7 +187,6 @@ vis clean-tags
 
 # 인덱스 관리
 vis reindex                    # 증분 재인덱싱
-vis reindex --with-colbert     # ColBERT 포함
 vis reindex --force            # 강제 전체 재인덱싱
 ```
 
