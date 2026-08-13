@@ -14,6 +14,7 @@ from pathlib import Path
 from dataclasses import dataclass, asdict
 from datetime import datetime
 import numpy as np
+import torch
 from collections import defaultdict
 
 try:
@@ -258,6 +259,17 @@ class AdvancedSearchEngine:
                     # 진행률 콜백
                     if progress_callback and (i + 1) % 50 == 0:
                         progress_callback(i + 1, len(self.documents))
+
+                    # MPS 할당자 캐시 주기적 반환.
+                    # 이 루프는 문서마다 encode_text()를 호출하므로 매 호출의 텐서
+                    # shape이 문서 길이만큼 제각각이고, 캐시를 비우지 않으면 shape별
+                    # 블록이 계속 쌓인다. 실측(2026-08-13): --force 재인덱싱에서 이
+                    # 루프가 phys_footprint를 15GB → 32GB로 밀어올렸다.
+                    # encode_text() 자체가 아니라 이 루프에 두는 이유는, encode_text가
+                    # 검색 쿼리 임베딩에도 쓰여서 거기에 넣으면 매 검색이 GPU 동기화
+                    # 비용을 물기 때문이다.
+                    if (i + 1) % 50 == 0 and torch.backends.mps.is_available():
+                        torch.mps.empty_cache()
                 
                 except Exception as e:
                     logger.error(f"임베딩 처리 실패: {doc.path}, {e}")
