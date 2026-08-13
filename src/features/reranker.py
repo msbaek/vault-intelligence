@@ -327,10 +327,6 @@ class RerankerPipeline:
             initial_results = self.search_engine.keyword_search(
                 query, top_k=initial_k, **search_kwargs
             )
-        elif search_method == "colbert":
-            initial_results = self.search_engine.colbert_search(
-                query, top_k=initial_k, threshold=similarity_threshold, **search_kwargs
-            )
         elif search_method == "hybrid":
             initial_results = self.search_engine.hybrid_search(
                 query, top_k=initial_k, threshold=similarity_threshold, **search_kwargs

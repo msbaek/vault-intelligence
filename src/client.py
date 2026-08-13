@@ -119,7 +119,7 @@ class VisClient:
             query: Search query
             top_k: Number of results to return
             threshold: Similarity threshold
-            search_method: Search method (semantic, keyword, hybrid, colbert)
+            search_method: Search method (semantic, keyword, hybrid)
             rerank: Enable reranking
             include: Response depth — 'full'(default, snippet 포함) or 'index'(path/score/title/rank만)
             auto_start: Auto-start server if not running

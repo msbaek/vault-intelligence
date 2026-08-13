@@ -19,7 +19,7 @@ import uvicorn
 from fastapi import FastAPI, HTTPException, Query
 from pydantic import BaseModel
 
-from .features.advanced_search import AdvancedSearchEngine, SearchResult
+from .features.advanced_search import AdvancedSearchEngine, SearchResult, normalize_search_method
 from .core.vault_processor import Document
 from .constants import DEFAULT_PORT, PID_FILE
 
@@ -236,7 +236,7 @@ def create_app() -> FastAPI:
         query: str = Query(..., description="Search query"),
         top_k: int = Query(10, description="Number of results to return"),
         threshold: float = Query(0.0, description="Similarity threshold"),
-        search_method: str = Query("hybrid", description="Search method: semantic, keyword, hybrid, colbert"),
+        search_method: str = Query("hybrid", description="Search method: semantic, keyword, hybrid"),
         rerank: bool = Query(False, description="Enable reranking"),
         include: Literal["full", "index"] = Query(
             "full",
@@ -252,6 +252,8 @@ def create_app() -> FastAPI:
             raise HTTPException(status_code=503, detail="Search engine not initialized")
 
         try:
+            search_method = normalize_search_method(search_method)
+
             # Execute search based on method and rerank option
             if rerank:
                 results: List[SearchResult] = engine.search_with_reranking(
@@ -268,8 +270,6 @@ def create_app() -> FastAPI:
                     results = engine.semantic_search(query, top_k=top_k, threshold=threshold)
                 elif search_method == "keyword":
                     results = engine.keyword_search(query, top_k=top_k)
-                elif search_method == "colbert":
-                    results = engine.colbert_search(query, top_k=top_k, threshold=threshold)
                 elif search_method == "hybrid":
                     results = engine.hybrid_search(query, top_k=top_k, threshold=threshold)
                 else:

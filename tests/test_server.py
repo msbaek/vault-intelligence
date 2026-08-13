@@ -164,7 +164,6 @@ def mock_engine():
     engine.hybrid_search = Mock(side_effect=make_search_results)
     engine.semantic_search = Mock(side_effect=make_search_results)
     engine.keyword_search = Mock(side_effect=make_search_results)
-    engine.colbert_search = Mock(side_effect=make_search_results)
     engine.search_with_reranking = Mock(side_effect=make_search_results)
 
     return engine
@@ -263,6 +262,19 @@ def test_search_with_different_methods(client):
         assert response.status_code == 200
         data = response.json()
         assert data["search_method"] == method
+
+
+def test_search_with_colbert_falls_back_to_hybrid(client):
+    """ColBERT was removed (2026-08-13) — should warn and return hybrid results, not error."""
+    response = client.get("/search", params={
+        "query": "test",
+        "search_method": "colbert",
+        "top_k": 3
+    })
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["search_method"] == "hybrid"
 
 
 def test_search_with_threshold(client):
