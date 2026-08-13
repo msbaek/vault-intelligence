@@ -197,6 +197,15 @@ class AdvancedEmbeddingEngine:
                     # 진행률 업데이트
                     processed_docs = min(i + len(chunk_docs), total_docs)
                     progress.update(task, completed=processed_docs)
+
+                    # MPS 할당자 캐시 반환.
+                    # FlagEmbedding이 청크마다 문서를 길이순 정렬해 배치 텐서 shape이
+                    # 매번 달라지므로, 캐시를 비우지 않으면 shape별 블록이 계속 쌓인다.
+                    # 실측(2026-08-13): 50문서 청크당 +2.3GB 누적 → 4,490문서 전체에서
+                    # phys_footprint 42-48GB, 시스템 스왑 고갈. 캐시를 비우면 4-6GB에서
+                    # 진동만 하고 증가하지 않는다 (실사용 메모리는 2.2GB로 내내 고정).
+                    if torch.backends.mps.is_available():
+                        torch.mps.empty_cache()
             
             # 모든 청크의 임베딩을 합침
             self.dense_embeddings = np.vstack(all_embeddings) if all_embeddings else np.zeros((0, self.embedding_dimension))
