@@ -28,6 +28,7 @@ vault:
     - ".idea"
     - ".obsidian-tools"
     - ".obsidian"
+    - ".playwright-mcp"
     - ".serena"
     - ".smart-env"
     - ".smtcmp_chat_histories"
@@ -80,19 +81,6 @@ reranker:
   device: "mps" # M1 Pro Metal Performance Shaders 가속
   batch_size: 2
   initial_candidates_multiplier: 3 # 초기 검색에서 final_k * 3개 후보 검색
-
-# ColBERT 설정 (Phase 5.2 + 증분 인덱싱)
-colbert:
-  model_name: "BAAI/bge-m3" # BGE-M3 ColBERT 기능 사용
-  use_fp16: true
-  cache_folder: "models/"
-  device: "mps" # M1 Pro Metal Performance Shaders 가속
-  max_length: 4096
-  batch_size: 2 # 낮은 부하로 조정
-  max_documents: null # 전체 문서 대상 (제한 없음)
-  enable_cache: true # ColBERT 캐싱 활성화
-  incremental_indexing: true # 증분 인덱싱 활성화
-  auto_index_on_reindex: true # reindex 시 자동 ColBERT 인덱싱
 
 # 쿼리 확장 설정 (Phase 5.3)
 query_expansion:
