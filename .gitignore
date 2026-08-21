@@ -27,6 +27,13 @@ env/
 ENV/
 env.bak/
 venv.bak/
+.venv_*/
+
+# Browser automation cache
+.playwright-mcp/
+
+# Session scratch progress
+.claude/summarize-progress/
 
 # IDEs
 .vscode/
