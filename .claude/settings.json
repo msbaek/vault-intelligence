@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(curl -s --get *)",
+      "Bash(curl --get *)",
+      "Bash(curl http://localhost:8741/*)",
+      "Bash(curl -s http://localhost:8741/*)",
+      "Bash(vis search *)",
+      "Bash(vis related *)",
+      "Bash(visd status)",
+      "Bash(visd logs *)",
+      "Bash(pytest tests/ *)",
+      "Bash(pytest tests/*)"
+    ],
+    "deny": []
+  }
+}
