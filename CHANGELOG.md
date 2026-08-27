@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- `[graph]` optional dependency — `pipx install -e '.[graph]'`로 `pyvis`가 함께 설치된다. 기존에는 `pipx inject`를 따로 해야 그래프 시각화(`src/visualization/graph_renderer.py`)가 동작했고, 이 사실이 문서화돼 있지 않아 새 환경마다 import 오류로 걸렸다
+- README에 `자동 재색인 (launchd)` 절 — `scripts/vis-nightly-reindex.sh`가 저장소에 있으면서 등록 방법이 어디에도 없었다. 요일별 모드(평일 증분 / 일요일 `--force`), plist 등록, 로그 경로, lock·stale 처리, Slack 알림 설정을 문서화
 - `vis search --titles-only` / `--full-content` 옵션으로 progressive disclosure 검색 지원 (토큰 ~57% 절감)
 - `vis get <path>` 서브커맨드 — 단일/다중 문서 본문 fetch (`--format markdown|json`)
 - HTTP API: `GET /search?include=index|full`, `GET /document?path=`, `POST /document/batch`

@@ -28,6 +28,11 @@ dependencies = [
     "httpx>=0.25.0",
 ]
 
+[project.optional-dependencies]
+# 문서 관계 그래프 시각화(vis graph / graphify)에만 필요.
+# 없으면 src/visualization/graph_renderer.py의 pyvis import가 실패한다.
+graph = ["pyvis>=0.3.2"]
+
 [project.scripts]
 vis = "src.__main__:main"  # vault-intelligence system (메인 명령어)
 vault-intel = "src.__main__:main"  # 하위 호환 alias

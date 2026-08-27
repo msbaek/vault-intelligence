@@ -10,6 +10,12 @@ Obsidian vault를 위한 로컬 시맨틱 검색 엔진. BGE-M3 임베딩 기반
 # 설치 (pipx 권장)
 pipx install -e ~/git/vault-intelligence
 
+# 그래프 시각화(vis graph / graphify)까지 쓰려면 graph extra 포함
+pipx install -e '~/git/vault-intelligence[graph]'
+
+# Python 버전을 고정하려면 (검증된 조합: 3.11)
+pipx install -e '~/git/vault-intelligence[graph]' --python "$(pyenv prefix 3.11.7)/bin/python3.11"
+
 # Vault 초기화 및 인덱싱
 vis init --vault-path ~/my-vault
 vis reindex
@@ -188,6 +194,81 @@ vis clean-tags
 # 인덱스 관리
 vis reindex                    # 증분 재인덱싱
 vis reindex --force            # 강제 전체 재인덱싱
+```
+
+## 자동 재색인 (launchd)
+
+`scripts/vis-nightly-reindex.sh`를 launchd에 등록하면 매일 자동으로 재색인합니다.
+**요일에 따라 모드가 갈립니다** — 평일은 증분, 일요일은 `--force` 전체 재구축입니다.
+
+| 요일 | 실행 명령 | 실측 소요 |
+|---|---|---|
+| 월~토 | `vis reindex` (증분, 캐시 기반) | 수 분 |
+| 일 | `vis reindex --force` (전체 재구축) | 최장 5시간 |
+
+스크립트가 자동으로 처리하는 것:
+
+- **데몬 정지 후 재색인** — visd와 동시 실행 시 BGE-M3 모델이 이중 로딩돼 OOM이 발생한 이력이 있어, `visd stop` → reindex → `visd start` 순으로 돕니다.
+- **중복 실행 방지** — `mkdir` 기반 원자적 lock. 이전 실행이 비정상 종료돼 lock이 남으면 6시간(`VIS_REINDEX_LOCK_STALE_SEC`) 경과 시 stale로 간주하고 정리합니다.
+- **결과 알림** — terminal-notifier(없으면 osascript) + Slack.
+
+### 등록
+
+```bash
+mkdir -p ~/.claude/logs/vis-reindex
+cat > ~/Library/LaunchAgents/com.msbaek.vis-reindex.plist <<PLIST
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key><string>com.msbaek.vis-reindex</string>
+    <key>ProgramArguments</key>
+    <array><string>$HOME/git/vault-intelligence/scripts/vis-nightly-reindex.sh</string></array>
+    <key>StartCalendarInterval</key>
+    <dict><key>Hour</key><integer>1</integer><key>Minute</key><integer>0</integer></dict>
+    <key>RunAtLoad</key><false/>
+    <key>StandardOutPath</key><string>$HOME/.claude/logs/vis-reindex/launchd.out.log</string>
+    <key>StandardErrorPath</key><string>$HOME/.claude/logs/vis-reindex/launchd.err.log</string>
+</dict>
+</plist>
+PLIST
+
+launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.msbaek.vis-reindex.plist
+```
+
+`bootstrap`은 GUI 로그인 세션에서 실행해야 합니다. SSH 접속만으로는 실패합니다.
+
+01:00에 맥이 잠들어 있으면 launchd가 깨어난 뒤 실행합니다(cron과의 차이). 정시 실행을 보장하려면
+`sudo pmset repeat wakeorpoweron MTWRFSU 00:55:00`으로 웨이크를 예약하세요.
+
+### 검증과 로그
+
+```bash
+# 스케줄을 기다리지 않고 즉시 실행
+launchctl kickstart -p gui/$(id -u)/com.msbaek.vis-reindex
+
+# 모드를 강제해서 테스트 (요일 판별 무시)
+VIS_REINDEX_MODE=incremental scripts/vis-nightly-reindex.sh --dry-run
+```
+
+| 경로 | 내용 |
+|---|---|
+| `~/.claude/logs/vis-reindex/latest.txt` | 마지막 실행 요약 (모드·소요·문서수·종료코드) |
+| `~/.claude/logs/vis-reindex/<타임스탬프>.log` | 실행별 상세 로그 |
+| `~/.claude/logs/vis-reindex/launchd.err.log` | launchd 레벨 오류 (스크립트가 아예 못 뜬 경우) |
+
+### Slack 알림 (선택)
+
+`~/.config/vis-reindex/slack.conf`가 있으면 실행 결과를 Slack에 보냅니다. 없으면 조용히 건너뛰므로,
+알림이 안 오면 이 파일부터 확인하세요. **git에 커밋하지 마세요** (`chmod 600` 권장).
+
+```bash
+# webhook 방식 (권장)
+SLACK_WEBHOOK_URL="https://hooks.slack.com/services/..."
+
+# 또는 bot token 방식
+SLACK_BOT_TOKEN="xoxb-..."
+SLACK_CHANNEL="#channel-or-UID"
 ```
 
 ## Architecture
